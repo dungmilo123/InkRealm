@@ -1,4 +1,5 @@
 import type { Novel } from "@/app/generated/prisma/client";
+import Link from "next/link";
 
 interface NovelListProps {
   novels: Novel[];
@@ -33,23 +34,31 @@ export function NovelList({ novels }: NovelListProps) {
     <div className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
       <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
         {novels.map((novel) => (
-          <li key={novel.id} className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                  {novel.title}
-                </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                  {novel.originalFileName} &middot; {novel.fileType.toUpperCase()} &middot;{" "}
-                  {formatFileSize(novel.sizeBytes)}
-                </p>
+          <li key={novel.id}>
+            <Link
+              href={`/novels/${novel.id}`}
+              className="block p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    {novel.title}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    {novel.originalFileName} &middot; {novel.fileType.toUpperCase()} &middot;{" "}
+                    {formatFileSize(novel.sizeBytes)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    {formatDate(novel.createdAt)}
+                  </p>
+                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mt-1">
+                    View details
+                  </p>
+                </div>
               </div>
-              <div className="ml-4 text-right">
-                <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                  {formatDate(novel.createdAt)}
-                </p>
-              </div>
-            </div>
+            </Link>
           </li>
         ))}
       </ul>

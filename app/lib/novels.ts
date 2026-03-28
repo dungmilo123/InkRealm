@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import type { Novel } from "../generated/prisma/client";
+import { notFound } from "next/navigation";
 
 export type NovelCreateInput = {
   title: string;
@@ -22,4 +23,14 @@ export async function listNovels(): Promise<Novel[]> {
 
 export async function getNovelById(id: string): Promise<Novel | null> {
   return prisma.novel.findUnique({ where: { id } });
+}
+
+export async function getNovelByIdOrNotFound(id: string): Promise<Novel> {
+  const novel = await getNovelById(id);
+
+  if (!novel) {
+    notFound();
+  }
+
+  return novel;
 }

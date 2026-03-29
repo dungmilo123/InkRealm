@@ -82,6 +82,17 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
   const storageDir = join(process.cwd(), "storage", "novels", "translation-tests");
   await mkdir(storageDir, { recursive: true });
 
+  const TEST_USER_ID = "lifecycle-test-user";
+  await prisma.user.upsert({
+    where: { id: TEST_USER_ID },
+    update: {},
+    create: {
+      id: TEST_USER_ID,
+      email: `lifecycle-test-${Date.now()}@test.local`,
+      name: "Lifecycle Test User",
+    },
+  });
+
   const createdNovelIds: string[] = [];
   const createdFilePaths: string[] = [];
   const exportPaths = new Set<string>();
@@ -147,7 +158,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       model: "mock-chat-model",
       baseUrl: `http://127.0.0.1:${serverPort}/v1`,
       apiKey: "mock-api-key",
-    });
+    }, TEST_USER_ID);
 
     assert.ok(profile.id);
     assert.equal("encryptedApiKey" in profile, false);
@@ -168,6 +179,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       mimeType: "text/plain",
       sizeBytes: 100,
       storagePath: txtPath,
+      userId: TEST_USER_ID,
     });
     createdNovelIds.push(txtNovel.id);
 
@@ -176,6 +188,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       profileId: profile.id,
       targetLanguage: "Vietnamese",
       batchSize: 10,
+      userId: TEST_USER_ID,
     });
 
     assert.equal(txtJob.status, "COMPLETED");
@@ -194,6 +207,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       mimeType: "application/epub+zip",
       sizeBytes: 200,
       storagePath: epubPath,
+      userId: TEST_USER_ID,
     });
     createdNovelIds.push(epubNovel.id);
 
@@ -202,6 +216,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       profileId: profile.id,
       targetLanguage: "Vietnamese",
       batchSize: 10,
+      userId: TEST_USER_ID,
     });
 
     assert.equal(failedJob.status, "FAILED");
@@ -212,6 +227,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       translationId: failedJob.id,
       profileId: profile.id,
       batchSize: 10,
+      userId: TEST_USER_ID,
     });
 
     assert.equal(recoveredJob.status, "COMPLETED");

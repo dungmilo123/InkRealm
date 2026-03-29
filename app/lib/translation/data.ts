@@ -17,6 +17,7 @@ const profilePublicSelect = {
 const profileWithSecretSelect = {
   ...profilePublicSelect,
   encryptedApiKey: true,
+  userId: true,
 } as const;
 
 const translationJobSummarySelect = {
@@ -51,8 +52,9 @@ export type TranslationChapterForExport = Awaited<
   ReturnType<typeof listTranslatedChaptersForExport>
 >[number];
 
-export async function listTranslationProfiles() {
+export async function listTranslationProfiles(userId: string) {
   return prisma.translationProfile.findMany({
+    where: { userId },
     select: profilePublicSelect,
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
   });
@@ -63,6 +65,7 @@ export async function createTranslationProfileRecord(input: {
   model: string;
   baseUrl: string | null;
   encryptedApiKey: string;
+  userId: string;
 }) {
   return prisma.translationProfile.create({
     data: input,
@@ -95,12 +98,14 @@ export async function updateTranslationProfileRecord(
 
 export async function findLatestProfileForSnapshot(
   provider: TranslationProvider,
-  model: string
+  model: string,
+  userId: string
 ) {
   return prisma.translationProfile.findFirst({
     where: {
       provider,
       model,
+      userId,
     },
     select: profileWithSecretSelect,
     orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],

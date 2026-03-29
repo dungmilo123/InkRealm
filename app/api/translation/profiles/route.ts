@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { createTranslationProfile, listTranslationProfilesForDisplay } from "@/app/lib/translation/profiles";
 import {
   handleTranslationRouteError,
@@ -7,7 +8,11 @@ import {
 
 export async function GET() {
   try {
-    const profiles = await listTranslationProfilesForDisplay();
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const profiles = await listTranslationProfilesForDisplay(session.user.id);
     return NextResponse.json({ profiles });
   } catch (error) {
     return handleTranslationRouteError(error);
@@ -16,8 +21,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const payload = await safeReadJson(request);
-    const profile = await createTranslationProfile(payload);
+    const profile = await createTranslationProfile(payload, session.user.id);
     return NextResponse.json({ profile }, { status: 201 });
   } catch (error) {
     return handleTranslationRouteError(error);

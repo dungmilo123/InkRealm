@@ -1,5 +1,6 @@
 import { basename } from "path";
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { readTranslatedExportFile } from "@/app/lib/translation/export";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import { handleTranslationRouteError } from "@/app/lib/translation/http";
@@ -10,8 +11,12 @@ export async function GET(
   context: { params: Promise<{ translationId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { translationId } = await context.params;
-    const job = await getDownloadableTranslationJob(translationId);
+    const job = await getDownloadableTranslationJob(translationId, session.user.id);
 
     let fileBuffer: Buffer;
     try {

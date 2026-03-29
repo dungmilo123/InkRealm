@@ -3,6 +3,7 @@ import { validateUpload } from "@/app/lib/validation";
 import { generateStorageKey, writeNovelFile } from "@/app/lib/storage";
 import { createNovel } from "@/app/lib/novels";
 import { unlink } from "fs/promises";
+import { auth } from "@/auth";
 
 const VALID_FILE_TYPES = ["txt", "epub"];
 
@@ -29,6 +30,10 @@ function sanitizeTitle(fileName: string): string {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const formData = await request.formData();
     const allFileEntries = Array.from(formData.values()).filter(
       (value): value is File => value instanceof File
@@ -79,6 +84,7 @@ export async function POST(request: Request) {
         mimeType: file.type || getMimeType(file.name),
         sizeBytes: file.size,
         storagePath,
+        userId: session.user.id,
       });
 
       return NextResponse.json({ success: true, novel }, { status: 201 });

@@ -7,29 +7,42 @@ import {
 } from "@/app/generated/prisma/client";
 import { createNovel } from "@/app/lib/novels";
 import { prisma } from "@/app/lib/prisma";
-import { GET as getTranslationExport } from "@/app/api/translation/jobs/[translationId]/export/route";
+import { getDownloadableTranslationJob } from "@/app/lib/translation/service";
+import { TranslationHttpError } from "@/app/lib/translation/errors";
 
 function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function readJsonError(response: Response) {
-  const payload = (await response.json()) as { error?: string };
-  return payload.error ?? "unknown-error";
+const TEST_USER_ID = "export-route-test-user";
+
+async function ensureTestUser() {
+  await prisma.user.upsert({
+    where: { id: TEST_USER_ID },
+    update: {},
+    create: {
+      id: TEST_USER_ID,
+      email: `export-route-test-${uniqueSuffix()}@test.local`,
+      name: "Export Route Test User",
+    },
+  });
 }
 
-test("export route rejects unknown translation ids", async () => {
-  const response = await getTranslationExport(new Request("http://localhost"), {
-    params: Promise.resolve({
-      translationId: `missing-${uniqueSuffix()}`,
-    }),
-  });
+test("export service rejects unknown translation ids", async () => {
+  await ensureTestUser();
 
-  assert.equal(response.status, 404);
-  assert.equal(await readJsonError(response), "Translation job not found.");
+  await assert.rejects(
+    () => getDownloadableTranslationJob(`missing-${uniqueSuffix()}`, TEST_USER_ID),
+    (error) => {
+      assert.ok(error instanceof TranslationHttpError);
+      assert.equal(error.status, 404);
+      return true;
+    }
+  );
 });
 
-test("export route rejects translations without completed exports", async () => {
+test("export service rejects translations without completed exports", async () => {
+  await ensureTestUser();
   const suffix = uniqueSuffix();
   const novel = await createNovel({
     title: `Pending Export Novel ${suffix}`,
@@ -38,6 +51,7 @@ test("export route rejects translations without completed exports", async () => 
     mimeType: "text/plain",
     sizeBytes: 1,
     storagePath: `/tmp/pending-${suffix}.txt`,
+    userId: TEST_USER_ID,
   });
 
   try {
@@ -54,36 +68,37 @@ test("export route rejects translations without completed exports", async () => 
       },
     });
 
-    const response = await getTranslationExport(new Request("http://localhost"), {
-      params: Promise.resolve({
-        translationId: pendingTranslation.id,
-      }),
-    });
-
-    assert.equal(response.status, 404);
-    assert.equal(await readJsonError(response), "Translation export is not available.");
+    await assert.rejects(
+      () => getDownloadableTranslationJob(pendingTranslation.id, TEST_USER_ID),
+      (error) => {
+        assert.ok(error instanceof TranslationHttpError);
+        assert.equal(error.status, 404);
+        assert.match(error.message, /not available/i);
+        return true;
+      }
+    );
   } finally {
     await prisma.novel.deleteMany({
-      where: {
-        id: novel.id,
-      },
+      where: { id: novel.id },
     });
   }
 });
 
-test("export route returns bounded not-found when export file is missing", async () => {
+test("export service rejects access from non-owner", async () => {
+  await ensureTestUser();
   const suffix = uniqueSuffix();
   const novel = await createNovel({
-    title: `Missing Export Novel ${suffix}`,
-    originalFileName: `missing-${suffix}.txt`,
+    title: `Owner Export Novel ${suffix}`,
+    originalFileName: `owner-${suffix}.txt`,
     fileType: "txt",
     mimeType: "text/plain",
     sizeBytes: 1,
-    storagePath: `/tmp/missing-${suffix}.txt`,
+    storagePath: `/tmp/owner-${suffix}.txt`,
+    userId: TEST_USER_ID,
   });
 
   try {
-    const completedTranslation = await prisma.novelTranslation.create({
+    const translation = await prisma.novelTranslation.create({
       data: {
         novelId: novel.id,
         targetLanguage: "Vietnamese",
@@ -92,23 +107,21 @@ test("export route returns bounded not-found when export file is missing", async
         status: TranslationStatus.COMPLETED,
         totalChapters: 1,
         completedChapters: 1,
-        exportPath: `/tmp/non-existent-export-${suffix}.txt`,
+        exportPath: `/tmp/export-${suffix}.txt`,
       },
     });
 
-    const response = await getTranslationExport(new Request("http://localhost"), {
-      params: Promise.resolve({
-        translationId: completedTranslation.id,
-      }),
-    });
-
-    assert.equal(response.status, 404);
-    assert.equal(await readJsonError(response), "Translation export file was not found.");
+    await assert.rejects(
+      () => getDownloadableTranslationJob(translation.id, "other-user-id"),
+      (error) => {
+        assert.ok(error instanceof TranslationHttpError);
+        assert.equal(error.status, 404);
+        return true;
+      }
+    );
   } finally {
     await prisma.novel.deleteMany({
-      where: {
-        id: novel.id,
-      },
+      where: { id: novel.id },
     });
   }
 });

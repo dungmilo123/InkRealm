@@ -12,7 +12,22 @@ function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const TEST_USER_ID = "profiles-test-user";
+
+async function ensureTestUser() {
+  await prisma.user.upsert({
+    where: { id: TEST_USER_ID },
+    update: {},
+    create: {
+      id: TEST_USER_ID,
+      email: `profiles-test-${uniqueSuffix()}@test.local`,
+      name: "Profiles Test User",
+    },
+  });
+}
+
 test("profile create fails safely when encryption secret is missing", async () => {
+  await ensureTestUser();
   const originalSecret = process.env.TRANSLATION_ENCRYPTION_SECRET;
   const model = `missing-secret-${uniqueSuffix()}`;
 
@@ -26,7 +41,7 @@ test("profile create fails safely when encryption secret is missing", async () =
           model,
           baseUrl: "https://api.openai.com/v1",
           apiKey: "sk-missing-secret",
-        });
+        }, TEST_USER_ID);
       },
       (error) => {
         assert.ok(error instanceof TranslationHttpError);
@@ -50,6 +65,7 @@ test("profile create fails safely when encryption secret is missing", async () =
 });
 
 test("profile update with apiKey fails safely when encryption secret is missing", async () => {
+  await ensureTestUser();
   const originalSecret = process.env.TRANSLATION_ENCRYPTION_SECRET;
   const model = `update-missing-secret-${uniqueSuffix()}`;
   let createdProfileId: string | null = null;
@@ -62,7 +78,7 @@ test("profile update with apiKey fails safely when encryption secret is missing"
       model,
       baseUrl: "https://api.openai.com/v1",
       apiKey: "sk-before-update",
-    });
+    }, TEST_USER_ID);
     createdProfileId = createdProfile.id;
 
     const before = await prisma.translationProfile.findUnique({
@@ -79,7 +95,7 @@ test("profile update with apiKey fails safely when encryption secret is missing"
       async () => {
         await updateTranslationProfile(createdProfile.id, {
           apiKey: "sk-after-update",
-        });
+        }, TEST_USER_ID);
       },
       (error) => {
         assert.ok(error instanceof TranslationHttpError);

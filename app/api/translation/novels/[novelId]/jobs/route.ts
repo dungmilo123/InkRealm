@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import {
   createTranslationJobFromNovelDetails,
   listNovelTranslationJobViews,
@@ -11,8 +12,12 @@ export async function GET(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { novelId } = await context.params;
-    const jobs = await listNovelTranslationJobViews(novelId);
+    const jobs = await listNovelTranslationJobViews(novelId, session.user.id);
     return NextResponse.json({ jobs });
   } catch (error) {
     return handleTranslationRouteError(error);
@@ -24,6 +29,10 @@ export async function POST(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const payload = await safeReadJson(request);
     const { novelId } = await context.params;
     const parsed = parseStartTranslationPayload(payload);
@@ -33,6 +42,7 @@ export async function POST(
       profileId: parsed.profileId,
       targetLanguage: parsed.targetLanguage,
       batchSize: parsed.batchSize,
+      userId: session.user.id,
     });
 
     return NextResponse.json({ job }, { status: 201 });

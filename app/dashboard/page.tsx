@@ -1,3 +1,5 @@
+import { auth, signOut } from "@/auth";
+import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
 import { NovelList } from "@/app/components/NovelList";
 import { UploadForm } from "@/app/components/UploadForm";
@@ -5,17 +7,29 @@ import { LibraryShelf } from "@/components/library-shelf";
 import type { Novel } from "@/app/generated/prisma/client";
 
 export default async function DashboardPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
   let novels: Novel[] = [];
   let error: string | null = null;
 
   try {
-    novels = await listNovels();
+    novels = await listNovels(session.user.id);
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";
   }
 
   return (
-    <LibraryShelf title="My Library">
+    <LibraryShelf
+      title="My Library"
+      user={session.user}
+      signOutAction={async () => {
+        "use server";
+        await signOut({ redirectTo: "/login" });
+      }}
+    >
       <section className="mb-10">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
           Add to your library

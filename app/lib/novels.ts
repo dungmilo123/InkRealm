@@ -9,14 +9,16 @@ export type NovelCreateInput = {
   mimeType: string;
   sizeBytes: number;
   storagePath: string;
+  userId: string;
 };
 
 export async function createNovel(data: NovelCreateInput): Promise<Novel> {
   return prisma.novel.create({ data });
 }
 
-export async function listNovels(): Promise<Novel[]> {
+export async function listNovels(userId: string): Promise<Novel[]> {
   return prisma.novel.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -25,10 +27,10 @@ export async function getNovelById(id: string): Promise<Novel | null> {
   return prisma.novel.findUnique({ where: { id } });
 }
 
-export async function getNovelByIdOrNotFound(id: string): Promise<Novel> {
-  const novel = await getNovelById(id);
+export async function getNovelByIdOrNotFound(id: string, userId: string): Promise<Novel> {
+  const novel = await prisma.novel.findUnique({ where: { id } });
 
-  if (!novel) {
+  if (!novel || novel.userId !== userId) {
     notFound();
   }
 

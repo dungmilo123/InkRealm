@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { listTranslationProfilesForDisplay } from "@/app/lib/translation/profiles";
@@ -13,8 +15,13 @@ export default async function NovelDetailsPage({
 }: {
   params: Promise<{ novelId: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
   const { novelId } = await params;
-  const novel = await getNovelByIdOrNotFound(novelId);
+  const novel = await getNovelByIdOrNotFound(novelId, session.user.id);
   const readerSummary = await getReaderSummary(novel);
 
   let translationProfiles: Awaited<
@@ -25,8 +32,8 @@ export default async function NovelDetailsPage({
 
   try {
     [translationProfiles, translationJobs] = await Promise.all([
-      listTranslationProfilesForDisplay(),
-      listNovelTranslationJobViews(novel.id),
+      listTranslationProfilesForDisplay(session.user.id),
+      listNovelTranslationJobViews(novel.id, session.user.id),
     ]);
   } catch {
     translationDataError = "Translation data is currently unavailable.";

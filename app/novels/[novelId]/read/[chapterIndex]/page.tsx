@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth, signOut } from "@/auth";
+import { redirect } from "next/navigation";
+import { UserMenu } from "@/components/user-menu";
 import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import {
   getReaderChapter,
@@ -20,6 +23,11 @@ export default async function ReaderChapterPage({
 }: {
   params: Promise<{ novelId: string; chapterIndex: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
   const { novelId, chapterIndex: chapterIndexParam } = await params;
   const chapterIndex = parseChapterIndex(chapterIndexParam);
 
@@ -27,7 +35,7 @@ export default async function ReaderChapterPage({
     notFound();
   }
 
-  const novel = await getNovelByIdOrNotFound(novelId);
+  const novel = await getNovelByIdOrNotFound(novelId, session.user.id);
   let chapterData: Awaited<ReturnType<typeof getReaderChapter>>;
 
   try {
@@ -56,19 +64,30 @@ export default async function ReaderChapterPage({
     <div className="flex flex-col flex-1 bg-zinc-50 dark:bg-zinc-950">
       <header className="w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="max-w-4xl mx-auto px-8 py-6">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm mb-3">
-            <Link
-              href={`/novels/${novel.id}`}
-              className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              Novel details
-            </Link>
-            <Link
-              href="/dashboard"
-              className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            >
-              Library
-            </Link>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm mb-3">
+            <div className="flex items-center gap-x-4">
+              <Link
+                href={`/novels/${novel.id}`}
+                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                Novel details
+              </Link>
+              <Link
+                href="/dashboard"
+                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                Library
+              </Link>
+            </div>
+            {session.user && (
+              <UserMenu
+                user={session.user}
+                signOutAction={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/login" });
+                }}
+              />
+            )}
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
             {chapter.title}

@@ -81,9 +81,10 @@ async function resolveRunnerCredential(input: {
   providerSnapshot: TranslationProvider;
   modelSnapshot: string;
   profileId?: string;
+  userId: string;
 }) {
   if (input.profileId) {
-    const selected = await getTranslationProfileCredential(input.profileId);
+    const selected = await getTranslationProfileCredential(input.profileId, input.userId);
     if (
       selected.provider !== input.providerSnapshot ||
       selected.model !== input.modelSnapshot
@@ -99,7 +100,8 @@ async function resolveRunnerCredential(input: {
 
   return getCredentialForTranslationSnapshot(
     input.providerSnapshot,
-    input.modelSnapshot
+    input.modelSnapshot,
+    input.userId
   );
 }
 
@@ -148,7 +150,11 @@ async function finalizeTranslationState(input: {
   return toTranslationJobView(updated);
 }
 
-export async function listNovelTranslationJobViews(novelId: string) {
+export async function listNovelTranslationJobViews(novelId: string, userId: string) {
+  const novel = await getNovelById(novelId);
+  if (!novel || novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
   const jobs = await listTranslationJobsForNovel(novelId);
   return jobs.map(toTranslationJobView);
 }
@@ -158,13 +164,14 @@ export async function createTranslationJobFromNovelDetails(input: {
   targetLanguage: string;
   profileId: string;
   batchSize?: number;
+  userId: string;
 }) {
   const novel = await getNovelById(input.novelId);
-  if (!novel) {
+  if (!novel || novel.userId !== input.userId) {
     throw new TranslationHttpError(404, "Novel not found.");
   }
 
-  const profile = await getTranslationProfileCredential(input.profileId);
+  const profile = await getTranslationProfileCredential(input.profileId, input.userId);
 
   let readerDocument: Awaited<ReturnType<typeof getReaderDocument>>;
   try {
@@ -200,6 +207,7 @@ export async function createTranslationJobFromNovelDetails(input: {
     batchSize: input.batchSize,
     profileId: profile.profileId,
     allowFailedState: false,
+    userId: input.userId,
   });
 }
 
@@ -208,9 +216,14 @@ export async function runTranslationJobBatch(input: {
   batchSize?: number;
   profileId?: string;
   allowFailedState?: boolean;
+  userId: string;
 }) {
   const runnerState = await getTranslationJobForRunner(input.translationId);
   if (!runnerState) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  if (runnerState.novel.userId !== input.userId) {
     throw new TranslationHttpError(404, "Translation job not found.");
   }
 
@@ -247,6 +260,7 @@ export async function runTranslationJobBatch(input: {
     providerSnapshot: runnerState.providerSnapshot,
     modelSnapshot: runnerState.modelSnapshot,
     profileId: input.profileId,
+    userId: input.userId,
   });
 
   let readerDocument: Awaited<ReturnType<typeof getReaderDocument>>;
@@ -354,9 +368,15 @@ export async function retryTranslationJob(input: {
   translationId: string;
   batchSize?: number;
   profileId?: string;
+  userId: string;
 }) {
   const job = await getTranslationJobById(input.translationId);
   if (!job) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  const novel = await getNovelById(job.novelId);
+  if (!novel || novel.userId !== input.userId) {
     throw new TranslationHttpError(404, "Translation job not found.");
   }
 
@@ -371,12 +391,19 @@ export async function retryTranslationJob(input: {
     batchSize: input.batchSize,
     profileId: input.profileId,
     allowFailedState: true,
+    userId: input.userId,
   });
 }
 
-export async function getDownloadableTranslationJob(translationId: string) {
+export async function getDownloadableTranslationJob(translationId: string, userId: string) {
   const job = await getTranslationJobById(translationId);
   if (!job) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  // Verify ownership through novel
+  const novel = await getNovelById(job.novelId);
+  if (!novel || novel.userId !== userId) {
     throw new TranslationHttpError(404, "Translation job not found.");
   }
 

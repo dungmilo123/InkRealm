@@ -17,11 +17,11 @@ import {
   parseUpdateProfilePayload,
 } from "@/app/lib/translation/validation";
 
-export async function listTranslationProfilesForDisplay() {
-  return listTranslationProfiles();
+export async function listTranslationProfilesForDisplay(userId: string) {
+  return listTranslationProfiles(userId);
 }
 
-export async function createTranslationProfile(payload: unknown) {
+export async function createTranslationProfile(payload: unknown, userId: string) {
   assertTranslationEncryptionConfigured();
   const parsed = parseCreateProfilePayload(payload);
 
@@ -30,16 +30,18 @@ export async function createTranslationProfile(payload: unknown) {
     model: parsed.model,
     baseUrl: parsed.baseUrl,
     encryptedApiKey: encryptTranslationCredential(parsed.apiKey),
+    userId,
   });
 }
 
 export async function updateTranslationProfile(
   profileId: string,
-  payload: unknown
+  payload: unknown,
+  userId: string
 ) {
   const parsed = parseUpdateProfilePayload(payload);
   const existing = await getTranslationProfileByIdWithSecret(profileId);
-  if (!existing) {
+  if (!existing || existing.userId !== userId) {
     throw new TranslationHttpError(404, "Translation profile not found.");
   }
 
@@ -67,9 +69,9 @@ export async function updateTranslationProfile(
   return updateTranslationProfileRecord(profileId, updateInput);
 }
 
-export async function getTranslationProfileCredential(profileId: string) {
+export async function getTranslationProfileCredential(profileId: string, userId: string) {
   const profile = await getTranslationProfileByIdWithSecret(profileId);
-  if (!profile) {
+  if (!profile || profile.userId !== userId) {
     throw new TranslationHttpError(404, "Translation profile not found.");
   }
 
@@ -84,9 +86,10 @@ export async function getTranslationProfileCredential(profileId: string) {
 
 export async function getCredentialForTranslationSnapshot(
   provider: TranslationProvider,
-  model: string
+  model: string,
+  userId: string
 ) {
-  const profile = await findLatestProfileForSnapshot(provider, model);
+  const profile = await findLatestProfileForSnapshot(provider, model, userId);
   if (!profile) {
     throw new TranslationHttpError(
       400,

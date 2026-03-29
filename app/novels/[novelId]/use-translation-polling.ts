@@ -23,9 +23,12 @@ export function useTranslationPolling<T extends PollingJob>(
   onUpdate: (updater: (prev: T[]) => T[]) => void
 ) {
   const jobsRef = useRef(jobs);
-  jobsRef.current = jobs;
 
   const hasActiveJobs = jobs.some((j) => isActiveStatus(j.status));
+
+  useEffect(() => {
+    jobsRef.current = jobs;
+  });
 
   useEffect(() => {
     if (!hasActiveJobs) return;

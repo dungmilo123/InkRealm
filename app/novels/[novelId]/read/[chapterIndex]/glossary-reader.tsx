@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 type GlossaryVariant = {
   id: string;
@@ -311,22 +311,25 @@ export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
   const [entries, setEntries] = useState<GlossaryEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  const fetchEntries = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/translation/novels/${novelId}/glossary`);
-      const data = await readJsonOrError<{ entries: GlossaryEntry[] }>(res);
-      setEntries(data.entries);
-      setLoaded(true);
-    } catch {
-      // Silently fail - glossary mode just won't highlight
-    }
-  }, [novelId]);
-
   useEffect(() => {
-    if (glossaryMode && !loaded) {
-      void fetchEntries();
-    }
-  }, [glossaryMode, loaded, fetchEntries]);
+    if (!glossaryMode || loaded) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/translation/novels/${novelId}/glossary`);
+        const data = await readJsonOrError<{ entries: GlossaryEntry[] }>(res);
+        if (!cancelled) {
+          setEntries(data.entries);
+          setLoaded(true);
+        }
+      } catch {
+        // Silently fail - glossary mode just won't highlight
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [glossaryMode, loaded, novelId]);
 
   return (
     <>

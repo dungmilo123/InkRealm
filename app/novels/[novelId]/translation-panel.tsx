@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useTranslationPolling } from "./use-translation-polling";
 
 type TranslationProfile = {
   id: string;
@@ -115,6 +116,12 @@ export function TranslationPanel({
     [jobs]
   );
 
+  const handlePollingUpdate = useCallback(
+    (updater: (prev: TranslationJob[]) => TranslationJob[]) => setJobs(updater),
+    []
+  );
+  useTranslationPolling(jobs, handlePollingUpdate);
+
   async function refreshProfiles() {
     const response = await fetch("/api/translation/profiles", {
       method: "GET",
@@ -210,6 +217,15 @@ export function TranslationPanel({
     setBusy(true);
     setFeedback(null);
 
+    // Optimistic: set to IN_PROGRESS so polling activates immediately
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId && job.status !== "IN_PROGRESS"
+          ? { ...job, status: "IN_PROGRESS" as const }
+          : job
+      )
+    );
+
     try {
       const response = await fetch(`/api/translation/jobs/${jobId}/run`, {
         method: "POST",
@@ -237,6 +253,13 @@ export function TranslationPanel({
   async function retryJob(jobId: string) {
     setBusy(true);
     setFeedback(null);
+
+    // Optimistic: set to IN_PROGRESS so polling activates immediately
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId ? { ...job, status: "IN_PROGRESS" as const } : job
+      )
+    );
 
     try {
       const response = await fetch(`/api/translation/jobs/${jobId}/retry`, {
@@ -496,9 +519,28 @@ export function TranslationPanel({
                     {job.providerSnapshot} · {job.modelSnapshot}
                   </p>
 
-                  <p className="mt-2 text-sm text-foreground">
-                    Progress: {job.completedChapters}/{job.totalChapters} chapters ({job.progressPercent}%)
-                  </p>
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-sm text-foreground mb-1">
+                      <span>
+                        {job.completedChapters}/{job.totalChapters} chapters ({job.progressPercent}%)
+                      </span>
+                      {job.status === "COMPLETED" ? (
+                        <span className="text-xs font-medium text-green-700">Complete</span>
+                      ) : null}
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${
+                          job.status === "COMPLETED"
+                            ? "bg-green-500"
+                            : job.status === "FAILED"
+                              ? "bg-red-400"
+                              : "bg-amber-400"
+                        }`}
+                        style={{ width: `${job.progressPercent}%` }}
+                      />
+                    </div>
+                  </div>
 
                   {job.failureReason ? (
                     <p className="mt-2 text-xs text-red-700">

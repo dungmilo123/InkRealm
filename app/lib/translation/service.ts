@@ -484,6 +484,20 @@ export async function retryTranslationJob(input: {
   });
 }
 
+export async function getTranslationJobStatus(translationId: string, userId: string) {
+  const job = await getTranslationJobById(translationId);
+  if (!job) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  const novel = await getNovelById(job.novelId);
+  if (!novel || novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  return toTranslationJobView(job);
+}
+
 export async function getDownloadableTranslationJob(translationId: string, userId: string) {
   const job = await getTranslationJobById(translationId);
   if (!job) {

@@ -4,6 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+## Next.js 16:
+- proxy.ts is the new convention for middleware.ts
+
 ## Build & Development Commands
 
 ```bash

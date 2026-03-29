@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 
 export function UserMenu({
   user,
@@ -26,6 +27,12 @@ export function UserMenu({
           {user.name}
         </span>
       )}
+      <Link
+        href="/settings"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Settings
+      </Link>
       <button
         onClick={() => startTransition(() => signOutAction())}
         disabled={isPending}

@@ -8,6 +8,9 @@ export async function proxy(request: NextRequest) {
   if (
     pathname === "/" ||
     pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();
@@ -35,6 +38,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/novels/:path*",
+    "/settings/:path*",
     "/api/uploads/:path*",
     "/api/translation/:path*",
   ],

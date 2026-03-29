@@ -32,6 +32,9 @@ const translationJobSummarySelect = {
   failedChapterIndex: true,
   failureReason: true,
   exportPath: true,
+  contextChapters: true,
+  contextSummaries: true,
+  useGlossary: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -117,6 +120,9 @@ export async function createTranslationJobRecord(input: {
   targetLanguage: string;
   providerSnapshot: TranslationProvider;
   modelSnapshot: string;
+  contextChapters?: number;
+  contextSummaries?: number;
+  useGlossary?: boolean;
   chapters: Array<{
     chapterIndex: number;
     originalTitle: string;
@@ -131,6 +137,9 @@ export async function createTranslationJobRecord(input: {
       status: TranslationStatus.PENDING,
       totalChapters: input.chapters.length,
       completedChapters: 0,
+      contextChapters: input.contextChapters ?? 0,
+      contextSummaries: input.contextSummaries ?? 0,
+      useGlossary: input.useGlossary ?? false,
       chapters: {
         create: input.chapters.map((chapter) => ({
           chapterIndex: chapter.chapterIndex,
@@ -357,5 +366,42 @@ export async function listTranslatedChaptersForExport(translationId: string) {
       translatedTitle: true,
       translatedContent: true,
     },
+  });
+}
+
+export async function listPreviousTranslatedChapters(
+  translationId: string,
+  beforeChapterIndex: number,
+  limit: number
+) {
+  return prisma.novelTranslationChapter.findMany({
+    where: {
+      translationId,
+      chapterIndex: { lt: beforeChapterIndex },
+      status: ChapterTranslationStatus.TRANSLATED,
+    },
+    orderBy: { chapterIndex: "desc" },
+    take: limit,
+    select: {
+      chapterIndex: true,
+      translatedContent: true,
+      summary: true,
+    },
+  });
+}
+
+export async function updateChapterSummary(
+  translationId: string,
+  chapterIndex: number,
+  summary: string
+) {
+  return prisma.novelTranslationChapter.update({
+    where: {
+      translationId_chapterIndex: {
+        translationId,
+        chapterIndex,
+      },
+    },
+    data: { summary },
   });
 }

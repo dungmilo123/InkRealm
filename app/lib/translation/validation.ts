@@ -183,6 +183,7 @@ export function parseStartTranslationPayload(payload: unknown) {
     profileId: parseRequiredString(body.profileId, "profileId", 1, 128),
     targetLanguage: parseTargetLanguage(body.targetLanguage),
     batchSize: parseBatchSize(body.batchSize),
+    qualityPreset: parseOptionalString(body.qualityPreset, "qualityPreset", 32) ?? undefined,
   };
 }
 

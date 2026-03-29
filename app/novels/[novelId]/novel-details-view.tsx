@@ -4,6 +4,7 @@ import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
 import { LibraryShelf } from "@/components/library-shelf";
 import { TranslationPanel } from "./translation-panel";
+import { GlossaryPanel } from "./glossary-panel";
 
 export type SerializedTranslationProfile = {
   id: string;
@@ -150,6 +151,8 @@ export function NovelDetailsView({
           initialProfiles={serializedProfiles}
           initialJobs={serializedJobs}
         />
+
+        <GlossaryPanel novelId={novel.id} />
       </div>
     </LibraryShelf>
   );

@@ -5,12 +5,14 @@ import {
   getReaderDocument,
 } from "@/app/lib/reader";
 import { getTranslationAdapter } from "@/app/lib/translation/adapters";
+import type { GlossaryPromptEntry, ChapterContext } from "@/app/lib/translation/adapters";
 import {
   countTranslatedChapters,
   createTranslationJobRecord,
   getTranslationJobById,
   getTranslationJobForRunner,
   listPendingChaptersForRun,
+  listPreviousTranslatedChapters,
   listTranslatedChaptersForExport,
   listTranslationJobsForNovel,
   markChapterFailed,
@@ -20,6 +22,7 @@ import {
   setTranslationCompleted,
   setTranslationFailed,
   setTranslationInProgress,
+  updateChapterSummary,
   updateTranslationCompletedCount,
   type TranslationJobSummary,
 } from "@/app/lib/translation/data";
@@ -34,6 +37,12 @@ import {
   canRetryTranslationStatus,
   canRunTranslationStatus,
 } from "@/app/lib/translation/state";
+import {
+  listGlossaryEntriesForTranslation,
+  createPendingGlossaryEntries,
+} from "@/app/lib/translation/glossary";
+import { resolveQualityPreset } from "@/app/lib/translation/quality-presets";
+import { GlossaryEntryStatus } from "@/app/generated/prisma/client";
 
 export const DEFAULT_TRANSLATION_BATCH_SIZE = 4;
 export const MAX_TRANSLATION_BATCH_SIZE = 20;
@@ -164,6 +173,7 @@ export async function createTranslationJobFromNovelDetails(input: {
   targetLanguage: string;
   profileId: string;
   batchSize?: number;
+  qualityPreset?: string;
   userId: string;
 }) {
   const novel = await getNovelById(input.novelId);
@@ -191,11 +201,16 @@ export async function createTranslationJobFromNovelDetails(input: {
     );
   }
 
+  const quality = resolveQualityPreset(input.qualityPreset);
+
   const created = await createTranslationJobRecord({
     novelId: novel.id,
     targetLanguage: input.targetLanguage,
     providerSnapshot: profile.provider,
     modelSnapshot: profile.model,
+    contextChapters: quality.contextChapters,
+    contextSummaries: quality.contextSummaries,
+    useGlossary: quality.useGlossary,
     chapters: readerDocument.chapters.map((chapter) => ({
       chapterIndex: chapter.index,
       originalTitle: chapter.title,
@@ -281,16 +296,33 @@ export async function runTranslationJobBatch(input: {
 
   await setTranslationInProgress(input.translationId);
 
-  const batchSize = clampBatchSize(
-    input.batchSize ?? DEFAULT_TRANSLATION_BATCH_SIZE
-  );
-  const pending = await listPendingChaptersForRun(input.translationId, batchSize);
+  const hasContext = runnerState.contextChapters > 0 || runnerState.contextSummaries > 0;
+
+  // When context is needed, process sequentially (1 at a time)
+  // Otherwise use the requested batch size
+  const effectiveBatchSize = hasContext
+    ? 1
+    : clampBatchSize(input.batchSize ?? DEFAULT_TRANSLATION_BATCH_SIZE);
+
+  const pending = await listPendingChaptersForRun(input.translationId, effectiveBatchSize);
 
   if (pending.length === 0) {
     return finalizeTranslationState({
       translationId: input.translationId,
       novelTitle: runnerState.novel.title,
     });
+  }
+
+  // Load glossary once if needed
+  let glossary: GlossaryPromptEntry[] | undefined;
+  if (runnerState.useGlossary) {
+    const entries = await listGlossaryEntriesForTranslation(runnerState.novelId);
+    glossary = entries.map((e) => ({
+      canonical: e.canonical,
+      type: e.type.toLowerCase(),
+      status: e.status === GlossaryEntryStatus.CONFIRMED ? "confirmed" as const : "pending" as const,
+      variants: e.variants.map((v) => v.variant),
+    }));
   }
 
   const adapter = getTranslationAdapter(runnerState.providerSnapshot);
@@ -320,6 +352,32 @@ export async function runTranslationJobBatch(input: {
       return toTranslationJobView(failed);
     }
 
+    // Assemble context from previous chapters
+    let previousContext: ChapterContext[] | undefined;
+    if (hasContext && chapterState.chapterIndex > 1) {
+      const maxContextNeeded = Math.max(
+        runnerState.contextChapters,
+        runnerState.contextSummaries
+      );
+      const prevChapters = await listPreviousTranslatedChapters(
+        input.translationId,
+        chapterState.chapterIndex,
+        maxContextNeeded
+      );
+
+      // prevChapters is ordered desc by chapterIndex — reverse to chronological
+      const sorted = prevChapters.reverse();
+
+      previousContext = sorted.map((ch, idx) => {
+        const isFullContext = idx >= sorted.length - runnerState.contextChapters;
+        return {
+          chapterIndex: ch.chapterIndex,
+          translatedContent: isFullContext ? (ch.translatedContent ?? "") : "",
+          summary: idx < runnerState.contextSummaries ? ch.summary : null,
+        };
+      }).filter((c) => c.translatedContent || c.summary);
+    }
+
     try {
       const translated = await adapter.translateChapter(
         {
@@ -332,6 +390,8 @@ export async function runTranslationJobBatch(input: {
           targetLanguage: runnerState.targetLanguage,
           sourceTitle: sourceChapter.title,
           sourceContent: getChapterSourceText(sourceChapter.paragraphs),
+          glossary,
+          previousContext,
         }
       );
 
@@ -341,6 +401,35 @@ export async function runTranslationJobBatch(input: {
         translatedTitle: translated.translatedTitle,
         translatedContent: translated.translatedContent,
       });
+
+      // Persist chapter summary if returned
+      if (translated.chapterSummary) {
+        await updateChapterSummary(
+          input.translationId,
+          chapterState.chapterIndex,
+          translated.chapterSummary
+        );
+      }
+
+      // Persist detected terms as pending glossary entries
+      if (translated.detectedTerms && translated.detectedTerms.length > 0 && runnerState.useGlossary) {
+        const newEntries = await createPendingGlossaryEntries({
+          novelId: runnerState.novelId,
+          terms: translated.detectedTerms,
+        });
+
+        // Add newly created entries to the in-memory glossary for subsequent chapters
+        if (glossary && newEntries.length > 0) {
+          for (const entry of newEntries) {
+            glossary.push({
+              canonical: entry.canonical,
+              type: entry.type.toLowerCase(),
+              status: "pending",
+              variants: entry.variants.map((v) => v.variant),
+            });
+          }
+        }
+      }
     } catch (error) {
       const reason = trimFailureReason(error);
       await markChapterFailed({

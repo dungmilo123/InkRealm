@@ -97,6 +97,7 @@ export function TranslationPanel({
 
   const [targetLanguage, setTargetLanguage] = useState("Vietnamese");
   const [batchSize, setBatchSize] = useState("4");
+  const [qualityPreset, setQualityPreset] = useState("fast");
   const [selectedProfileId, setSelectedProfileId] = useState(
     initialProfiles[0]?.id ?? ""
   );
@@ -185,6 +186,7 @@ export function TranslationPanel({
           profileId: selectedProfileId,
           targetLanguage,
           batchSize: Number.parseInt(batchSize, 10),
+          qualityPreset,
         }),
       });
 
@@ -391,6 +393,39 @@ export function TranslationPanel({
               />
             </label>
           </div>
+
+          <fieldset className="space-y-2">
+            <legend className="text-xs text-muted-foreground">Quality preset</legend>
+            <div className="grid gap-2 md:grid-cols-3">
+              {([
+                { value: "fast", label: "Fast", desc: "No glossary, no context. Fastest speed." },
+                { value: "standard", label: "Standard", desc: "Glossary + 1 previous chapter + 3 summaries." },
+                { value: "premium", label: "Premium", desc: "Glossary + 3 previous chapters + 5 summaries." },
+              ] as const).map((preset) => (
+                <label
+                  key={preset.value}
+                  className={`flex cursor-pointer flex-col rounded-lg border p-3 text-sm transition-colors ${
+                    qualityPreset === preset.value
+                      ? "border-primary bg-primary/5"
+                      : "border-input hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="qualityPreset"
+                      value={preset.value}
+                      checked={qualityPreset === preset.value}
+                      onChange={(e) => setQualityPreset(e.target.value)}
+                      className="accent-primary"
+                    />
+                    <span className="font-medium">{preset.label}</span>
+                  </div>
+                  <span className="mt-1 text-xs text-muted-foreground">{preset.desc}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div className="flex flex-wrap gap-2">
             <button

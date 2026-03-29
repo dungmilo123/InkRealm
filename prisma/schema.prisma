@@ -34,6 +34,18 @@ enum ChapterTranslationStatus {
   FAILED
 }
 
+enum GlossaryEntryType {
+  CHARACTER
+  PLACE
+  TECHNIQUE
+  OTHER
+}
+
+enum GlossaryEntryStatus {
+  CONFIRMED
+  PENDING
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -100,6 +112,7 @@ model Novel {
   updatedAt        DateTime @updatedAt
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   translations     NovelTranslation[]
+  glossaryEntries  NovelGlossaryEntry[]
 }
 
 model TranslationProfile {
@@ -115,21 +128,24 @@ model TranslationProfile {
 }
 
 model NovelTranslation {
-  id               String                  @id @default(cuid())
-  novelId          String
-  targetLanguage   String
-  providerSnapshot TranslationProvider
-  modelSnapshot    String
-  status           TranslationStatus       @default(PENDING)
-  totalChapters    Int                     @default(0)
-  completedChapters Int                    @default(0)
+  id                String                  @id @default(cuid())
+  novelId           String
+  targetLanguage    String
+  providerSnapshot  TranslationProvider
+  modelSnapshot     String
+  status            TranslationStatus       @default(PENDING)
+  totalChapters     Int                     @default(0)
+  completedChapters Int                     @default(0)
   failedChapterIndex Int?
-  failureReason    String?
-  exportPath       String?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  novel            Novel                   @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  chapters         NovelTranslationChapter[]
+  failureReason     String?
+  exportPath        String?
+  contextChapters   Int                     @default(0)
+  contextSummaries  Int                     @default(0)
+  useGlossary       Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  novel             Novel                   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapters          NovelTranslationChapter[]
 }
 
 model NovelTranslationChapter {
@@ -140,10 +156,34 @@ model NovelTranslationChapter {
   originalTitle    String
   translatedTitle  String?
   translatedContent String?
+  summary          String?
   errorMessage     String?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
   translation      NovelTranslation       @relation(fields: [translationId], references: [id], onDelete: Cascade)
 
   @@unique([translationId, chapterIndex])
+}
+
+model NovelGlossaryEntry {
+  id        String             @id @default(cuid())
+  novelId   String
+  canonical String
+  type      GlossaryEntryType  @default(OTHER)
+  status    GlossaryEntryStatus @default(CONFIRMED)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  novel     Novel              @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  variants  NovelGlossaryVariant[]
+
+  @@index([novelId, status])
+}
+
+model NovelGlossaryVariant {
+  id      String             @id @default(cuid())
+  entryId String
+  variant String
+  entry   NovelGlossaryEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
 }

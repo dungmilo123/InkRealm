@@ -9,6 +9,7 @@ import {
   InvalidChapterIndexError,
   ReaderUnavailableError,
 } from "@/app/lib/reader";
+import { GlossaryReader } from "./glossary-reader";
 
 function parseChapterIndex(value: string): number {
   if (!/^\d+$/.test(value)) {
@@ -99,11 +100,7 @@ export default async function ReaderChapterPage({
       </header>
 
       <main className="w-full max-w-3xl mx-auto px-8 py-8">
-        <article className="p-6 md:p-8 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-6 leading-8 text-zinc-800 dark:text-zinc-100">
-          {chapter.paragraphs.map((paragraph, paragraphIndex) => (
-            <p key={`${chapter.index}-${paragraphIndex}`}>{paragraph}</p>
-          ))}
-        </article>
+        <GlossaryReader novelId={novel.id} paragraphs={chapter.paragraphs} />
 
         <nav className="mt-6 flex items-center justify-between gap-4">
           {previousChapterHref ? (

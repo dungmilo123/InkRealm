@@ -34,6 +34,9 @@ export function getTranslationAdapter(provider: TranslationProvider) {
 }
 
 export type {
+  ChapterContext,
+  DetectedTerm,
+  GlossaryPromptEntry,
   TranslateChapterInput,
   TranslateChapterOutput,
   TranslationAdapterContext,

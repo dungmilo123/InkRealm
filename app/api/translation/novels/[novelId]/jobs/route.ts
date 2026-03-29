@@ -42,6 +42,7 @@ export async function POST(
       profileId: parsed.profileId,
       targetLanguage: parsed.targetLanguage,
       batchSize: parsed.batchSize,
+      qualityPreset: parsed.qualityPreset,
       userId: session.user.id,
     });
 

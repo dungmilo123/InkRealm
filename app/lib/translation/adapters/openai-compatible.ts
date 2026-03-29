@@ -81,11 +81,11 @@ async function performOpenAiCompatibleRequest(
       messages: [
         {
           role: "system",
-          content: buildTranslationSystemPrompt(input.targetLanguage),
+          content: buildTranslationSystemPrompt(input.targetLanguage, input.glossary),
         },
         {
           role: "user",
-          content: buildTranslationUserPrompt(input),
+          content: buildTranslationUserPrompt(input, input.previousContext),
         },
       ],
       response_format: {

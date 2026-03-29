@@ -44,11 +44,11 @@ export class AnthropicAdapter implements TranslationAdapter {
         model: context.model,
         max_tokens: 4096,
         temperature: 0.2,
-        system: buildTranslationSystemPrompt(input.targetLanguage),
+        system: buildTranslationSystemPrompt(input.targetLanguage, input.glossary),
         messages: [
           {
             role: "user",
-            content: buildTranslationUserPrompt(input),
+            content: buildTranslationUserPrompt(input, input.previousContext),
           },
         ],
       }),

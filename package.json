@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "npm run test:translation",
+    "test:translation": "tsx --test app/lib/translation/**/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -37,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

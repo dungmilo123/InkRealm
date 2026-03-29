@@ -311,6 +311,17 @@ export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
   const [entries, setEntries] = useState<GlossaryEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
+  async function fetchEntries() {
+    try {
+      const res = await fetch(`/api/translation/novels/${novelId}/glossary`);
+      const data = await readJsonOrError<{ entries: GlossaryEntry[] }>(res);
+      setEntries(data.entries);
+      setLoaded(true);
+    } catch {
+      // Silently fail - glossary mode just won't highlight
+    }
+  }
+
   useEffect(() => {
     if (!glossaryMode || loaded) return;
 

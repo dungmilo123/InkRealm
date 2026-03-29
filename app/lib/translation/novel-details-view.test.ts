@@ -67,6 +67,7 @@ test("novel details view shows metadata, reading entry, and translation progress
         isReadable: true,
         chapterCount: 2,
       },
+      readingProgress: null,
       translationDataError: null,
       serializedProfiles: createProfiles(),
       serializedJobs: createJobs(),
@@ -78,11 +79,6 @@ test("novel details view shows metadata, reading entry, and translation progress
   assert.ok(html.includes("2.0 KB"));
   assert.ok(html.includes("Start Reading"));
   assert.ok(html.includes("/novels/novel-test-id/read/1"));
-
-  assert.ok(html.includes("Start translation"));
-  assert.ok(html.includes("Progress: 2/2 chapters (100%)"));
-  assert.ok(html.includes("Download export"));
-  assert.ok(html.includes("/api/translation/jobs/job-1/export"));
 });
 
 test("novel details view shows reader-unavailable state and hides translation start form", () => {
@@ -97,6 +93,7 @@ test("novel details view shows reader-unavailable state and hides translation st
         chapterCount: 0,
         unavailableReason: "Could not read this text file from storage.",
       },
+      readingProgress: null,
       translationDataError: null,
       serializedProfiles: [],
       serializedJobs: [],
@@ -105,7 +102,6 @@ test("novel details view shows reader-unavailable state and hides translation st
 
   assert.ok(html.includes("In-app reading is unavailable for this novel."));
   assert.ok(html.includes("Could not read this text file from storage."));
-  assert.ok(html.includes("translation start controls are hidden."));
 
   assert.equal(html.includes("Start Reading"), false);
   assert.equal(html.includes("/novels/novel-test-id/read/1"), false);
@@ -119,6 +115,7 @@ test("novel details view shows translation data error banner", () => {
         isReadable: true,
         chapterCount: 2,
       },
+      readingProgress: null,
       translationDataError: "Translation data is currently unavailable.",
       serializedProfiles: [],
       serializedJobs: [],
@@ -126,4 +123,28 @@ test("novel details view shows translation data error banner", () => {
   );
 
   assert.ok(html.includes("Translation data is currently unavailable."));
+});
+
+test("novel details view shows Continue Reading when progress exists", () => {
+  const html = renderToStaticMarkup(
+    createElement(NovelDetailsView, {
+      novel: createNovel(),
+      readerSummary: {
+        isReadable: true,
+        chapterCount: 10,
+      },
+      readingProgress: {
+        lastChapterIndex: 5,
+        visitedChapterIndices: [1, 2, 3, 4, 5],
+      },
+      translationDataError: null,
+      serializedProfiles: [],
+      serializedJobs: [],
+    })
+  );
+
+  assert.ok(html.includes("Continue Reading"));
+  assert.ok(html.includes("Chapter 5"));
+  assert.ok(html.includes("/novels/novel-test-id/read/5"));
+  assert.equal(html.includes("Start Reading"), false);
 });

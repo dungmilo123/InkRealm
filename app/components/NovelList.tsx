@@ -3,11 +3,12 @@ import { BookshelfRow } from "@/components/bookshelf-row";
 
 interface NovelListProps {
   novels: Novel[];
+  progressData?: Record<string, { lastChapterIndex: number; totalChapters: number }>;
 }
 
 const SHELF_SIZE = 5;
 
-export function NovelList({ novels }: NovelListProps) {
+export function NovelList({ novels, progressData }: NovelListProps) {
   if (novels.length === 0) {
     return null;
   }
@@ -20,7 +21,7 @@ export function NovelList({ novels }: NovelListProps) {
   return (
     <div className="space-y-6">
       {shelves.map((shelfNovels, idx) => (
-        <BookshelfRow key={idx} novels={shelfNovels} />
+        <BookshelfRow key={idx} novels={shelfNovels} progressData={progressData} />
       ))}
     </div>
   );

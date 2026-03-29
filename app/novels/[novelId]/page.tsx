@@ -4,6 +4,7 @@ import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { listTranslationProfilesForDisplay } from "@/app/lib/translation/profiles";
 import { listNovelTranslationJobViews } from "@/app/lib/translation/service";
+import { getReadingProgress } from "@/app/lib/reading-progress";
 import {
   NovelDetailsView,
   type SerializedTranslationJob,
@@ -22,7 +23,10 @@ export default async function NovelDetailsPage({
 
   const { novelId } = await params;
   const novel = await getNovelByIdOrNotFound(novelId, session.user.id);
-  const readerSummary = await getReaderSummary(novel);
+  const [readerSummary, readingProgress] = await Promise.all([
+    getReaderSummary(novel),
+    getReadingProgress(session.user.id, novel.id),
+  ]);
 
   let translationProfiles: Awaited<
     ReturnType<typeof listTranslationProfilesForDisplay>
@@ -55,6 +59,7 @@ export default async function NovelDetailsPage({
     <NovelDetailsView
       novel={novel}
       readerSummary={readerSummary}
+      readingProgress={readingProgress}
       translationDataError={translationDataError}
       serializedProfiles={serializedProfiles}
       serializedJobs={serializedJobs}

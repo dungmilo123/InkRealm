@@ -1,6 +1,8 @@
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
+import { getReadingProgressBatch } from "@/app/lib/reading-progress";
+import { getReaderSummary } from "@/app/lib/reader";
 import { NovelList } from "@/app/components/NovelList";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
@@ -14,11 +16,35 @@ export default async function DashboardPage() {
 
   let novels: Novel[] = [];
   let error: string | null = null;
+  let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
+  let chapterCountMap = new Map<string, number>();
 
   try {
     novels = await listNovels(session.user.id);
+    if (novels.length > 0) {
+      const [progress, summaries] = await Promise.all([
+        getReadingProgressBatch(
+          session.user.id,
+          novels.map((n) => n.id)
+        ),
+        Promise.all(novels.map((n) => getReaderSummary(n).then((s) => [n.id, s.chapterCount] as const))),
+      ]);
+      progressMap = progress;
+      for (const [id, count] of summaries) {
+        chapterCountMap.set(id, count);
+      }
+    }
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";
+  }
+
+  // Serialize maps to plain objects for client component
+  const progressData: Record<string, { lastChapterIndex: number; totalChapters: number }> = {};
+  for (const [novelId, prog] of progressMap) {
+    progressData[novelId] = {
+      lastChapterIndex: prog.lastChapterIndex,
+      totalChapters: chapterCountMap.get(novelId) ?? 0,
+    };
   }
 
   return (
@@ -67,7 +93,7 @@ export default async function DashboardPage() {
             </p>
           </div>
         ) : (
-          <NovelList novels={novels} />
+          <NovelList novels={novels} progressData={progressData} />
         )}
       </section>
     </LibraryShelf>

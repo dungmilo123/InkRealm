@@ -19,6 +19,7 @@ export type ReaderSummary = {
   isReadable: boolean;
   chapterCount: number;
   unavailableReason?: string;
+  chapters?: { index: number; title: string }[];
 };
 
 export class ReaderUnavailableError extends Error {

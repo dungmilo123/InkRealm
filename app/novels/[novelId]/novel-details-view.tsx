@@ -5,6 +5,7 @@ import { BookCover } from "@/components/book-cover";
 import { LibraryShelf } from "@/components/library-shelf";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
+import { DetailsTabs } from "./details-tabs";
 
 export type SerializedTranslationProfile = {
   id: string;
@@ -33,9 +34,15 @@ export type SerializedTranslationJob = {
   downloadUrl: string | null;
 };
 
+type ReadingProgressData = {
+  lastChapterIndex: number;
+  visitedChapterIndices: number[];
+} | null;
+
 type NovelDetailsViewProps = {
   novel: Novel;
   readerSummary: ReaderSummary;
+  readingProgress: ReadingProgressData;
   translationDataError: string | null;
   serializedProfiles: SerializedTranslationProfile[];
   serializedJobs: SerializedTranslationJob[];
@@ -64,10 +71,18 @@ function formatDate(date: Date): string {
 export function NovelDetailsView({
   novel,
   readerSummary,
+  readingProgress,
   translationDataError,
   serializedProfiles,
   serializedJobs,
 }: NovelDetailsViewProps) {
+  const readHref = readingProgress
+    ? `/novels/${novel.id}/read/${readingProgress.lastChapterIndex}`
+    : `/novels/${novel.id}/read/1`;
+  const readLabel = readingProgress
+    ? `Continue Reading → Chapter ${readingProgress.lastChapterIndex}`
+    : "Start Reading";
+
   return (
     <LibraryShelf showBack backHref="/dashboard">
       <div className="space-y-8">
@@ -116,13 +131,15 @@ export function NovelDetailsView({
           {readerSummary.isReadable ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Ready to read. Start from the beginning and navigate between chapters.
+                {readingProgress
+                  ? `You were on Chapter ${readingProgress.lastChapterIndex} of ${readerSummary.chapterCount}.`
+                  : "Ready to read. Start from the beginning and navigate between chapters."}
               </p>
               <Link
-                href={`/novels/${novel.id}/read/1`}
+                href={readHref}
                 className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Start Reading
+                {readLabel}
               </Link>
             </div>
           ) : (
@@ -145,14 +162,14 @@ export function NovelDetailsView({
           </div>
         ) : null}
 
-        <TranslationPanel
+        <DetailsTabs
           novelId={novel.id}
+          readerSummary={readerSummary}
+          readingProgress={readingProgress}
           isReadable={readerSummary.isReadable}
-          initialProfiles={serializedProfiles}
-          initialJobs={serializedJobs}
+          serializedProfiles={serializedProfiles}
+          serializedJobs={serializedJobs}
         />
-
-        <GlossaryPanel novelId={novel.id} />
       </div>
     </LibraryShelf>
   );

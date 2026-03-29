@@ -110,6 +110,7 @@ export async function getReaderSummary(novel: Novel): Promise<ReaderSummary> {
     return {
       isReadable: true,
       chapterCount: document.chapterCount,
+      chapters: document.chapters.map((ch) => ({ index: ch.index, title: ch.title })),
     };
   } catch (error) {
     if (error instanceof ReaderUnavailableError) {

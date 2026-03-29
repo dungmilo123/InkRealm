@@ -1,28 +1,12 @@
-import Link from "next/link";
 import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
-import { BookCover } from "@/components/book-cover";
-import { LibraryShelf } from "@/components/library-shelf";
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(date));
-}
+import { listTranslationProfilesForDisplay } from "@/app/lib/translation/profiles";
+import { listNovelTranslationJobViews } from "@/app/lib/translation/service";
+import {
+  NovelDetailsView,
+  type SerializedTranslationJob,
+  type SerializedTranslationProfile,
+} from "./novel-details-view";
 
 export default async function NovelDetailsPage({
   params,
@@ -33,77 +17,40 @@ export default async function NovelDetailsPage({
   const novel = await getNovelByIdOrNotFound(novelId);
   const readerSummary = await getReaderSummary(novel);
 
-  return (
-    <LibraryShelf showBack backHref="/dashboard">
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row gap-8 items-start">
-          <BookCover
-            title={novel.title}
-            id={novel.id}
-            fileType={novel.fileType}
-            className="shrink-0"
-            width={140}
-            height={210}
-          />
-          <div className="flex-1 space-y-4">
-            <div>
-              <h1 className="text-2xl font-heading font-semibold tracking-tight text-foreground">
-                {novel.title}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Added {formatDate(novel.createdAt)}
-              </p>
-            </div>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div>
-                <dt className="text-muted-foreground">File</dt>
-                <dd className="mt-0.5 text-foreground">{novel.originalFileName}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Format</dt>
-                <dd className="mt-0.5 text-foreground uppercase">{novel.fileType}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Size</dt>
-                <dd className="mt-0.5 text-foreground">{formatFileSize(novel.sizeBytes)}</dd>
-              </div>
-              {readerSummary.isReadable && (
-                <div>
-                  <dt className="text-muted-foreground">Chapters</dt>
-                  <dd className="mt-0.5 text-foreground">{readerSummary.chapterCount}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
-        </div>
+  let translationProfiles: Awaited<
+    ReturnType<typeof listTranslationProfilesForDisplay>
+  > = [];
+  let translationJobs: Awaited<ReturnType<typeof listNovelTranslationJobViews>> = [];
+  let translationDataError: string | null = null;
 
-        <div className="border-t border-border pt-6">
-          {readerSummary.isReadable ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Ready to read. Start from the beginning and navigate between chapters.
-              </p>
-              <Link
-                href={`/novels/${novel.id}/read/1`}
-                className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                Start Reading
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                In-app reading is unavailable for this novel.
-              </p>
-              {readerSummary.unavailableReason ? (
-                <p className="text-xs text-muted-foreground/70">
-                  {readerSummary.unavailableReason}
-                </p>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
-    </LibraryShelf>
+  try {
+    [translationProfiles, translationJobs] = await Promise.all([
+      listTranslationProfilesForDisplay(),
+      listNovelTranslationJobViews(novel.id),
+    ]);
+  } catch {
+    translationDataError = "Translation data is currently unavailable.";
+  }
+
+  const serializedProfiles: SerializedTranslationProfile[] = translationProfiles.map((profile) => ({
+    ...profile,
+    createdAt: profile.createdAt.toISOString(),
+    updatedAt: profile.updatedAt.toISOString(),
+  }));
+
+  const serializedJobs: SerializedTranslationJob[] = translationJobs.map((job) => ({
+    ...job,
+    createdAt: job.createdAt.toISOString(),
+    updatedAt: job.updatedAt.toISOString(),
+  }));
+
+  return (
+    <NovelDetailsView
+      novel={novel}
+      readerSummary={readerSummary}
+      translationDataError={translationDataError}
+      serializedProfiles={serializedProfiles}
+      serializedJobs={serializedJobs}
+    />
   );
 }

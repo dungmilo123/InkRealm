@@ -207,9 +207,9 @@ export function ReaderClient({
               </Link>
               <Link
                 href="/dashboard"
-                className="text-muted-foreground hover:text-foreground"
+                className="font-heading font-bold text-muted-foreground hover:text-foreground transition-colors"
               >
-                Library
+                InkRealm
               </Link>
             </div>
             <div className="flex items-center gap-x-3">

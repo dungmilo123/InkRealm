@@ -13,6 +13,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { TranslationProvidersTab } from "./translation-providers-tab";
+
+type SerializedTranslationProfile = {
+  id: string;
+  provider: string;
+  model: string;
+  baseUrl: string | null;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 interface SettingsProps {
   user: {
@@ -22,9 +39,10 @@ interface SettingsProps {
     hasPassword: boolean;
     hasGoogle: boolean;
   };
+  initialProfiles: SerializedTranslationProfile[];
 }
 
-export function SettingsClient({ user }: SettingsProps) {
+export function SettingsClient({ user, initialProfiles }: SettingsProps) {
   return (
     <div className="flex min-h-screen justify-center bg-background">
       <div className="w-full max-w-2xl space-y-6 px-6 py-12">
@@ -40,12 +58,27 @@ export function SettingsClient({ user }: SettingsProps) {
           </h1>
         </div>
 
-        <ProfileSection user={user} />
-        <PasswordSection hasPassword={user.hasPassword} />
-        <LinkedAccountsSection
-          hasGoogle={user.hasGoogle}
-          hasPassword={user.hasPassword}
-        />
+        <Tabs defaultValue="account">
+          <TabsList variant="line">
+            <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="translation-providers">
+              Translation Providers
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="account" className="mt-6 space-y-6">
+            <ProfileSection user={user} />
+            <PasswordSection hasPassword={user.hasPassword} />
+            <LinkedAccountsSection
+              hasGoogle={user.hasGoogle}
+              hasPassword={user.hasPassword}
+            />
+          </TabsContent>
+
+          <TabsContent value="translation-providers" className="mt-6">
+            <TranslationProvidersTab initialProfiles={initialProfiles} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

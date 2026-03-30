@@ -6,9 +6,12 @@ import {
 } from "@/app/lib/translation/crypto";
 import {
   createTranslationProfileRecord,
+  deleteTranslationProfileRecord,
   findLatestProfileForSnapshot,
+  getDefaultTranslationProfile,
   getTranslationProfileByIdWithSecret,
   listTranslationProfiles,
+  setDefaultTranslationProfileRecord,
   updateTranslationProfileRecord,
 } from "@/app/lib/translation/data";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
@@ -25,11 +28,15 @@ export async function createTranslationProfile(payload: unknown, userId: string)
   assertTranslationEncryptionConfigured();
   const parsed = parseCreateProfilePayload(payload);
 
+  const existing = await listTranslationProfiles(userId);
+  const isFirstProfile = existing.length === 0;
+
   return createTranslationProfileRecord({
     provider: parsed.provider,
     model: parsed.model,
     baseUrl: parsed.baseUrl,
     encryptedApiKey: encryptTranslationCredential(parsed.apiKey),
+    isDefault: isFirstProfile,
     userId,
   });
 }
@@ -82,6 +89,26 @@ export async function getTranslationProfileCredential(profileId: string, userId:
     baseUrl: profile.baseUrl,
     apiKey: decryptTranslationCredential(profile.encryptedApiKey),
   };
+}
+
+export async function deleteTranslationProfile(profileId: string, userId: string) {
+  const deleted = await deleteTranslationProfileRecord(profileId, userId);
+  if (!deleted) {
+    throw new TranslationHttpError(404, "Translation profile not found.");
+  }
+  return deleted;
+}
+
+export async function setDefaultProfile(profileId: string, userId: string) {
+  const existing = await getTranslationProfileByIdWithSecret(profileId);
+  if (!existing || existing.userId !== userId) {
+    throw new TranslationHttpError(404, "Translation profile not found.");
+  }
+  return setDefaultTranslationProfileRecord(profileId, userId);
+}
+
+export async function getDefaultProfile(userId: string) {
+  return getDefaultTranslationProfile(userId);
 }
 
 export async function getCredentialForTranslationSnapshot(

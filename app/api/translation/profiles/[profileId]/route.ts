@@ -1,10 +1,30 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { updateTranslationProfile } from "@/app/lib/translation/profiles";
+import {
+  deleteTranslationProfile,
+  updateTranslationProfile,
+} from "@/app/lib/translation/profiles";
 import {
   handleTranslationRouteError,
   safeReadJson,
 } from "@/app/lib/translation/http";
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ profileId: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { profileId } = await context.params;
+    await deleteTranslationProfile(profileId, session.user.id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return handleTranslationRouteError(error);
+  }
+}
 
 export async function PATCH(
   request: Request,

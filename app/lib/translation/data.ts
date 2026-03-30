@@ -10,6 +10,7 @@ const profilePublicSelect = {
   provider: true,
   model: true,
   baseUrl: true,
+  isDefault: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -59,7 +60,7 @@ export async function listTranslationProfiles(userId: string) {
   return prisma.translationProfile.findMany({
     where: { userId },
     select: profilePublicSelect,
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }, { createdAt: "desc" }],
   });
 }
 
@@ -68,6 +69,7 @@ export async function createTranslationProfileRecord(input: {
   model: string;
   baseUrl: string | null;
   encryptedApiKey: string;
+  isDefault: boolean;
   userId: string;
 }) {
   return prisma.translationProfile.create({
@@ -96,6 +98,59 @@ export async function updateTranslationProfileRecord(
     where: { id: profileId },
     data: input,
     select: profilePublicSelect,
+  });
+}
+
+export async function getDefaultTranslationProfile(userId: string) {
+  return prisma.translationProfile.findFirst({
+    where: { userId, isDefault: true },
+    select: profilePublicSelect,
+  });
+}
+
+export async function setDefaultTranslationProfileRecord(profileId: string, userId: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.translationProfile.updateMany({
+      where: { userId, isDefault: true },
+      data: { isDefault: false },
+    });
+    return tx.translationProfile.update({
+      where: { id: profileId },
+      data: { isDefault: true },
+      select: profilePublicSelect,
+    });
+  });
+}
+
+export async function deleteTranslationProfileRecord(profileId: string, userId: string) {
+  return prisma.$transaction(async (tx) => {
+    const profile = await tx.translationProfile.findUnique({
+      where: { id: profileId },
+      select: { id: true, userId: true, isDefault: true },
+    });
+
+    if (!profile || profile.userId !== userId) {
+      return null;
+    }
+
+    await tx.translationProfile.delete({ where: { id: profileId } });
+
+    if (profile.isDefault) {
+      const nextDefault = await tx.translationProfile.findFirst({
+        where: { userId },
+        orderBy: [{ updatedAt: "desc" }],
+        select: { id: true },
+      });
+
+      if (nextDefault) {
+        await tx.translationProfile.update({
+          where: { id: nextDefault.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return profile;
   });
 }
 

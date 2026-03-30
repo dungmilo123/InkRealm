@@ -97,7 +97,7 @@ export function NovelDetailsView({
           />
           <div className="flex-1 space-y-4">
             <div>
-              <h1 className="text-2xl font-heading font-semibold tracking-tight text-foreground">
+              <h1 className="text-2xl font-heading font-bold tracking-tight text-foreground">
                 {novel.title}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">

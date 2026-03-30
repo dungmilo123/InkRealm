@@ -49,7 +49,6 @@ export default async function DashboardPage() {
 
   return (
     <LibraryShelf
-      title="My Library"
       user={session.user}
       signOutAction={async () => {
         "use server";
@@ -60,7 +59,9 @@ export default async function DashboardPage() {
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
           Add to your library
         </h2>
-        <UploadForm />
+        <div className="bg-card rounded-lg border border-border p-6">
+          <UploadForm />
+        </div>
       </section>
       <section>
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">

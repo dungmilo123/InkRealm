@@ -14,13 +14,13 @@ export function LibraryShelf({ children, title, showBack, backHref = "/dashboard
   return (
     <div className="flex flex-col flex-1 bg-background">
       <header className="w-full border-b border-border bg-card">
-        <div className="max-w-5xl mx-auto px-6 py-5">
+        <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              {showBack && (
+              {showBack ? (
                 <Link
                   href={backHref}
-                  className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-2 transition-colors"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <svg
                     className="mr-1.5 size-4"
@@ -35,13 +35,15 @@ export function LibraryShelf({ children, title, showBack, backHref = "/dashboard
                       d="M15 19l-7-7 7-7"
                     />
                   </svg>
-                  Back to library
+                  <span className="font-heading font-bold">InkRealm</span>
                 </Link>
-              )}
-              {title && (
-                <h1 className="text-2xl font-heading font-semibold tracking-tight text-card-foreground">
-                  {title}
-                </h1>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="text-2xl font-heading font-bold tracking-tight text-card-foreground"
+                >
+                  InkRealm
+                </Link>
               )}
             </div>
             <div className="flex items-center gap-4">

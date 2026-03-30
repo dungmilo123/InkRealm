@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { Cinzel, Crimson_Pro } from "next/font/google";
 import "./globals.css";
 
-const playfair = Playfair_Display({
+const cinzel = Cinzel({
   variable: "--font-heading",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "600", "700"],
 });
 
-const sourceSans = Source_Sans_3({
+const crimsonPro = Crimson_Pro({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "Library",
-  description: "Your personal novel library",
+  title: "InkRealm",
+  description: "Your personal fantasy novel library",
 };
 
 export default function RootLayout({
@@ -25,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${sourceSans.variable}`}>
+    <html lang="en" className={`${cinzel.variable} ${crimsonPro.variable}`}>
       <body className="min-h-full font-sans antialiased">{children}</body>
     </html>
   );

@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
+import { Settings2 } from "lucide-react";
 import { useTranslationPolling } from "./use-translation-polling";
 
-type TranslationProfile = {
+type DefaultProfileInfo = {
   id: string;
   provider: string;
   model: string;
-  baseUrl: string | null;
   createdAt: string;
   updatedAt: string;
-};
+} | null;
 
 type TranslationJob = {
   id: string;
@@ -33,7 +34,7 @@ type TranslationJob = {
 type TranslationPanelProps = {
   novelId: string;
   isReadable: boolean;
-  initialProfiles: TranslationProfile[];
+  defaultProfile: DefaultProfileInfo;
   initialJobs: TranslationJob[];
 };
 
@@ -41,14 +42,6 @@ type FeedbackState = {
   type: "success" | "error";
   text: string;
 };
-
-const PROFILE_PROVIDER_OPTIONS = [
-  "OPENAI",
-  "ANTHROPIC",
-  "DEEPSEEK",
-  "OPENROUTER",
-  "MINIMAX",
-] as const;
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -88,10 +81,9 @@ async function readJsonOrError<T>(response: Response): Promise<T> {
 export function TranslationPanel({
   novelId,
   isReadable,
-  initialProfiles,
+  defaultProfile,
   initialJobs,
 }: TranslationPanelProps) {
-  const [profiles, setProfiles] = useState<TranslationProfile[]>(initialProfiles);
   const [jobs, setJobs] = useState<TranslationJob[]>(initialJobs);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -99,18 +91,7 @@ export function TranslationPanel({
   const [targetLanguage, setTargetLanguage] = useState("Vietnamese");
   const [batchSize, setBatchSize] = useState("4");
   const [qualityPreset, setQualityPreset] = useState("fast");
-  const [selectedProfileId, setSelectedProfileId] = useState(
-    initialProfiles[0]?.id ?? ""
-  );
 
-  const [newProvider, setNewProvider] = useState<(typeof PROFILE_PROVIDER_OPTIONS)[number]>(
-    "OPENAI"
-  );
-  const [newModel, setNewModel] = useState("gpt-4o-mini");
-  const [newBaseUrl, setNewBaseUrl] = useState("");
-  const [newApiKey, setNewApiKey] = useState("");
-
-  const hasProfiles = profiles.length > 0;
   const sortedJobs = useMemo(
     () => [...jobs].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
     [jobs]
@@ -122,18 +103,6 @@ export function TranslationPanel({
   );
   useTranslationPolling(jobs, handlePollingUpdate);
 
-  async function refreshProfiles() {
-    const response = await fetch("/api/translation/profiles", {
-      method: "GET",
-    });
-    const data = await readJsonOrError<{ profiles: TranslationProfile[] }>(response);
-    setProfiles(data.profiles);
-
-    if (!data.profiles.some((profile) => profile.id === selectedProfileId)) {
-      setSelectedProfileId(data.profiles[0]?.id ?? "");
-    }
-  }
-
   async function refreshJobs() {
     const response = await fetch(`/api/translation/novels/${novelId}/jobs`, {
       method: "GET",
@@ -142,44 +111,9 @@ export function TranslationPanel({
     setJobs(data.jobs);
   }
 
-  async function handleCreateProfile(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setFeedback(null);
-
-    try {
-      const response = await fetch("/api/translation/profiles", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          provider: newProvider,
-          model: newModel,
-          baseUrl: newBaseUrl || null,
-          apiKey: newApiKey,
-        }),
-      });
-
-      await readJsonOrError<{ profile: TranslationProfile }>(response);
-      await refreshProfiles();
-      setNewApiKey("");
-      setFeedback({
-        type: "success",
-        text: "Translation profile saved.",
-      });
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        text: error instanceof Error ? error.message : "Failed to save profile.",
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleStartTranslation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!defaultProfile) return;
     setBusy(true);
     setFeedback(null);
 
@@ -190,7 +124,7 @@ export function TranslationPanel({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          profileId: selectedProfileId,
+          profileId: defaultProfile.id,
           targetLanguage,
           batchSize: Number.parseInt(batchSize, 10),
           qualityPreset,
@@ -288,13 +222,46 @@ export function TranslationPanel({
     }
   }
 
+  if (!defaultProfile) {
+    return (
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <Settings2 className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-bold text-foreground">No provider configured</p>
+          <p className="text-sm text-muted-foreground">
+            Set up a translation provider to get started.
+          </p>
+          <Link
+            href="/settings"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            Go to Settings &rarr;
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-xl border border-border bg-card p-5 space-y-6">
       <div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+          <span>
+            Using <strong className="text-foreground">{defaultProfile.provider} &middot; {defaultProfile.model}</strong>
+          </span>
+          <span>&middot;</span>
+          <Link
+            href="/settings"
+            className="text-primary hover:underline text-sm"
+          >
+            Change in Settings
+          </Link>
+        </div>
         <h2 className="text-lg font-semibold text-card-foreground">Translate this novel</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Create provider profiles, start translation jobs, monitor progress, and download
-          completed exports.
+          Start translation jobs, monitor progress, and download completed exports.
         </p>
       </div>
 
@@ -310,73 +277,11 @@ export function TranslationPanel({
         </div>
       ) : null}
 
-      <form onSubmit={handleCreateProfile} className="space-y-3 border border-border rounded-lg p-4">
-        <h3 className="text-sm font-medium text-card-foreground">Provider profile</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Provider</span>
-            <select
-              value={newProvider}
-              onChange={(event) =>
-                setNewProvider(event.target.value as (typeof PROFILE_PROVIDER_OPTIONS)[number])
-              }
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {PROFILE_PROVIDER_OPTIONS.map((provider) => (
-                <option key={provider} value={provider}>
-                  {provider}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Model</span>
-            <input
-              value={newModel}
-              onChange={(event) => setNewModel(event.target.value)}
-              placeholder="gpt-4o-mini"
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              required
-            />
-          </label>
-
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs text-muted-foreground">Base URL (optional)</span>
-            <input
-              value={newBaseUrl}
-              onChange={(event) => setNewBaseUrl(event.target.value)}
-              placeholder="https://api.openai.com/v1"
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </label>
-
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs text-muted-foreground">API key</span>
-            <input
-              type="password"
-              value={newApiKey}
-              onChange={(event) => setNewApiKey(event.target.value)}
-              placeholder="Paste API key"
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              required
-            />
-          </label>
-        </div>
-        <button
-          type="submit"
-          disabled={busy}
-          className="h-9 rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-secondary/90 disabled:opacity-60"
-        >
-          {busy ? "Saving..." : "Save profile"}
-        </button>
-      </form>
-
       {isReadable ? (
         <form onSubmit={handleStartTranslation} className="space-y-3 border border-border rounded-lg p-4">
           <h3 className="text-sm font-medium text-card-foreground">Start translation</h3>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1">
               <span className="text-xs text-muted-foreground">Target language</span>
               <input
@@ -385,23 +290,6 @@ export function TranslationPanel({
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 required
               />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Provider profile</span>
-              <select
-                value={selectedProfileId}
-                onChange={(event) => setSelectedProfileId(event.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                disabled={!hasProfiles}
-                required
-              >
-                {profiles.map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.provider} · {profile.model}
-                  </option>
-                ))}
-              </select>
             </label>
 
             <label className="space-y-1">
@@ -450,39 +338,13 @@ export function TranslationPanel({
             </div>
           </fieldset>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="submit"
-              disabled={busy || !hasProfiles}
-              className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-            >
-              {busy ? "Working..." : "Start translation"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                void Promise.all([refreshProfiles(), refreshJobs()]).catch((error) => {
-                  setFeedback({
-                    type: "error",
-                    text:
-                      error instanceof Error
-                        ? error.message
-                        : "Failed to refresh translation data.",
-                  });
-                });
-              }}
-              className="h-9 rounded-md border border-input px-4 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
-            >
-              Refresh data
-            </button>
-          </div>
-
-          {!hasProfiles ? (
-            <p className="text-xs text-muted-foreground">
-              Add at least one provider profile before starting translation.
-            </p>
-          ) : null}
+          <button
+            type="submit"
+            disabled={busy}
+            className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            {busy ? "Working..." : "Start translation"}
+          </button>
         </form>
       ) : (
         <div className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">

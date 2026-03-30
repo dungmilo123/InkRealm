@@ -6,7 +6,7 @@ import type { ReaderSummary } from "@/app/lib/reader";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
 import type {
-  SerializedTranslationProfile,
+  SerializedDefaultProfile,
   SerializedTranslationJob,
 } from "./novel-details-view";
 
@@ -20,7 +20,7 @@ type DetailsTabsProps = {
   readerSummary: ReaderSummary;
   readingProgress: ReadingProgressData;
   isReadable: boolean;
-  serializedProfiles: SerializedTranslationProfile[];
+  serializedDefaultProfile: SerializedDefaultProfile;
   serializedJobs: SerializedTranslationJob[];
 };
 
@@ -85,7 +85,7 @@ export function DetailsTabs({
   readerSummary,
   readingProgress,
   isReadable,
-  serializedProfiles,
+  serializedDefaultProfile,
   serializedJobs,
 }: DetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Chapters");
@@ -128,7 +128,7 @@ export function DetailsTabs({
           <TranslationPanel
             novelId={novelId}
             isReadable={isReadable}
-            initialProfiles={serializedProfiles}
+            defaultProfile={serializedDefaultProfile}
             initialJobs={serializedJobs}
           />
         )}

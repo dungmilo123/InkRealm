@@ -3,18 +3,15 @@ import type { Novel } from "@/app/generated/prisma/client";
 import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
 import { LibraryShelf } from "@/components/library-shelf";
-import { TranslationPanel } from "./translation-panel";
-import { GlossaryPanel } from "./glossary-panel";
 import { DetailsTabs } from "./details-tabs";
 
-export type SerializedTranslationProfile = {
+export type SerializedDefaultProfile = {
   id: string;
   provider: string;
   model: string;
-  baseUrl: string | null;
   createdAt: string;
   updatedAt: string;
-};
+} | null;
 
 export type SerializedTranslationJob = {
   id: string;
@@ -44,7 +41,7 @@ type NovelDetailsViewProps = {
   readerSummary: ReaderSummary;
   readingProgress: ReadingProgressData;
   translationDataError: string | null;
-  serializedProfiles: SerializedTranslationProfile[];
+  serializedDefaultProfile: SerializedDefaultProfile;
   serializedJobs: SerializedTranslationJob[];
 };
 
@@ -73,7 +70,7 @@ export function NovelDetailsView({
   readerSummary,
   readingProgress,
   translationDataError,
-  serializedProfiles,
+  serializedDefaultProfile,
   serializedJobs,
 }: NovelDetailsViewProps) {
   const readHref = readingProgress
@@ -167,7 +164,7 @@ export function NovelDetailsView({
           readerSummary={readerSummary}
           readingProgress={readingProgress}
           isReadable={readerSummary.isReadable}
-          serializedProfiles={serializedProfiles}
+          serializedDefaultProfile={serializedDefaultProfile}
           serializedJobs={serializedJobs}
         />
       </div>

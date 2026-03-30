@@ -53,7 +53,7 @@ function typeBadgeClass(type: string) {
     case "CHARACTER": return "bg-blue-100 text-blue-800";
     case "PLACE": return "bg-emerald-100 text-emerald-800";
     case "TECHNIQUE": return "bg-purple-100 text-purple-800";
-    default: return "bg-zinc-100 text-zinc-800";
+    default: return "bg-muted text-muted-foreground";
   }
 }
 

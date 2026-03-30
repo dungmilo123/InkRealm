@@ -111,7 +111,7 @@ function GlossaryPopover({
   }
 
   return (
-    <div className="absolute z-50 mt-1 w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900 text-sm">
+    <div className="absolute z-50 mt-1 w-72 rounded-lg border border-border bg-card p-3 shadow-lg text-sm">
       <div className="flex items-center justify-between mb-2">
         <span className="font-medium text-foreground">{entry.canonical}</span>
         <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">
@@ -351,14 +351,14 @@ export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
           className={`h-8 rounded-md px-3 text-xs font-medium transition-colors ${
             glossaryMode
               ? "bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200"
-              : "border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              : "border border-border text-muted-foreground hover:bg-muted"
           }`}
         >
           {glossaryMode ? "Glossary: ON" : "Glossary: OFF"}
         </button>
       </div>
 
-      <article className="p-6 md:p-8 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-6 leading-8 text-zinc-800 dark:text-zinc-100">
+      <article className="p-6 md:p-8 bg-card rounded-lg border border-border space-y-6 leading-8 text-foreground">
         {paragraphs.map((paragraph, paragraphIndex) => (
           <HighlightedParagraph
             key={paragraphIndex}

@@ -73,7 +73,7 @@ function statusBadgeClass(status: TranslationJob["status"]) {
     return "bg-amber-100 text-amber-800";
   }
 
-  return "bg-zinc-100 text-zinc-800";
+  return "bg-muted text-muted-foreground";
 }
 
 async function readJsonOrError<T>(response: Response): Promise<T> {
@@ -528,7 +528,7 @@ export function TranslationPanel({
                         <span className="text-xs font-medium text-green-700">Complete</span>
                       ) : null}
                     </div>
-                    <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ease-out ${
                           job.status === "COMPLETED"

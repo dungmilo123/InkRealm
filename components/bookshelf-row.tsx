@@ -65,7 +65,7 @@ export function BookshelfRow({ novels, progressData }: BookshelfRowProps) {
           );
         })}
       </div>
-      <div className="mt-2 h-1.5 rounded-full bg-[oklch(0.88_0.01_85)] shadow-inner" />
+      <div className="mt-2 h-1.5 rounded-full bg-border shadow-inner" />
     </div>
   );
 }

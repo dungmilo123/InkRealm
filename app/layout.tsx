@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cinzel, Crimson_Pro } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const cinzel = Cinzel({
@@ -28,8 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${cinzel.variable} ${crimsonPro.variable}`}>
-      <body className="min-h-full font-sans antialiased">{children}</body>
+    <html lang="en" className={`${cinzel.variable} ${crimsonPro.variable}`} suppressHydrationWarning>
+      <body className="min-h-full font-sans antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -28,7 +28,7 @@ function SettingsPopover({
   onChange: (prefs: ReadingPreferences) => void;
 }) {
   return (
-    <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-zinc-200 bg-white p-4 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+    <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-border bg-card p-4 shadow-lg">
       <h3 className="text-sm font-medium text-foreground mb-3">Reading Settings</h3>
 
       <div className="space-y-4">
@@ -43,7 +43,7 @@ function SettingsPopover({
             max={32}
             value={preferences.fontSize}
             onChange={(e) => onChange({ ...preferences, fontSize: Number(e.target.value) })}
-            className="w-full h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-primary"
+            className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
 
@@ -58,7 +58,7 @@ function SettingsPopover({
             max={250}
             value={Math.round(preferences.lineHeight * 100)}
             onChange={(e) => onChange({ ...preferences, lineHeight: Number(e.target.value) / 100 })}
-            className="w-full h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-primary"
+            className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
 
@@ -74,20 +74,20 @@ function SettingsPopover({
             step={20}
             value={preferences.maxWidth}
             onChange={(e) => onChange({ ...preferences, maxWidth: Number(e.target.value) })}
-            className="w-full h-1.5 rounded-full appearance-none bg-zinc-200 dark:bg-zinc-700 accent-primary"
+            className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Theme</span>
-          <div className="flex rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden">
             <button
               type="button"
               onClick={() => onChange({ ...preferences, theme: "LIGHT" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "LIGHT"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Light
@@ -98,7 +98,7 @@ function SettingsPopover({
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "DARK"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Dark
@@ -108,14 +108,14 @@ function SettingsPopover({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Font</span>
-          <div className="flex rounded-md border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden">
             <button
               type="button"
               onClick={() => onChange({ ...preferences, fontFamily: "SANS" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SANS"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Sans
@@ -126,7 +126,7 @@ function SettingsPopover({
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SERIF"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Serif
@@ -184,7 +184,6 @@ export function ReaderClient({
     }
   }, [showSettings]);
 
-  const isDark = preferences.theme === "DARK";
   const fontFamilyClass = preferences.fontFamily === "SANS" ? "font-sans" : "font-serif";
 
   const previousChapterHref =
@@ -195,20 +194,20 @@ export function ReaderClient({
       : null;
 
   return (
-    <div className={`flex flex-col flex-1 ${isDark ? "dark bg-zinc-950" : "bg-zinc-50"}`}>
-      <header className="w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <div className="flex flex-col flex-1 bg-background">
+      <header className="w-full border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm mb-3">
             <div className="flex items-center gap-x-4">
               <Link
                 href={`/novels/${novelId}`}
-                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="text-muted-foreground hover:text-foreground"
               >
                 Novel details
               </Link>
               <Link
                 href="/dashboard"
-                className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="text-muted-foreground hover:text-foreground"
               >
                 Library
               </Link>
@@ -220,8 +219,8 @@ export function ReaderClient({
                   onClick={() => setShowSettings(!showSettings)}
                   className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition-colors border ${
                     showSettings
-                      ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600"
-                      : "border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      ? "bg-muted border-border"
+                      : "border-border text-muted-foreground hover:bg-muted"
                   }`}
                   aria-label="Reading settings"
                 >
@@ -237,10 +236,10 @@ export function ReaderClient({
               <UserMenu user={user} signOutAction={signOutAction} />
             </div>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {chapter.title}
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             {novelTitle} · Chapter {chapter.index} of {chapterCount}
           </p>
         </div>
@@ -264,12 +263,12 @@ export function ReaderClient({
           {previousChapterHref ? (
             <Link
               href={previousChapterHref}
-              className="inline-flex h-10 items-center rounded-full border border-zinc-300 dark:border-zinc-700 px-5 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
               Previous chapter
             </Link>
           ) : (
-            <span className="inline-flex h-10 items-center rounded-full border border-zinc-200 dark:border-zinc-800 px-5 text-sm text-zinc-400 dark:text-zinc-500">
+            <span className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm text-muted-foreground">
               Start of novel
             </span>
           )}
@@ -277,12 +276,12 @@ export function ReaderClient({
           {nextChapterHref ? (
             <Link
               href={nextChapterHref}
-              className="inline-flex h-10 items-center rounded-full bg-black dark:bg-zinc-50 text-white dark:text-black px-5 text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
+              className="inline-flex h-10 items-center rounded-full bg-foreground text-background px-5 text-sm font-medium hover:bg-foreground/90 transition-colors"
             >
               Next chapter
             </Link>
           ) : (
-            <span className="inline-flex h-10 items-center rounded-full border border-zinc-200 dark:border-zinc-800 px-5 text-sm text-zinc-400 dark:text-zinc-500">
+            <span className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm text-muted-foreground">
               End of novel
             </span>
           )}

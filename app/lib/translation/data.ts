@@ -377,6 +377,37 @@ export async function setTranslationCompleted(input: {
   });
 }
 
+export async function setTranslationCancelled(translationId: string) {
+  return prisma.novelTranslation.update({
+    where: { id: translationId },
+    data: {
+      status: TranslationStatus.CANCELLED,
+    },
+    select: translationJobSummarySelect,
+  });
+}
+
+export async function getLatestTranslationJobForNovel(novelId: string) {
+  return prisma.novelTranslation.findFirst({
+    where: { novelId },
+    orderBy: { createdAt: "desc" },
+    select: translationJobSummarySelect,
+  });
+}
+
+export async function countChapterTranslationStats(novelId: string) {
+  const latest = await prisma.novelTranslation.findFirst({
+    where: { novelId, status: TranslationStatus.COMPLETED },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  if (!latest) return { translated: 0 };
+  const translated = await prisma.novelTranslationChapter.count({
+    where: { translationId: latest.id, status: ChapterTranslationStatus.TRANSLATED },
+  });
+  return { translated };
+}
+
 export async function prepareTranslationRetry(translationId: string) {
   await prisma.$transaction([
     prisma.novelTranslation.update({

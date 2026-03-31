@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 type PollingJob = {
   id: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLED";
   updatedAt: string;
 };
 

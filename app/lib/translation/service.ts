@@ -7,8 +7,10 @@ import {
 import { getTranslationAdapter } from "@/app/lib/translation/adapters";
 import type { GlossaryPromptEntry, ChapterContext } from "@/app/lib/translation/adapters";
 import {
+  countChapterTranslationStats,
   countTranslatedChapters,
   createTranslationJobRecord,
+  getLatestTranslationJobForNovel,
   getTranslationJobById,
   getTranslationJobForRunner,
   listPendingChaptersForRun,
@@ -19,6 +21,7 @@ import {
   markChapterTranslated,
   markChapterTranslating,
   prepareTranslationRetry,
+  setTranslationCancelled,
   setTranslationCompleted,
   setTranslationFailed,
   setTranslationInProgress,
@@ -34,6 +37,7 @@ import {
 } from "@/app/lib/translation/profiles";
 import {
   calculateTranslationProgressPercent,
+  canCancelTranslationStatus,
   canRetryTranslationStatus,
   canRunTranslationStatus,
 } from "@/app/lib/translation/state";
@@ -44,21 +48,10 @@ import {
 import { resolveQualityPreset } from "@/app/lib/translation/quality-presets";
 import { GlossaryEntryStatus } from "@/app/generated/prisma/client";
 
-export const DEFAULT_TRANSLATION_BATCH_SIZE = 4;
-export const MAX_TRANSLATION_BATCH_SIZE = 20;
-
 export type TranslationJobView = TranslationJobSummary & {
   progressPercent: number;
   downloadUrl: string | null;
 };
-
-function clampBatchSize(batchSize: number) {
-  if (!Number.isInteger(batchSize) || batchSize < 1) {
-    return DEFAULT_TRANSLATION_BATCH_SIZE;
-  }
-
-  return Math.min(batchSize, MAX_TRANSLATION_BATCH_SIZE);
-}
 
 function toTranslationJobView(job: TranslationJobSummary): TranslationJobView {
   const progressPercent = calculateTranslationProgressPercent(
@@ -170,11 +163,10 @@ export async function listNovelTranslationJobViews(novelId: string, userId: stri
 
 export async function createTranslationJobFromNovelDetails(input: {
   novelId: string;
-  targetLanguage: string;
   profileId: string;
-  batchSize?: number;
-  qualityPreset?: string;
   userId: string;
+  chapterFrom?: number;
+  chapterTo?: number;
 }) {
   const novel = await getNovelById(input.novelId);
   if (!novel || novel.userId !== input.userId) {
@@ -201,17 +193,52 @@ export async function createTranslationJobFromNovelDetails(input: {
     );
   }
 
-  const quality = resolveQualityPreset(input.qualityPreset);
+  const quality = resolveQualityPreset("premium");
+
+  // Determine which chapters to translate
+  let chaptersToTranslate = readerDocument.chapters;
+
+  if (input.chapterFrom !== undefined || input.chapterTo !== undefined) {
+    // Explicit range provided — validate and filter
+    const from = input.chapterFrom ?? 1;
+    const to = input.chapterTo ?? readerDocument.chapterCount;
+
+    if (from < 1 || from > readerDocument.chapterCount) {
+      throw new TranslationHttpError(400, `chapterFrom must be between 1 and ${readerDocument.chapterCount}.`);
+    }
+    if (to < from || to > readerDocument.chapterCount) {
+      throw new TranslationHttpError(400, `chapterTo must be between ${from} and ${readerDocument.chapterCount}.`);
+    }
+
+    chaptersToTranslate = readerDocument.chapters.filter(
+      (ch) => ch.index >= from && ch.index <= to
+    );
+  } else {
+    // Smart default: skip already-translated chapters from prior completed jobs
+    const stats = await countChapterTranslationStats(novel.id);
+    if (stats.translated > 0 && stats.translated < readerDocument.chapterCount) {
+      chaptersToTranslate = readerDocument.chapters.filter(
+        (ch) => ch.index > stats.translated
+      );
+    }
+  }
+
+  if (chaptersToTranslate.length === 0) {
+    throw new TranslationHttpError(
+      400,
+      "No chapters to translate. All chapters may already be translated."
+    );
+  }
 
   const created = await createTranslationJobRecord({
     novelId: novel.id,
-    targetLanguage: input.targetLanguage,
+    targetLanguage: "Vietnamese",
     providerSnapshot: profile.provider,
     modelSnapshot: profile.model,
     contextChapters: quality.contextChapters,
     contextSummaries: quality.contextSummaries,
     useGlossary: quality.useGlossary,
-    chapters: readerDocument.chapters.map((chapter) => ({
+    chapters: chaptersToTranslate.map((chapter) => ({
       chapterIndex: chapter.index,
       originalTitle: chapter.title,
     })),
@@ -219,7 +246,6 @@ export async function createTranslationJobFromNovelDetails(input: {
 
   return runTranslationJobBatch({
     translationId: created.id,
-    batchSize: input.batchSize,
     profileId: profile.profileId,
     allowFailedState: false,
     userId: input.userId,
@@ -228,7 +254,6 @@ export async function createTranslationJobFromNovelDetails(input: {
 
 export async function runTranslationJobBatch(input: {
   translationId: string;
-  batchSize?: number;
   profileId?: string;
   allowFailedState?: boolean;
   userId: string;
@@ -298,21 +323,6 @@ export async function runTranslationJobBatch(input: {
 
   const hasContext = runnerState.contextChapters > 0 || runnerState.contextSummaries > 0;
 
-  // When context is needed, process sequentially (1 at a time)
-  // Otherwise use the requested batch size
-  const effectiveBatchSize = hasContext
-    ? 1
-    : clampBatchSize(input.batchSize ?? DEFAULT_TRANSLATION_BATCH_SIZE);
-
-  const pending = await listPendingChaptersForRun(input.translationId, effectiveBatchSize);
-
-  if (pending.length === 0) {
-    return finalizeTranslationState({
-      translationId: input.translationId,
-      novelTitle: runnerState.novel.title,
-    });
-  }
-
   // Load glossary once if needed
   let glossary: GlossaryPromptEntry[] | undefined;
   if (runnerState.useGlossary) {
@@ -326,7 +336,22 @@ export async function runTranslationJobBatch(input: {
   }
 
   const adapter = getTranslationAdapter(runnerState.providerSnapshot);
-  for (const chapterState of pending) {
+
+  // Auto-continue loop: process chapters one at a time until all done or cancelled
+  while (true) {
+    // Check for cancellation before each chapter
+    const currentJob = await getTranslationJobById(input.translationId);
+    if (currentJob?.status === TranslationStatus.CANCELLED) {
+      return toTranslationJobView(currentJob);
+    }
+
+    const pending = await listPendingChaptersForRun(input.translationId, 1);
+    if (pending.length === 0) {
+      break; // All chapters processed
+    }
+
+    const chapterState = pending[0];
+
     const claimed = await markChapterTranslating(
       input.translationId,
       chapterState.chapterIndex
@@ -455,7 +480,6 @@ export async function runTranslationJobBatch(input: {
 
 export async function retryTranslationJob(input: {
   translationId: string;
-  batchSize?: number;
   profileId?: string;
   userId: string;
 }) {
@@ -477,7 +501,6 @@ export async function retryTranslationJob(input: {
 
   return runTranslationJobBatch({
     translationId: input.translationId,
-    batchSize: input.batchSize,
     profileId: input.profileId,
     allowFailedState: true,
     userId: input.userId,
@@ -520,4 +543,35 @@ export async function getDownloadableTranslationJob(translationId: string, userI
   }
 
   return job;
+}
+
+export async function cancelTranslationJob(input: {
+  translationId: string;
+  userId: string;
+}) {
+  const job = await getTranslationJobById(input.translationId);
+  if (!job) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  const novel = await getNovelById(job.novelId);
+  if (!novel || novel.userId !== input.userId) {
+    throw new TranslationHttpError(404, "Translation job not found.");
+  }
+
+  if (!canCancelTranslationStatus(job.status)) {
+    throw new TranslationHttpError(409, "Only active translation jobs can be cancelled.");
+  }
+
+  const cancelled = await setTranslationCancelled(input.translationId);
+  return toTranslationJobView(cancelled);
+}
+
+export async function getLatestNovelTranslationJobView(novelId: string, userId: string) {
+  const novel = await getNovelById(novelId);
+  if (!novel || novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
+  const job = await getLatestTranslationJobForNovel(novelId);
+  return job ? toTranslationJobView(job) : null;
 }

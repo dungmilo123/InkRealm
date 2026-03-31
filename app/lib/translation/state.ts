@@ -20,6 +20,10 @@ export function canRetryTranslationStatus(status: TranslationStatus) {
   return status === TranslationStatus.FAILED;
 }
 
+export function canCancelTranslationStatus(status: TranslationStatus) {
+  return status === TranslationStatus.PENDING || status === TranslationStatus.IN_PROGRESS;
+}
+
 export function resolveTranslationStatusFromProgress(input: {
   hasFailure: boolean;
   totalChapters: number;

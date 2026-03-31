@@ -19,7 +19,7 @@ export type SerializedTranslationJob = {
   targetLanguage: string;
   providerSnapshot: string;
   modelSnapshot: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLED";
   totalChapters: number;
   completedChapters: number;
   failedChapterIndex: number | null;

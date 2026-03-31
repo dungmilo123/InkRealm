@@ -25,6 +25,7 @@ enum TranslationStatus {
   IN_PROGRESS
   COMPLETED
   FAILED
+  CANCELLED
 }
 
 enum ChapterTranslationStatus {

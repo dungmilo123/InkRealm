@@ -186,8 +186,6 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     const txtJob = await createTranslationJobFromNovelDetails({
       novelId: txtNovel.id,
       profileId: profile.id,
-      targetLanguage: "Vietnamese",
-      batchSize: 10,
       userId: TEST_USER_ID,
     });
 
@@ -214,8 +212,6 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     const failedJob = await createTranslationJobFromNovelDetails({
       novelId: epubNovel.id,
       profileId: profile.id,
-      targetLanguage: "Vietnamese",
-      batchSize: 10,
       userId: TEST_USER_ID,
     });
 
@@ -226,7 +222,6 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     const recoveredJob = await retryTranslationJob({
       translationId: failedJob.id,
       profileId: profile.id,
-      batchSize: 10,
       userId: TEST_USER_ID,
     });
 

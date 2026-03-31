@@ -1,4 +1,5 @@
 import { TranslationProvider } from "@/app/generated/prisma/client";
+import type { TranslationProvider as TranslationProviderType } from "@/app/generated/prisma/client";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import {
   buildTranslationSystemPrompt,
@@ -11,29 +12,51 @@ import type {
   TranslationAdapterContext,
 } from "./types";
 
-const DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com";
+const DEFAULT_ANTHROPIC_BASE_URL: Record<string, string> = {
+  [TranslationProvider.ANTHROPIC]: "https://api.anthropic.com",
+  [TranslationProvider.MINIMAX]: "https://api.minimax.io/anthropic",
+};
 
-function resolveBaseUrl(customBaseUrl: string | null) {
-  if (!customBaseUrl) {
-    return DEFAULT_ANTHROPIC_BASE_URL;
+function resolveBaseUrl(context: TranslationAdapterContext) {
+  const normalized = context.baseUrl?.trim();
+  if (normalized) {
+    return normalized.replace(/\/$/, "");
   }
 
-  return customBaseUrl.trim().replace(/\/$/, "");
+  const fallback =
+    DEFAULT_ANTHROPIC_BASE_URL[
+      context.provider as keyof typeof DEFAULT_ANTHROPIC_BASE_URL
+    ];
+  if (!fallback) {
+    throw new TranslationHttpError(
+      500,
+      `No default base URL for Anthropic-compatible provider ${context.provider}.`
+    );
+  }
+
+  return fallback;
 }
 
 export class AnthropicAdapter implements TranslationAdapter {
+  readonly supportedProviders: TranslationProviderType[];
+
+  constructor(supportedProviders: TranslationProviderType[]) {
+    this.supportedProviders = supportedProviders;
+  }
+
   async translateChapter(
     context: TranslationAdapterContext,
     input: TranslateChapterInput
   ) {
-    if (context.provider !== TranslationProvider.ANTHROPIC) {
+    if (!this.supportedProviders.includes(context.provider)) {
       throw new TranslationHttpError(
         500,
         `Provider ${context.provider} is not supported by Anthropic adapter.`
       );
     }
 
-    const response = await fetch(`${resolveBaseUrl(context.baseUrl)}/v1/messages`, {
+    const baseUrl = resolveBaseUrl(context);
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

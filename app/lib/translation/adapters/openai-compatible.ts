@@ -19,7 +19,6 @@ const DEFAULT_OPENAI_COMPAT_BASE_URL: Record<string, string> = {
   [TranslationProvider.OPENAI]: "https://api.openai.com/v1",
   [TranslationProvider.DEEPSEEK]: "https://api.deepseek.com",
   [TranslationProvider.OPENROUTER]: "https://openrouter.ai/api/v1",
-  [TranslationProvider.MINIMAX]: "https://api.minimax.chat/v1",
 };
 
 function resolveBaseUrl(context: TranslationAdapterContext) {

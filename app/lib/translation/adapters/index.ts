@@ -8,17 +8,19 @@ const openAiCompatibleAdapter = new OpenAiCompatibleAdapter([
   TranslationProvider.OPENAI,
   TranslationProvider.DEEPSEEK,
   TranslationProvider.OPENROUTER,
-  TranslationProvider.MINIMAX,
 ]);
 
-const anthropicAdapter = new AnthropicAdapter();
+const anthropicAdapter = new AnthropicAdapter([
+  TranslationProvider.ANTHROPIC,
+  TranslationProvider.MINIMAX,
+]);
 
 const ADAPTER_BY_PROVIDER: Record<TranslationProvider, TranslationAdapter> = {
   [TranslationProvider.OPENAI]: openAiCompatibleAdapter,
   [TranslationProvider.ANTHROPIC]: anthropicAdapter,
   [TranslationProvider.DEEPSEEK]: openAiCompatibleAdapter,
   [TranslationProvider.OPENROUTER]: openAiCompatibleAdapter,
-  [TranslationProvider.MINIMAX]: openAiCompatibleAdapter,
+  [TranslationProvider.MINIMAX]: anthropicAdapter,
 };
 
 export function getTranslationAdapter(provider: TranslationProvider) {

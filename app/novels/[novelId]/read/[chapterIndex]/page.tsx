@@ -9,6 +9,7 @@ import {
 } from "@/app/lib/reader";
 import { recordChapterVisit } from "@/app/lib/reading-progress";
 import { getUserReadingPreferences } from "@/app/lib/reading-preferences";
+import { getTranslatedChapterForReader } from "@/app/lib/translation/service";
 import { ReaderClient } from "./reader-client";
 
 function parseChapterIndex(value: string): number {
@@ -56,6 +57,11 @@ export default async function ReaderChapterPage({
   void recordChapterVisit(session.user.id, novelId, chapterIndex);
 
   const preferences = await getUserReadingPreferences(session.user.id);
+  const translatedChapter = await getTranslatedChapterForReader(
+    novel.id,
+    chapterIndex,
+    session.user.id
+  );
   const { document, chapter } = chapterData;
 
   return (
@@ -74,6 +80,8 @@ export default async function ReaderChapterPage({
         "use server";
         await signOut({ redirectTo: "/login" });
       }}
+      translatedParagraphs={translatedChapter?.translatedParagraphs ?? null}
+      translatedTitle={translatedChapter?.translatedTitle ?? null}
     />
   );
 }

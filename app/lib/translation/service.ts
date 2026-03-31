@@ -12,6 +12,7 @@ import {
   createTranslationJobRecord,
   getChapterTranslationStatuses,
   getLatestTranslationJobForNovel,
+  getTranslatedChapterContent,
   getTranslationJobById,
   getTranslationJobForRunner,
   listPendingChaptersForRun,
@@ -606,4 +607,30 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
     chapterIndex: ch.chapterIndex,
     status: mapChapterStatus(ch.status),
   }));
+}
+
+export async function getTranslatedChapterForReader(
+  novelId: string,
+  chapterIndex: number,
+  userId: string
+): Promise<{ translatedTitle: string; translatedParagraphs: string[] } | null> {
+  const novel = await getNovelById(novelId);
+  if (!novel || novel.userId !== userId) return null;
+
+  const job = await getLatestTranslationJobForNovel(novelId);
+  if (!job) return null;
+
+  const chapter = await getTranslatedChapterContent(job.id, chapterIndex);
+  if (!chapter || chapter.status !== "TRANSLATED" || !chapter.translatedContent) return null;
+
+  // Split translatedContent into paragraphs (stored as newline-separated text)
+  const translatedParagraphs = chapter.translatedContent
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  return {
+    translatedTitle: chapter.translatedTitle ?? "",
+    translatedParagraphs,
+  };
 }

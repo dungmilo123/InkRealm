@@ -502,3 +502,19 @@ export async function getChapterTranslationStatuses(translationId: string) {
     },
   });
 }
+
+export async function getTranslatedChapterContent(translationId: string, chapterIndex: number) {
+  return prisma.novelTranslationChapter.findUnique({
+    where: {
+      translationId_chapterIndex: {
+        translationId,
+        chapterIndex,
+      },
+    },
+    select: {
+      status: true,
+      translatedTitle: true,
+      translatedContent: true,
+    },
+  });
+}

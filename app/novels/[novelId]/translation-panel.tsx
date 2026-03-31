@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTranslationPolling } from "./use-translation-polling";
 
 type DefaultProfileInfo = {
   id: string;
@@ -58,7 +57,10 @@ type TranslationPanelProps = {
   novelId: string;
   isReadable: boolean;
   defaultProfile: DefaultProfileInfo;
-  initialJob: TranslationJob | null;
+  job: TranslationJob | null;
+  onJobUpdate: (job: TranslationJob | null) => void;
+  isHanging: boolean;
+  hangingChapterIndex: number | null;
   chapterCount: number;
 };
 
@@ -85,18 +87,18 @@ export function TranslationPanel({
   novelId,
   isReadable,
   defaultProfile,
-  initialJob,
+  job,
+  onJobUpdate,
+  isHanging,
+  hangingChapterIndex,
   chapterCount,
 }: TranslationPanelProps) {
-  const [job, setJob] = useState<TranslationJob | null>(initialJob);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRange, setShowRange] = useState(false);
   const [chapterFrom, setChapterFrom] = useState("");
   const [chapterTo, setChapterTo] = useState("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-
-  const { isHanging, hangingChapterIndex } = useTranslationPolling(job, setJob);
 
   const panelState = getPanelState(job);
 
@@ -127,7 +129,7 @@ export function TranslationPanel({
         body: JSON.stringify(body),
       });
       const data = await readJsonOrError<{ job: TranslationJob }>(res);
-      setJob(data.job);
+      onJobUpdate(data.job);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start translation.");
     } finally {
@@ -144,7 +146,7 @@ export function TranslationPanel({
         method: "POST",
       });
       const data = await readJsonOrError<{ job: TranslationJob }>(res);
-      setJob(data.job);
+      onJobUpdate(data.job);
       setCancelDialogOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel translation.");
@@ -162,7 +164,7 @@ export function TranslationPanel({
         method: "POST",
       });
       const data = await readJsonOrError<{ job: TranslationJob }>(res);
-      setJob(data.job);
+      onJobUpdate(data.job);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to retry translation.");
     } finally {
@@ -171,7 +173,7 @@ export function TranslationPanel({
   }
 
   function handleRestart() {
-    setJob(null);
+    onJobUpdate(null);
     setChapterFrom("");
     setChapterTo("");
     setShowRange(false);

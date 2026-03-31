@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import type { ReaderSummary } from "@/app/lib/reader";
+import { Badge } from "@/components/ui/badge";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
+import { useTranslationPolling } from "./use-translation-polling";
 import type {
   SerializedDefaultProfile,
   SerializedTranslationJob,
+  ChapterTranslationStatus,
 } from "./novel-details-view";
 
 type ReadingProgressData = {
@@ -23,6 +26,7 @@ type DetailsTabsProps = {
   serializedDefaultProfile: SerializedDefaultProfile;
   serializedLatestJob: SerializedTranslationJob | null;
   chapterCount: number;
+  initialChapterStatuses: ChapterTranslationStatus[];
 };
 
 const TABS = ["Chapters", "Translation", "Glossary"] as const;
@@ -32,13 +36,16 @@ function ChapterList({
   novelId,
   chapters,
   readingProgress,
+  chapterStatuses,
 }: {
   novelId: string;
   chapters: { index: number; title: string }[];
   readingProgress: ReadingProgressData;
+  chapterStatuses: ChapterTranslationStatus[];
 }) {
   const visitedSet = new Set(readingProgress?.visitedChapterIndices ?? []);
   const lastChapter = readingProgress?.lastChapterIndex ?? null;
+  const statusMap = new Map(chapterStatuses.map((s) => [s.chapterIndex, s.status]));
 
   return (
     <div className="divide-y divide-border">
@@ -59,6 +66,8 @@ function ChapterList({
           indicatorClass = "text-muted-foreground/50";
         }
 
+        const translationStatus = statusMap.get(ch.index);
+
         return (
           <Link
             key={ch.index}
@@ -74,6 +83,16 @@ function ChapterList({
             <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
               {ch.title}
             </span>
+            {translationStatus === "translated" && (
+              <Badge className="ml-auto shrink-0 bg-primary/10 text-primary border-0 text-xs">
+                Translated
+              </Badge>
+            )}
+            {translationStatus === "translating" && (
+              <Badge className="ml-auto shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
+                Translating...
+              </Badge>
+            )}
           </Link>
         );
       })}
@@ -89,8 +108,21 @@ export function DetailsTabs({
   serializedDefaultProfile,
   serializedLatestJob,
   chapterCount,
+  initialChapterStatuses,
 }: DetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Chapters");
+  const [job, setJob] = useState(serializedLatestJob);
+  const handleJobUpdate = useCallback(
+    (updater: (prev: typeof job) => typeof job) => setJob(updater),
+    []
+  );
+  const { isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
+    useTranslationPolling(job, handleJobUpdate);
+
+  // Use polled statuses when available, fall back to initial SSR statuses
+  const chapterStatuses = polledChapterStatuses.length > 0
+    ? polledChapterStatuses
+    : initialChapterStatuses;
 
   return (
     <div>
@@ -118,6 +150,7 @@ export function DetailsTabs({
               novelId={novelId}
               chapters={readerSummary.chapters}
               readingProgress={readingProgress}
+              chapterStatuses={chapterStatuses}
             />
           ) : (
             <p className="text-sm text-muted-foreground py-4">
@@ -131,7 +164,10 @@ export function DetailsTabs({
             novelId={novelId}
             isReadable={isReadable}
             defaultProfile={serializedDefaultProfile}
-            initialJob={serializedLatestJob}
+            job={job}
+            onJobUpdate={setJob}
+            isHanging={isHanging}
+            hangingChapterIndex={hangingChapterIndex}
             chapterCount={chapterCount}
           />
         )}

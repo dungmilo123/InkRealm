@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { getDefaultProfile } from "@/app/lib/translation/profiles";
-import { getLatestNovelTranslationJobView } from "@/app/lib/translation/service";
+import { getLatestNovelTranslationJobView, getInitialChapterStatuses } from "@/app/lib/translation/service";
 import { getReadingProgress } from "@/app/lib/reading-progress";
 import {
   NovelDetailsView,
   type SerializedTranslationJob,
+  type ChapterTranslationStatus,
 } from "./novel-details-view";
 
 export default async function NovelDetailsPage({
@@ -29,13 +30,18 @@ export default async function NovelDetailsPage({
 
   let defaultProfile: Awaited<ReturnType<typeof getDefaultProfile>> = null;
   let latestJob: Awaited<ReturnType<typeof getLatestNovelTranslationJobView>> = null;
+  let initialChapterStatuses: ChapterTranslationStatus[] = [];
   let translationDataError: string | null = null;
 
   try {
-    [defaultProfile, latestJob] = await Promise.all([
+    const [dp, lj, ics] = await Promise.all([
       getDefaultProfile(session.user.id),
       getLatestNovelTranslationJobView(novel.id, session.user.id),
+      getInitialChapterStatuses(novel.id, session.user.id),
     ]);
+    defaultProfile = dp;
+    latestJob = lj;
+    initialChapterStatuses = ics;
   } catch {
     translationDataError = "Translation data is currently unavailable.";
   }
@@ -67,6 +73,7 @@ export default async function NovelDetailsPage({
       serializedDefaultProfile={serializedDefaultProfile}
       serializedLatestJob={serializedLatestJob}
       chapterCount={readerSummary.chapterCount}
+      initialChapterStatuses={initialChapterStatuses}
     />
   );
 }

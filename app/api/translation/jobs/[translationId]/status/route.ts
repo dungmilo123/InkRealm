@@ -14,9 +14,9 @@ export async function GET(
     }
     const { translationId } = await context.params;
 
-    const job = await getTranslationJobStatus(translationId, session.user.id);
+    const result = await getTranslationJobStatus(translationId, session.user.id);
 
-    return NextResponse.json({ job });
+    return NextResponse.json({ job: result.job, chapterStatuses: result.chapterStatuses });
   } catch (error) {
     return handleTranslationRouteError(error);
   }

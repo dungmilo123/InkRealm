@@ -31,6 +31,11 @@ export type SerializedTranslationJob = {
   downloadUrl: string | null;
 };
 
+export type ChapterTranslationStatus = {
+  chapterIndex: number;
+  status: "translated" | "translating" | "untranslated";
+};
+
 type ReadingProgressData = {
   lastChapterIndex: number;
   visitedChapterIndices: number[];

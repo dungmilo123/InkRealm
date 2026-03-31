@@ -10,6 +10,7 @@ type PollingJob = {
 
 type JobStatusResponse = {
   job: PollingJob & Record<string, unknown>;
+  chapterStatuses?: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>;
 };
 
 const POLL_INTERVAL_MS = 3_000;
@@ -22,12 +23,19 @@ function isActiveStatus(status: PollingJob["status"]) {
 export function useTranslationPolling<T extends PollingJob>(
   job: T | null,
   onUpdate: (updater: (prev: T | null) => T | null) => void
-): { isHanging: boolean; hangingChapterIndex: number | null } {
+): {
+  isHanging: boolean;
+  hangingChapterIndex: number | null;
+  chapterStatuses: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>;
+} {
   const jobRef = useRef(job);
   const lastUpdatedAtRef = useRef<string | null>(null);
   const lastUpdatedAtChangedRef = useRef<number>(Date.now());
   const [isHanging, setIsHanging] = useState(false);
   const [hangingChapterIndex, setHangingChapterIndex] = useState<number | null>(null);
+  const [chapterStatuses, setChapterStatuses] = useState<
+    Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>
+  >([]);
 
   const isActive = job !== null && isActiveStatus(job.status);
 
@@ -40,6 +48,7 @@ export function useTranslationPolling<T extends PollingJob>(
     if (!isActive) {
       setIsHanging(false);
       setHangingChapterIndex(null);
+      setChapterStatuses([]);
       lastUpdatedAtRef.current = null;
     }
   }, [isActive]);
@@ -63,6 +72,10 @@ export function useTranslationPolling<T extends PollingJob>(
         if (!res.ok) return;
         const data = (await res.json()) as JobStatusResponse;
         const updated = data.job;
+
+        if (Array.isArray(data.chapterStatuses)) {
+          setChapterStatuses(data.chapterStatuses);
+        }
 
         onUpdateStable((prev) => {
           if (!prev || prev.id !== updated.id) return prev;
@@ -129,5 +142,5 @@ export function useTranslationPolling<T extends PollingJob>(
     };
   }, [isActive, job, onUpdateStable]);
 
-  return { isHanging, hangingChapterIndex };
+  return { isHanging, hangingChapterIndex, chapterStatuses };
 }

@@ -12,7 +12,7 @@ import type { GlossaryPromptEntry, ChapterContext } from "@/app/lib/translation/
 test("system prompt without glossary returns basic prompt", () => {
   const prompt = buildTranslationSystemPrompt("Vietnamese");
   assert.ok(prompt.includes("Vietnamese"));
-  assert.ok(prompt.includes("expert literary translator"));
+  assert.ok(prompt.includes("expert literary editor"));
   assert.ok(!prompt.includes("Glossary"));
 });
 

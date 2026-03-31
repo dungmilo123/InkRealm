@@ -491,3 +491,14 @@ export async function updateChapterSummary(
     data: { summary },
   });
 }
+
+export async function getChapterTranslationStatuses(translationId: string) {
+  return prisma.novelTranslationChapter.findMany({
+    where: { translationId },
+    orderBy: { chapterIndex: "asc" },
+    select: {
+      chapterIndex: true,
+      status: true,
+    },
+  });
+}

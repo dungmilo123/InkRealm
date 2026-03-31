@@ -1,4 +1,4 @@
-import { TranslationStatus, type TranslationProvider } from "@/app/generated/prisma/client";
+import { ChapterTranslationStatus as PrismaChapterTranslationStatus, TranslationStatus, type TranslationProvider } from "@/app/generated/prisma/client";
 import { getNovelById } from "@/app/lib/novels";
 import {
   ReaderUnavailableError,
@@ -10,6 +10,7 @@ import {
   countChapterTranslationStats,
   countTranslatedChapters,
   createTranslationJobRecord,
+  getChapterTranslationStatuses,
   getLatestTranslationJobForNovel,
   getTranslationJobById,
   getTranslationJobForRunner,
@@ -52,6 +53,21 @@ export type TranslationJobView = TranslationJobSummary & {
   progressPercent: number;
   downloadUrl: string | null;
 };
+
+export type ChapterStatusItem = {
+  chapterIndex: number;
+  status: "translated" | "translating" | "untranslated";
+};
+
+function mapChapterStatus(prismaStatus: PrismaChapterTranslationStatus): "translated" | "translating" | "untranslated" {
+  switch (prismaStatus) {
+    case "TRANSLATED": return "translated";
+    case "TRANSLATING": return "translating";
+    case "PENDING":
+    case "FAILED":
+    default: return "untranslated";
+  }
+}
 
 function toTranslationJobView(job: TranslationJobSummary): TranslationJobView {
   const progressPercent = calculateTranslationProgressPercent(
@@ -513,7 +529,13 @@ export async function getTranslationJobStatus(translationId: string, userId: str
     throw new TranslationHttpError(404, "Translation job not found.");
   }
 
-  return toTranslationJobView(job);
+  const rawStatuses = await getChapterTranslationStatuses(translationId);
+  const chapterStatuses: ChapterStatusItem[] = rawStatuses.map((ch) => ({
+    chapterIndex: ch.chapterIndex,
+    status: mapChapterStatus(ch.status),
+  }));
+
+  return { job: toTranslationJobView(job), chapterStatuses };
 }
 
 export async function getDownloadableTranslationJob(translationId: string, userId: string) {
@@ -569,4 +591,19 @@ export async function getLatestNovelTranslationJobView(novelId: string, userId: 
   }
   const job = await getLatestTranslationJobForNovel(novelId);
   return job ? toTranslationJobView(job) : null;
+}
+
+export async function getInitialChapterStatuses(novelId: string, userId: string): Promise<ChapterStatusItem[]> {
+  const novel = await getNovelById(novelId);
+  if (!novel || novel.userId !== userId) {
+    return [];
+  }
+  const job = await getLatestTranslationJobForNovel(novelId);
+  if (!job) return [];
+
+  const rawStatuses = await getChapterTranslationStatuses(job.id);
+  return rawStatuses.map((ch) => ({
+    chapterIndex: ch.chapterIndex,
+    status: mapChapterStatus(ch.status),
+  }));
 }

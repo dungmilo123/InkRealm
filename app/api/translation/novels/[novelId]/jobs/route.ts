@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
   createTranslationJobFromNovelDetails,
-  listNovelTranslationJobViews,
+  getLatestNovelTranslationJobView,
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { parseStartTranslationPayload } from "@/app/lib/translation/validation";
@@ -17,8 +17,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { novelId } = await context.params;
-    const jobs = await listNovelTranslationJobViews(novelId, session.user.id);
-    return NextResponse.json({ jobs });
+    const job = await getLatestNovelTranslationJobView(novelId, session.user.id);
+    return NextResponse.json({ job });
   } catch (error) {
     return handleTranslationRouteError(error);
   }
@@ -40,9 +40,8 @@ export async function POST(
     const job = await createTranslationJobFromNovelDetails({
       novelId,
       profileId: parsed.profileId,
-      targetLanguage: parsed.targetLanguage,
-      batchSize: parsed.batchSize,
-      qualityPreset: parsed.qualityPreset,
+      chapterFrom: parsed.chapterFrom,
+      chapterTo: parsed.chapterTo,
       userId: session.user.id,
     });
 

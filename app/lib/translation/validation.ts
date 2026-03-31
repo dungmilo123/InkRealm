@@ -110,25 +110,6 @@ export function parseTargetLanguage(value: unknown) {
   return normalized;
 }
 
-export function parseBatchSize(value: unknown, fallback = 4, max = 20) {
-  if (value === undefined || value === null || value === "") {
-    return fallback;
-  }
-
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string"
-        ? Number.parseInt(value, 10)
-        : Number.NaN;
-
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) {
-    throw new TranslationHttpError(400, `batchSize must be 1-${max}.`);
-  }
-
-  return parsed;
-}
-
 export function parseCreateProfilePayload(payload: unknown) {
   const body = asObject(payload);
 
@@ -176,25 +157,24 @@ export function parseUpdateProfilePayload(payload: unknown) {
   };
 }
 
+function parseChapterIndex(value: unknown, fieldName: string): number {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : Number.NaN;
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new TranslationHttpError(400, `${fieldName} must be a positive integer.`);
+  }
+  return parsed;
+}
+
 export function parseStartTranslationPayload(payload: unknown) {
   const body = asObject(payload);
 
   return {
     profileId: parseRequiredString(body.profileId, "profileId", 1, 128),
-    targetLanguage: parseTargetLanguage(body.targetLanguage),
-    batchSize: parseBatchSize(body.batchSize),
-    qualityPreset: parseOptionalString(body.qualityPreset, "qualityPreset", 32) ?? undefined,
-  };
-}
-
-export function parseRunTranslationPayload(payload: unknown) {
-  const body = asObject(payload);
-
-  return {
-    profileId:
-      body.profileId === undefined
-        ? undefined
-        : parseRequiredString(body.profileId, "profileId", 1, 128),
-    batchSize: parseBatchSize(body.batchSize),
+    chapterFrom: body.chapterFrom !== undefined && body.chapterFrom !== null
+      ? parseChapterIndex(body.chapterFrom, "chapterFrom")
+      : undefined,
+    chapterTo: body.chapterTo !== undefined && body.chapterTo !== null
+      ? parseChapterIndex(body.chapterTo, "chapterTo")
+      : undefined,
   };
 }

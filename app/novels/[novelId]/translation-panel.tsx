@@ -1,8 +1,31 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Settings2 } from "lucide-react";
+import {
+  Play,
+  X,
+  Download,
+  RotateCcw,
+  AlertCircle,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTranslationPolling } from "./use-translation-polling";
 
 type DefaultProfileInfo = {
@@ -35,38 +58,19 @@ type TranslationPanelProps = {
   novelId: string;
   isReadable: boolean;
   defaultProfile: DefaultProfileInfo;
-  initialJobs: TranslationJob[];
+  initialJob: TranslationJob | null;
+  chapterCount: number;
 };
 
-type FeedbackState = {
-  type: "success" | "error";
-  text: string;
-};
+type PanelState = "idle" | "translating" | "completed" | "failed" | "cancelled";
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function statusBadgeClass(status: TranslationJob["status"]) {
-  if (status === "COMPLETED") {
-    return "bg-green-100 text-green-800";
-  }
-
-  if (status === "FAILED") {
-    return "bg-red-100 text-red-800";
-  }
-
-  if (status === "IN_PROGRESS") {
-    return "bg-amber-100 text-amber-800";
-  }
-
-  return "bg-muted text-muted-foreground";
+function getPanelState(job: TranslationJob | null): PanelState {
+  if (!job) return "idle";
+  if (job.status === "CANCELLED") return "cancelled";
+  if (job.status === "COMPLETED") return "completed";
+  if (job.status === "FAILED") return "failed";
+  if (job.status === "IN_PROGRESS" || job.status === "PENDING") return "translating";
+  return "idle";
 }
 
 async function readJsonOrError<T>(response: Response): Promise<T> {
@@ -74,7 +78,6 @@ async function readJsonOrError<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw new Error(payload.error ?? "Request failed");
   }
-
   return payload;
 }
 
@@ -82,146 +85,100 @@ export function TranslationPanel({
   novelId,
   isReadable,
   defaultProfile,
-  initialJobs,
+  initialJob,
+  chapterCount,
 }: TranslationPanelProps) {
-  const [jobs, setJobs] = useState<TranslationJob[]>(initialJobs);
-  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [job, setJob] = useState<TranslationJob | null>(initialJob);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showRange, setShowRange] = useState(false);
+  const [chapterFrom, setChapterFrom] = useState("");
+  const [chapterTo, setChapterTo] = useState("");
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  const [targetLanguage, setTargetLanguage] = useState("Vietnamese");
-  const [batchSize, setBatchSize] = useState("4");
-  const [qualityPreset, setQualityPreset] = useState("fast");
+  const { isHanging, hangingChapterIndex } = useTranslationPolling(job, setJob);
 
-  const sortedJobs = useMemo(
-    () => [...jobs].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
-    [jobs]
-  );
+  const panelState = getPanelState(job);
 
-  const handlePollingUpdate = useCallback(
-    (updater: (prev: TranslationJob[]) => TranslationJob[]) => setJobs(updater),
-    []
-  );
-  useTranslationPolling(jobs, handlePollingUpdate);
-
-  async function refreshJobs() {
-    const response = await fetch(`/api/translation/novels/${novelId}/jobs`, {
-      method: "GET",
-    });
-    const data = await readJsonOrError<{ jobs: TranslationJob[] }>(response);
-    setJobs(data.jobs);
+  // Range validation
+  const fromNum = chapterFrom ? Number.parseInt(chapterFrom, 10) : null;
+  const toNum = chapterTo ? Number.parseInt(chapterTo, 10) : null;
+  let rangeError: string | null = null;
+  if (fromNum !== null && (fromNum < 1 || fromNum > chapterCount)) {
+    rangeError = `From must be between 1 and ${chapterCount}`;
+  } else if (toNum !== null && (toNum < 1 || toNum > chapterCount)) {
+    rangeError = `To must be between 1 and ${chapterCount}`;
+  } else if (fromNum !== null && toNum !== null && fromNum > toNum) {
+    rangeError = "From must be less than or equal to To";
   }
 
-  async function handleStartTranslation(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!defaultProfile) return;
+  async function handleStartTranslation() {
+    if (!defaultProfile || busy) return;
     setBusy(true);
-    setFeedback(null);
-
+    setError(null);
     try {
-      const response = await fetch(`/api/translation/novels/${novelId}/jobs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          profileId: defaultProfile.id,
-          targetLanguage,
-          batchSize: Number.parseInt(batchSize, 10),
-          qualityPreset,
-        }),
-      });
+      const body: Record<string, unknown> = { profileId: defaultProfile.id };
+      if (chapterFrom) body.chapterFrom = Number.parseInt(chapterFrom, 10);
+      if (chapterTo) body.chapterTo = Number.parseInt(chapterTo, 10);
 
-      const data = await readJsonOrError<{ job: TranslationJob }>(response);
-      setJobs((prev) => [data.job, ...prev.filter((job) => job.id !== data.job.id)]);
-      setFeedback({
-        type: "success",
-        text: "Translation job created and started.",
+      const res = await fetch(`/api/translation/novels/${novelId}/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        text: error instanceof Error ? error.message : "Failed to start translation.",
-      });
+      const data = await readJsonOrError<{ job: TranslationJob }>(res);
+      setJob(data.job);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start translation.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function runNextBatch(jobId: string) {
+  async function handleCancel() {
+    if (!job || busy) return;
     setBusy(true);
-    setFeedback(null);
-
-    // Optimistic: set to IN_PROGRESS so polling activates immediately
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId && job.status !== "IN_PROGRESS"
-          ? { ...job, status: "IN_PROGRESS" as const }
-          : job
-      )
-    );
-
+    setError(null);
     try {
-      const response = await fetch(`/api/translation/jobs/${jobId}/run`, {
+      const res = await fetch(`/api/translation/jobs/${job.id}/cancel`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          batchSize: Number.parseInt(batchSize, 10),
-        }),
       });
-
-      const data = await readJsonOrError<{ job: TranslationJob }>(response);
-      setJobs((prev) => prev.map((job) => (job.id === data.job.id ? data.job : job)));
-      setFeedback({ type: "success", text: "Processed the next translation batch." });
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        text: error instanceof Error ? error.message : "Failed to run translation batch.",
-      });
+      const data = await readJsonOrError<{ job: TranslationJob }>(res);
+      setJob(data.job);
+      setCancelDialogOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel translation.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function retryJob(jobId: string) {
+  async function handleRetry() {
+    if (!job || busy) return;
     setBusy(true);
-    setFeedback(null);
-
-    // Optimistic: set to IN_PROGRESS so polling activates immediately
-    setJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId ? { ...job, status: "IN_PROGRESS" as const } : job
-      )
-    );
-
+    setError(null);
     try {
-      const response = await fetch(`/api/translation/jobs/${jobId}/retry`, {
+      const res = await fetch(`/api/translation/jobs/${job.id}/retry`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          batchSize: Number.parseInt(batchSize, 10),
-        }),
       });
-
-      const data = await readJsonOrError<{ job: TranslationJob }>(response);
-      setJobs((prev) => prev.map((job) => (job.id === data.job.id ? data.job : job)));
-      setFeedback({
-        type: "success",
-        text: "Retry started from the failed chapter.",
-      });
-    } catch (error) {
-      setFeedback({
-        type: "error",
-        text: error instanceof Error ? error.message : "Failed to retry translation.",
-      });
+      const data = await readJsonOrError<{ job: TranslationJob }>(res);
+      setJob(data.job);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to retry translation.");
     } finally {
       setBusy(false);
     }
   }
 
+  function handleRestart() {
+    setJob(null);
+    setChapterFrom("");
+    setChapterTo("");
+    setShowRange(false);
+    setError(null);
+  }
+
+  // No provider configured
   if (!defaultProfile) {
     return (
       <section className="rounded-xl border border-border bg-card p-5">
@@ -244,219 +201,302 @@ export function TranslationPanel({
     );
   }
 
-  return (
-    <section className="rounded-xl border border-border bg-card p-5 space-y-6">
-      <div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <span>
-            Using <strong className="text-foreground">{defaultProfile.provider} &middot; {defaultProfile.model}</strong>
-          </span>
-          <span>&middot;</span>
-          <Link
-            href="/settings"
-            className="text-primary hover:underline text-sm"
-          >
-            Change in Settings
-          </Link>
-        </div>
-        <h2 className="text-lg font-semibold text-card-foreground">Translate this novel</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Start translation jobs, monitor progress, and download completed exports.
-        </p>
-      </div>
+  const providerNote = (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+      <span>
+        Using{" "}
+        <strong className="text-foreground">
+          {defaultProfile.provider} &middot; {defaultProfile.model}
+        </strong>
+      </span>
+      <span>&middot;</span>
+      <Link href="/settings" className="text-primary hover:underline text-sm">
+        Change in Settings
+      </Link>
+    </div>
+  );
 
-      {feedback ? (
-        <div
-          className={`rounded-lg border px-3 py-2 text-sm ${
-            feedback.type === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-800"
-          }`}
-        >
-          {feedback.text}
+  // Not readable
+  if (!isReadable) {
+    return (
+      <section className="rounded-xl border border-border bg-card p-5">
+        {providerNote}
+        <div className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
+          In-app reading is unavailable for this novel, so translation is disabled.
+        </div>
+      </section>
+    );
+  }
+
+  // Determine if all chapters are translated (for re-translate label)
+  const allTranslated =
+    job?.status === "COMPLETED" && job.completedChapters >= chapterCount;
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-5">
+      {providerNote}
+
+      {error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">
+          {error}
         </div>
       ) : null}
 
-      {isReadable ? (
-        <form onSubmit={handleStartTranslation} className="space-y-3 border border-border rounded-lg p-4">
-          <h3 className="text-sm font-medium text-card-foreground">Start translation</h3>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Target language</span>
-              <input
-                value={targetLanguage}
-                onChange={(event) => setTargetLanguage(event.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                required
-              />
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs text-muted-foreground">Batch size</span>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={batchSize}
-                onChange={(event) => setBatchSize(event.target.value)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-            </label>
+      {/* Idle state */}
+      {(panelState === "idle" || panelState === "cancelled") && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-heading font-semibold text-card-foreground">
+              Translate this novel
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {allTranslated
+                ? "All chapters translated · Vietnamese · Premium quality"
+                : `${chapterCount - (job?.completedChapters ?? 0)} chapters untranslated · Vietnamese · Premium quality`}
+            </p>
+            {panelState === "cancelled" && job ? (
+              <p className="text-xs text-muted-foreground mt-1">
+                Previous translation was cancelled. {job.completedChapters}{" "}
+                chapters already translated will be kept.
+              </p>
+            ) : null}
           </div>
 
-          <fieldset className="space-y-2">
-            <legend className="text-xs text-muted-foreground">Quality preset</legend>
-            <div className="grid gap-2 md:grid-cols-3">
-              {([
-                { value: "fast", label: "Fast", desc: "No glossary, no context. Fastest speed." },
-                { value: "standard", label: "Standard", desc: "Glossary + 1 previous chapter + 3 summaries." },
-                { value: "premium", label: "Premium", desc: "Glossary + 3 previous chapters + 5 summaries." },
-              ] as const).map((preset) => (
-                <label
-                  key={preset.value}
-                  className={`flex cursor-pointer flex-col rounded-lg border p-3 text-sm transition-colors ${
-                    qualityPreset === preset.value
-                      ? "border-primary bg-primary/5"
-                      : "border-input hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="qualityPreset"
-                      value={preset.value}
-                      checked={qualityPreset === preset.value}
-                      onChange={(e) => setQualityPreset(e.target.value)}
-                      className="accent-primary"
-                    />
-                    <span className="font-medium">{preset.label}</span>
-                  </div>
-                  <span className="mt-1 text-xs text-muted-foreground">{preset.desc}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          <Button
+            className="w-full h-10 px-6 text-sm font-medium"
+            disabled={busy || !!rangeError}
+            aria-busy={busy}
+            onClick={() => void handleStartTranslation()}
           >
-            {busy ? "Working..." : "Start translation"}
-          </button>
-        </form>
-      ) : (
-        <div className="rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground">
-          In-app reading is unavailable for this novel, so translation start controls are hidden.
+            <Play className="h-4 w-4 mr-2" />
+            {allTranslated ? "Re-translate" : "Translate"}
+          </Button>
+
+          {/* Advanced range picker */}
+          <div>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={() => setShowRange(!showRange)}
+            >
+              {showRange ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Hide chapter range
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Advanced: Set chapter range
+                </>
+              )}
+            </button>
+
+            {showRange ? (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="chapter-from" className="text-sm text-muted-foreground">
+                      From chapter
+                    </Label>
+                    <Input
+                      id="chapter-from"
+                      type="number"
+                      min={1}
+                      max={chapterCount}
+                      value={chapterFrom}
+                      onChange={(e) => setChapterFrom(e.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+                  <span className="pb-2 text-muted-foreground">→</span>
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="chapter-to" className="text-sm text-muted-foreground">
+                      To chapter
+                    </Label>
+                    <Input
+                      id="chapter-to"
+                      type="number"
+                      min={1}
+                      max={chapterCount}
+                      value={chapterTo}
+                      onChange={(e) => setChapterTo(e.target.value)}
+                      placeholder={String(chapterCount)}
+                    />
+                  </div>
+                </div>
+                {rangeError ? (
+                  <p className="text-xs text-destructive">{rangeError}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-card-foreground">Translation jobs</h3>
-        {sortedJobs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No translation jobs yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {sortedJobs.map((job) => {
-              const isTerminal = job.status === "COMPLETED" || job.status === "FAILED";
-              const canRunMore =
-                (job.status === "PENDING" || job.status === "IN_PROGRESS") &&
-                job.completedChapters < job.totalChapters;
+      {/* Translating state */}
+      {panelState === "translating" && job && (
+        <div className="space-y-3">
+          <h2
+            className="text-xl font-heading font-semibold text-card-foreground"
+            aria-live="polite"
+          >
+            Translating...
+          </h2>
 
-              return (
-                <article key={job.id} className="rounded-lg border border-border bg-background p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-sm font-medium text-foreground">
-                      {job.targetLanguage} translation
-                    </h4>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(job.status)}`}
-                    >
-                      {job.status.replace("_", " ")}
-                    </span>
-                  </div>
-
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {job.providerSnapshot} · {job.modelSnapshot}
-                  </p>
-
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between text-sm text-foreground mb-1">
-                      <span>
-                        {job.completedChapters}/{job.totalChapters} chapters ({job.progressPercent}%)
-                      </span>
-                      {job.status === "COMPLETED" ? (
-                        <span className="text-xs font-medium text-green-700">Complete</span>
-                      ) : null}
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ease-out ${
-                          job.status === "COMPLETED"
-                            ? "bg-green-500"
-                            : job.status === "FAILED"
-                              ? "bg-red-400"
-                              : "bg-amber-400"
-                        }`}
-                        style={{ width: `${job.progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {job.failureReason ? (
-                    <p className="mt-2 text-xs text-red-700">
-                      Failed at chapter {job.failedChapterIndex ?? "unknown"}: {job.failureReason}
-                    </p>
-                  ) : null}
-
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Updated {formatDateTime(job.updatedAt)}
-                    {isTerminal ? " · terminal" : ""}
-                  </p>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {canRunMore ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          void runNextBatch(job.id);
-                        }}
-                        className="h-8 rounded-md border border-input px-3 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-60"
-                      >
-                        Run next batch
-                      </button>
-                    ) : null}
-
-                    {job.status === "FAILED" ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          void retryJob(job.id);
-                        }}
-                        className="h-8 rounded-md border border-input px-3 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-60"
-                      >
-                        Retry
-                      </button>
-                    ) : null}
-
-                    {job.downloadUrl ? (
-                      <a
-                        href={job.downloadUrl}
-                        className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                      >
-                        Download export
-                      </a>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
+          <div
+            role="progressbar"
+            aria-valuenow={job.progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Translation progress"
+            className="h-2 w-full rounded-full bg-muted overflow-hidden"
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              style={{ width: `${job.progressPercent}%` }}
+            />
           </div>
-        )}
-      </div>
+
+          <p className="text-sm text-muted-foreground">
+            {job.completedChapters} of {job.totalChapters} chapters translated (
+            {job.progressPercent}%)
+          </p>
+
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="h-9 px-4 text-sm"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              <X className="h-3.5 w-3.5 mr-2" />
+              Stop Translation
+            </Button>
+          </div>
+
+          {isHanging ? (
+            <div
+              role="status"
+              className="rounded-lg border border-border bg-muted/50 px-4 py-3 mt-3"
+            >
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Translation may be stuck — chapter {hangingChapterIndex} has
+                    been running for 10+ minutes.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You can cancel and retry from this chapter.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Cancel confirmation dialog */}
+          <AlertDialog
+            open={cancelDialogOpen}
+            onOpenChange={setCancelDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel translation?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Translation will stop after the current chapter finishes.
+                  Already-translated chapters will be kept.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Translating</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void handleCancel()}>
+                  Cancel Translation
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
+      {/* Completed state */}
+      {panelState === "completed" && job && (
+        <div className="space-y-4" aria-live="polite">
+          <div>
+            <h2 className="text-xl font-heading font-semibold text-card-foreground">
+              Translation complete
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {job.totalChapters} chapters translated to Vietnamese
+            </p>
+          </div>
+
+          {job.downloadUrl ? (
+            <a href={job.downloadUrl}>
+              <Button className="w-full h-10 px-6">
+                <Download className="h-4 w-4 mr-2" />
+                Download Translation
+              </Button>
+            </a>
+          ) : null}
+
+          <div className="flex justify-center mt-2">
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground cursor-pointer underline-offset-2 hover:underline"
+              onClick={handleRestart}
+            >
+              Re-translate all chapters
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Failed state */}
+      {panelState === "failed" && job && (
+        <div className="space-y-4" aria-live="polite">
+          <h2 className="text-xl font-heading font-semibold text-card-foreground">
+            Translation stopped
+          </h2>
+
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm text-destructive">
+                  Failed at chapter {job.failedChapterIndex ?? "unknown"}:{" "}
+                  {job.failureReason}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Already-translated chapters are preserved. Retry resumes from
+                  chapter {job.failedChapterIndex ?? "unknown"}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            className="w-full h-10 px-6"
+            onClick={() => void handleRetry()}
+            disabled={busy}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Retry from Chapter {job.failedChapterIndex ?? "unknown"}
+          </Button>
+
+          <div className="flex justify-center mt-2">
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground cursor-pointer underline-offset-2 hover:underline"
+              onClick={handleRestart}
+            >
+              Start over from chapter 1
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

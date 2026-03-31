@@ -126,6 +126,7 @@ model Novel {
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   translations     NovelTranslation[]
   glossaryEntries  NovelGlossaryEntry[]
+  chapterCount     Int?
   readingProgress  ReadingProgress[]
 }
 

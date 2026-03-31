@@ -4,6 +4,10 @@ import type { Novel } from "@/app/generated/prisma/client";
 import { extractEpubChapters } from "./epub";
 import { extractTxtChapters } from "./text";
 import {
+  getCachedDocument,
+  setCachedDocument,
+} from "./cache";
+import {
   InvalidChapterIndexError,
   ReaderUnavailableError,
   type ParsedReaderChapter,
@@ -85,6 +89,9 @@ async function parseNovelChapters(novel: Novel): Promise<ParsedReaderChapter[]> 
 }
 
 export async function getReaderDocument(novel: Novel): Promise<ReaderDocument> {
+  const cached = getCachedDocument(novel.id, novel.updatedAt);
+  if (cached) return cached;
+
   const parsedChapters = await parseNovelChapters(novel);
   const chapters = normalizeChapters(parsedChapters);
 
@@ -94,18 +101,26 @@ export async function getReaderDocument(novel: Novel): Promise<ReaderDocument> {
     );
   }
 
-  return {
+  const document: ReaderDocument = {
     novelId: novel.id,
     novelTitle: novel.title,
     fileType: novel.fileType,
     chapters,
     chapterCount: chapters.length,
   };
+
+  setCachedDocument(novel.id, novel.updatedAt, document);
+  return document;
 }
 
 export async function getReaderSummary(novel: Novel): Promise<ReaderSummary> {
   try {
     const document = await getReaderDocument(novel);
+
+    if (novel.chapterCount == null) {
+      const { updateNovelChapterCount } = await import("@/app/lib/novels");
+      void updateNovelChapterCount(novel.id, document.chapterCount);
+    }
 
     return {
       isReadable: true,

@@ -21,6 +21,7 @@ function createNovel(overrides?: Partial<Novel>): Novel {
     userId: "user-test-id",
     createdAt: new Date("2026-03-28T12:00:00.000Z"),
     updatedAt: new Date("2026-03-28T12:00:00.000Z"),
+    chapterCount: null,
     ...overrides,
   };
 }

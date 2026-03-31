@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 type GlossaryVariant = {
   id: string;
@@ -95,10 +95,11 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
     }
   }, [novelId]);
 
-  // Load on first render
-  if (!loaded && !busy) {
-    void fetchEntries();
-  }
+  useEffect(() => {
+    if (!loaded) {
+      void fetchEntries();
+    }
+  }, [loaded, fetchEntries]);
 
   const confirmedEntries = entries.filter((e) => e.status === "CONFIRMED");
   const pendingEntries = entries.filter((e) => e.status === "PENDING");

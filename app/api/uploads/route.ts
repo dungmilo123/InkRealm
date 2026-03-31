@@ -87,6 +87,16 @@ export async function POST(request: Request) {
         userId: session.user.id,
       });
 
+      try {
+        const { getReaderDocument } = await import("@/app/lib/reader");
+        const doc = await getReaderDocument(novel);
+        const { updateNovelChapterCount } = await import("@/app/lib/novels");
+        await updateNovelChapterCount(novel.id, doc.chapterCount);
+        novel.chapterCount = doc.chapterCount;
+      } catch {
+        // intentional: chapter parsing failure is non-fatal; dashboard lazy-populates
+      }
+
       return NextResponse.json({ success: true, novel }, { status: 201 });
     } catch (dbError) {
       try {

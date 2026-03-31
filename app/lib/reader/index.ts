@@ -6,3 +6,4 @@ export {
   type ReaderSummary,
 } from "./types";
 export { getReaderDocument, getReaderSummary, getReaderChapter } from "./service";
+export { invalidateCachedDocument, clearDocumentCache } from "./cache";

@@ -10,6 +10,7 @@ const profilePublicSelect = {
   provider: true,
   model: true,
   baseUrl: true,
+  customPrompt: true,
   isDefault: true,
   createdAt: true,
   updatedAt: true,
@@ -68,6 +69,7 @@ export async function createTranslationProfileRecord(input: {
   provider: TranslationProvider;
   model: string;
   baseUrl: string | null;
+  customPrompt: string | null;
   encryptedApiKey: string;
   isDefault: boolean;
   userId: string;
@@ -91,6 +93,7 @@ export async function updateTranslationProfileRecord(
     provider?: TranslationProvider;
     model?: string;
     baseUrl?: string | null;
+    customPrompt?: string | null;
     encryptedApiKey?: string;
   }
 ) {

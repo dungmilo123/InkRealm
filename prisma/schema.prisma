@@ -135,6 +135,7 @@ model TranslationProfile {
   model           String
   baseUrl         String?
   encryptedApiKey String
+  customPrompt    String?
   isDefault       Boolean             @default(false)
   userId          String
   createdAt       DateTime            @default(now())

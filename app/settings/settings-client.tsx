@@ -27,6 +27,7 @@ type SerializedTranslationProfile = {
   provider: string;
   model: string;
   baseUrl: string | null;
+  customPrompt: string | null;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;

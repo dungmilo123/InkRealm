@@ -73,7 +73,7 @@ export class AnthropicAdapter implements TranslationAdapter {
         model: context.model,
         max_tokens: maxTokens,
         temperature: 0.2,
-        system: buildTranslationSystemPrompt(input.targetLanguage, input.glossary),
+        system: buildTranslationSystemPrompt(input.targetLanguage, input.glossary, context.customPrompt),
         messages: [
           {
             role: "user",

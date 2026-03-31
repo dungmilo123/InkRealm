@@ -422,6 +422,7 @@ export async function runTranslationJobBatch(input: {
           model: runnerState.modelSnapshot,
           apiKey: credential.apiKey,
           baseUrl: credential.baseUrl,
+          customPrompt: credential.customPrompt,
         },
         {
           targetLanguage: runnerState.targetLanguage,

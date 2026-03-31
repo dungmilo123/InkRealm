@@ -80,7 +80,7 @@ async function performOpenAiCompatibleRequest(
       messages: [
         {
           role: "system",
-          content: buildTranslationSystemPrompt(input.targetLanguage, input.glossary),
+          content: buildTranslationSystemPrompt(input.targetLanguage, input.glossary, context.customPrompt),
         },
         {
           role: "user",

@@ -5,6 +5,7 @@ export type TranslationAdapterContext = {
   model: string;
   apiKey: string;
   baseUrl: string | null;
+  customPrompt?: string | null;
 };
 
 export type GlossaryPromptEntry = {

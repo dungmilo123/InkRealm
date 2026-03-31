@@ -118,6 +118,7 @@ export function parseCreateProfilePayload(payload: unknown) {
     model: parseRequiredString(body.model, "model", 1, 160),
     baseUrl: parseBaseUrl(body.baseUrl),
     apiKey: parseRequiredString(body.apiKey, "apiKey", 1, 2048),
+    customPrompt: parseOptionalString(body.customPrompt, "customPrompt", 4096),
   };
 }
 
@@ -136,12 +137,17 @@ export function parseUpdateProfilePayload(payload: unknown) {
     body.apiKey === undefined
       ? undefined
       : parseRequiredString(body.apiKey, "apiKey", 1, 2048);
+  const customPrompt =
+    body.customPrompt === undefined
+      ? undefined
+      : parseOptionalString(body.customPrompt, "customPrompt", 4096);
 
   if (
     provider === undefined &&
     model === undefined &&
     baseUrl === undefined &&
-    apiKey === undefined
+    apiKey === undefined &&
+    customPrompt === undefined
   ) {
     throw new TranslationHttpError(
       400,
@@ -154,6 +160,7 @@ export function parseUpdateProfilePayload(payload: unknown) {
     model,
     baseUrl,
     apiKey,
+    customPrompt,
   };
 }
 

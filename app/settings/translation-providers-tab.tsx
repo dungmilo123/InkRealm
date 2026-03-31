@@ -39,6 +39,7 @@ type SerializedTranslationProfile = {
   provider: string;
   model: string;
   baseUrl: string | null;
+  customPrompt: string | null;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;
@@ -73,6 +74,7 @@ export function TranslationProvidersTab({
   const [editModel, setEditModel] = useState("");
   const [editBaseUrl, setEditBaseUrl] = useState("");
   const [editApiKey, setEditApiKey] = useState("");
+  const [editCustomPrompt, setEditCustomPrompt] = useState("");
 
   // Create form state
   const [createProvider, setCreateProvider] = useState<
@@ -81,6 +83,7 @@ export function TranslationProvidersTab({
   const [createModel, setCreateModel] = useState("");
   const [createBaseUrl, setCreateBaseUrl] = useState("");
   const [createApiKey, setCreateApiKey] = useState("");
+  const [createCustomPrompt, setCreateCustomPrompt] = useState("");
 
   function setFeedbackWithDismiss(fb: { type: "success" | "error"; text: string }) {
     setFeedback(fb);
@@ -99,6 +102,7 @@ export function TranslationProvidersTab({
     setEditingId(profile.id);
     setEditModel(profile.model);
     setEditBaseUrl(profile.baseUrl ?? "");
+    setEditCustomPrompt(profile.customPrompt ?? "");
     setEditApiKey("");
   }
 
@@ -106,6 +110,7 @@ export function TranslationProvidersTab({
     setEditingId(null);
     setEditModel("");
     setEditBaseUrl("");
+    setEditCustomPrompt("");
     setEditApiKey("");
   }
 
@@ -113,6 +118,7 @@ export function TranslationProvidersTab({
     setCreateProvider("OPENAI");
     setCreateModel("");
     setCreateBaseUrl("");
+    setCreateCustomPrompt("");
     setCreateApiKey("");
   }
 
@@ -170,6 +176,7 @@ export function TranslationProvidersTab({
     try {
       const body: Record<string, string | null> = { model: editModel };
       body.baseUrl = editBaseUrl || null;
+      body.customPrompt = editCustomPrompt || null;
       if (editApiKey) body.apiKey = editApiKey;
       const response = await fetch(
         `/api/translation/profiles/${profileId}`,
@@ -211,6 +218,7 @@ export function TranslationProvidersTab({
           provider: createProvider,
           model: createModel,
           baseUrl: createBaseUrl || null,
+          customPrompt: createCustomPrompt || null,
           apiKey: createApiKey,
         }),
       });
@@ -341,6 +349,23 @@ export function TranslationProvidersTab({
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-customprompt-${profile.id}`}>
+                      Custom Prompt (optional)
+                    </Label>
+                    <textarea
+                      id={`edit-customprompt-${profile.id}`}
+                      value={editCustomPrompt}
+                      onChange={(e) => setEditCustomPrompt(e.target.value)}
+                      placeholder="Add custom instructions for the translation model (e.g. tone, style, terminology preferences)"
+                      rows={3}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your custom instructions will be appended to the built-in system prompt that guides translation quality.
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       variant="ghost"
@@ -382,6 +407,11 @@ export function TranslationProvidersTab({
                 {profile.baseUrl && (
                   <p className="text-sm text-muted-foreground">
                     {profile.baseUrl}
+                  </p>
+                )}
+                {profile.customPrompt && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    Prompt: {profile.customPrompt}
                   </p>
                 )}
               </CardHeader>
@@ -529,6 +559,21 @@ export function TranslationProvidersTab({
                   placeholder="Paste API key"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="create-customprompt">Custom Prompt (optional)</Label>
+                <textarea
+                  id="create-customprompt"
+                  value={createCustomPrompt}
+                  onChange={(e) => setCreateCustomPrompt(e.target.value)}
+                  placeholder="Add custom instructions for the translation model (e.g. tone, style, terminology preferences)"
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your custom instructions will be appended to the built-in system prompt that guides translation quality.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2">

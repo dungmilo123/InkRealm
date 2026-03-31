@@ -35,6 +35,7 @@ export async function createTranslationProfile(payload: unknown, userId: string)
     provider: parsed.provider,
     model: parsed.model,
     baseUrl: parsed.baseUrl,
+    customPrompt: parsed.customPrompt,
     encryptedApiKey: encryptTranslationCredential(parsed.apiKey),
     isDefault: isFirstProfile,
     userId,
@@ -56,6 +57,7 @@ export async function updateTranslationProfile(
     provider?: TranslationProvider;
     model?: string;
     baseUrl?: string | null;
+    customPrompt?: string | null;
     encryptedApiKey?: string;
   } = {};
 
@@ -67,6 +69,9 @@ export async function updateTranslationProfile(
   }
   if (parsed.baseUrl !== undefined) {
     updateInput.baseUrl = parsed.baseUrl;
+  }
+  if (parsed.customPrompt !== undefined) {
+    updateInput.customPrompt = parsed.customPrompt;
   }
   if (parsed.apiKey !== undefined) {
     assertTranslationEncryptionConfigured();
@@ -87,6 +92,7 @@ export async function getTranslationProfileCredential(profileId: string, userId:
     provider: profile.provider,
     model: profile.model,
     baseUrl: profile.baseUrl,
+    customPrompt: profile.customPrompt,
     apiKey: decryptTranslationCredential(profile.encryptedApiKey),
   };
 }
@@ -129,6 +135,7 @@ export async function getCredentialForTranslationSnapshot(
     provider: profile.provider,
     model: profile.model,
     baseUrl: profile.baseUrl,
+    customPrompt: profile.customPrompt,
     apiKey: decryptTranslationCredential(profile.encryptedApiKey),
   };
 }

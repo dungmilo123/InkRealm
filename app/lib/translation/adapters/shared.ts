@@ -11,7 +11,8 @@ export type { GlossaryPromptEntry, ChapterContext };
 
 export function buildTranslationSystemPrompt(
   targetLanguage: string,
-  glossary?: GlossaryPromptEntry[]
+  glossary?: GlossaryPromptEntry[],
+  customPrompt?: string | null
 ) {
   const lines = [
     "You are an expert literary editor and translation polisher.",
@@ -57,6 +58,12 @@ export function buildTranslationSystemPrompt(
         lines.push(`- ${entry.canonical} [${entry.type}]${variantStr}`);
       }
     }
+  }
+
+  if (customPrompt) {
+    lines.push("");
+    lines.push("## Additional Instructions");
+    lines.push(customPrompt);
   }
 
   lines.push("");

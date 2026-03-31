@@ -18,6 +18,8 @@ type ReaderClientProps = {
   preferences: ReadingPreferences;
   user: { name?: string | null; image?: string | null };
   signOutAction: () => Promise<void>;
+  translatedParagraphs: string[] | null;
+  translatedTitle: string | null;
 };
 
 function SettingsPopover({
@@ -146,7 +148,18 @@ export function ReaderClient({
   preferences: initialPreferences,
   user,
   signOutAction,
+  translatedParagraphs,
+  translatedTitle,
 }: ReaderClientProps) {
+  const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
+  // D-07: Default to translated when available
+  const [showTranslated, setShowTranslated] = useState(hasTranslation);
+
+  // Determine which content to display
+  const displayParagraphs = showTranslated && translatedParagraphs
+    ? translatedParagraphs
+    : chapter.paragraphs;
+
   const [preferences, setPreferences] = useState(initialPreferences);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -213,6 +226,40 @@ export function ReaderClient({
               </Link>
             </div>
             <div className="flex items-center gap-x-3">
+              {hasTranslation && (
+                <div
+                  className="flex rounded-md border border-border overflow-hidden"
+                  role="radiogroup"
+                  aria-label="Content version"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!showTranslated}
+                    onClick={() => setShowTranslated(false)}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      !showTranslated
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    Original
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={showTranslated}
+                    onClick={() => setShowTranslated(true)}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      showTranslated
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    Translated
+                  </button>
+                </div>
+              )}
               <div className="relative" ref={settingsRef}>
                 <button
                   type="button"
@@ -256,7 +303,7 @@ export function ReaderClient({
             lineHeight: preferences.lineHeight,
           }}
         >
-          <GlossaryReader novelId={novelId} paragraphs={chapter.paragraphs} />
+          <GlossaryReader novelId={novelId} paragraphs={displayParagraphs} />
         </div>
 
         <nav className="mt-6 flex items-center justify-between gap-4">

@@ -204,6 +204,7 @@ export function DetailsTabs({
             isHanging={isHanging}
             hangingChapterIndex={hangingChapterIndex}
             chapterCount={chapterCount}
+            chapterStatuses={chapterStatuses}
           />
         )}
 

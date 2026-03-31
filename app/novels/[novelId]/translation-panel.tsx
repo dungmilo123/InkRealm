@@ -53,6 +53,11 @@ type TranslationJob = {
   downloadUrl: string | null;
 };
 
+type ChapterStatus = {
+  chapterIndex: number;
+  status: "translated" | "translating" | "untranslated";
+};
+
 type TranslationPanelProps = {
   novelId: string;
   isReadable: boolean;
@@ -62,6 +67,7 @@ type TranslationPanelProps = {
   isHanging: boolean;
   hangingChapterIndex: number | null;
   chapterCount: number;
+  chapterStatuses: ChapterStatus[];
 };
 
 type PanelState = "idle" | "translating" | "completed" | "failed" | "cancelled";
@@ -92,6 +98,7 @@ export function TranslationPanel({
   isHanging,
   hangingChapterIndex,
   chapterCount,
+  chapterStatuses,
 }: TranslationPanelProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +108,13 @@ export function TranslationPanel({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const panelState = getPanelState(job);
+
+  // Derive progress from chapter statuses (accurate during translation)
+  const liveTranslatedCount = chapterStatuses.filter((s) => s.status === "translated").length;
+  const liveTotalChapters = job?.totalChapters ?? chapterCount;
+  const liveProgressPercent = liveTotalChapters > 0
+    ? Math.round((liveTranslatedCount / liveTotalChapters) * 100)
+    : 0;
 
   // Range validation
   const fromNum = chapterFrom ? Number.parseInt(chapterFrom, 10) : null;
@@ -348,7 +362,7 @@ export function TranslationPanel({
 
           <div
             role="progressbar"
-            aria-valuenow={job.progressPercent}
+            aria-valuenow={liveProgressPercent}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Translation progress"
@@ -356,13 +370,13 @@ export function TranslationPanel({
           >
             <div
               className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-              style={{ width: `${job.progressPercent}%` }}
+              style={{ width: `${liveProgressPercent}%` }}
             />
           </div>
 
           <p className="text-sm text-muted-foreground">
-            {job.completedChapters} of {job.totalChapters} chapters translated (
-            {job.progressPercent}%)
+            {liveTranslatedCount} of {liveTotalChapters} chapters translated (
+            {liveProgressPercent}%)
           </p>
 
           <div className="flex justify-end">

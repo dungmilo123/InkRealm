@@ -47,35 +47,24 @@ test("create profile payload rejects missing model and credential", () => {
   );
 });
 
-test("start translation payload rejects missing profile and invalid target language", () => {
+test("start translation payload rejects missing profile", () => {
   expectBadRequest(
     () =>
       parseStartTranslationPayload({
-        targetLanguage: "Vietnamese",
-        batchSize: 4,
+        chapterFrom: 1,
+        chapterTo: 5,
       }),
     /profileId must be a string/i
   );
-
-  expectBadRequest(
-    () =>
-      parseStartTranslationPayload({
-        profileId: "profile-1",
-        targetLanguage: "vi3t",
-        batchSize: 4,
-      }),
-    /targetLanguage may only contain letters/i
-  );
 });
 
-test("start translation payload rejects out-of-range batch size", () => {
+test("start translation payload rejects invalid chapterFrom", () => {
   expectBadRequest(
     () =>
       parseStartTranslationPayload({
         profileId: "profile-1",
-        targetLanguage: "Vietnamese",
-        batchSize: 99,
+        chapterFrom: -1,
       }),
-    /batchSize must be 1-20/i
+    /chapterFrom must be a positive integer/i
   );
 });

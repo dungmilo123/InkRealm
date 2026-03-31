@@ -168,34 +168,6 @@ export function NovelDetailsView({
           </div>
         ) : null}
 
-        {serializedLatestJob && (
-          <div className="py-4">
-            <div
-              role="progressbar"
-              aria-valuenow={serializedLatestJob.progressPercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Translation progress"
-              className="h-2 w-full rounded-full bg-muted overflow-hidden"
-            >
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-                style={{ width: `${serializedLatestJob.progressPercent}%` }}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground mt-2" aria-live="polite">
-              {serializedLatestJob.status === "COMPLETED"
-                ? "All chapters translated"
-                : `${serializedLatestJob.completedChapters} of ${serializedLatestJob.totalChapters} chapters translated`}
-              {serializedLatestJob.status !== "COMPLETED" && (
-                <span className="text-xs text-muted-foreground ml-2">
-                  ({serializedLatestJob.progressPercent}%)
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
         <DetailsTabs
           novelId={novel.id}
           readerSummary={readerSummary}

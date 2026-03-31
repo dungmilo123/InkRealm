@@ -124,8 +124,43 @@ export function DetailsTabs({
     ? polledChapterStatuses
     : initialChapterStatuses;
 
+  // Derive progress from chapter statuses (accurate during translation, unlike job.completedChapters)
+  const translatedCount = chapterStatuses.filter((s) => s.status === "translated").length;
+  const totalChaptersForProgress = job?.totalChapters ?? chapterCount;
+  const progressPercent = totalChaptersForProgress > 0
+    ? Math.round((translatedCount / totalChaptersForProgress) * 100)
+    : 0;
+  const isCompleted = job?.status === "COMPLETED";
+
   return (
     <div>
+      {job && (
+        <div className="py-4">
+          <div
+            role="progressbar"
+            aria-valuenow={progressPercent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Translation progress"
+            className="h-2 w-full rounded-full bg-muted overflow-hidden"
+          >
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <p className="text-sm text-muted-foreground mt-2" aria-live="polite">
+            {isCompleted
+              ? "All chapters translated"
+              : `${translatedCount} of ${totalChaptersForProgress} chapters translated`}
+            {!isCompleted && (
+              <span className="text-xs text-muted-foreground ml-2">
+                ({progressPercent}%)
+              </span>
+            )}
+          </p>
+        </div>
+      )}
       <div className="flex border-b border-border">
         {TABS.map((tab) => (
           <button

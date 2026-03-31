@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export function UserMenu({
   user,
@@ -15,11 +16,14 @@ export function UserMenu({
   return (
     <div className="flex items-center gap-3">
       {user.image && (
-        <img
+        <Image
           src={user.image}
           alt={user.name ?? "User avatar"}
+          width={32}
+          height={32}
           className="size-8 rounded-full"
           referrerPolicy="no-referrer"
+          unoptimized
         />
       )}
       {user.name && (

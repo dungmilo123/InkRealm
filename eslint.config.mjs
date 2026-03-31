@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // GSD tooling (CommonJS, not app code)
+    ".claude/**",
+    ".opencode/**",
   ]),
 ]);
 

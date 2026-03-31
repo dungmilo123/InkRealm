@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   let novels: Novel[] = [];
   let error: string | null = null;
   let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
-  let chapterCountMap = new Map<string, number>();
+  const chapterCountMap = new Map<string, number>();
 
   try {
     novels = await listNovels(session.user.id);

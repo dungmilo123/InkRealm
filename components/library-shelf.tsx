@@ -10,7 +10,7 @@ interface LibraryShelfProps {
   signOutAction?: () => Promise<void>;
 }
 
-export function LibraryShelf({ children, title, showBack, backHref = "/dashboard", user, signOutAction }: LibraryShelfProps) {
+export function LibraryShelf({ children, showBack, backHref = "/dashboard", user, signOutAction }: LibraryShelfProps) {
   return (
     <div className="flex flex-col flex-1 bg-background">
       <header className="w-full border-b border-border bg-card">

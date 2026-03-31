@@ -30,7 +30,7 @@ export function useTranslationPolling<T extends PollingJob>(
 } {
   const jobRef = useRef(job);
   const lastUpdatedAtRef = useRef<string | null>(null);
-  const lastUpdatedAtChangedRef = useRef<number>(Date.now());
+  const lastUpdatedAtChangedRef = useRef<number>(0);
   const [isHanging, setIsHanging] = useState(false);
   const [hangingChapterIndex, setHangingChapterIndex] = useState<number | null>(null);
   const [chapterStatuses, setChapterStatuses] = useState<
@@ -43,17 +43,14 @@ export function useTranslationPolling<T extends PollingJob>(
     jobRef.current = job;
   });
 
-  // Reset hanging state when job changes or becomes inactive
+  // Reset refs when job becomes inactive (no setState needed — return value handles it)
   useEffect(() => {
     if (!isActive) {
-      setIsHanging(false);
-      setHangingChapterIndex(null);
-      setChapterStatuses([]);
       lastUpdatedAtRef.current = null;
     }
   }, [isActive]);
 
-  const onUpdateStable = useCallback(onUpdate, [onUpdate]);
+  const onUpdateStable = useCallback((updater: (prev: T | null) => T | null) => onUpdate(updater), [onUpdate]);
 
   useEffect(() => {
     if (!isActive || !job) return;
@@ -142,5 +139,9 @@ export function useTranslationPolling<T extends PollingJob>(
     };
   }, [isActive, job, onUpdateStable]);
 
-  return { isHanging, hangingChapterIndex, chapterStatuses };
+  return {
+    isHanging: isActive ? isHanging : false,
+    hangingChapterIndex: isActive ? hangingChapterIndex : null,
+    chapterStatuses: isActive ? chapterStatuses : [],
+  };
 }

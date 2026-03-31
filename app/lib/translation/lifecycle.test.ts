@@ -11,6 +11,7 @@ import { createTranslationProfile } from "@/app/lib/translation/profiles";
 import {
   createTranslationJobFromNovelDetails,
   retryTranslationJob,
+  runTranslationJobBatch,
 } from "@/app/lib/translation/service";
 
 function buildMinimalEpubBuffer() {
@@ -115,7 +116,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     };
 
     const userMessage = body.messages?.find((message) => message.role === "user")?.content ?? "";
-    const titleMatch = userMessage.match(/Chapter title:\n([^\n]+)/);
+    const titleMatch = userMessage.match(/Chapter title[^\n]*:\n([^\n]+)/);
     const sourceTitle = titleMatch?.[1]?.trim() ?? "Unknown Chapter";
 
     if (sourceTitle === "EPUB Chapter 1" && !failedTitleOnce.has(sourceTitle)) {
@@ -183,8 +184,14 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     });
     createdNovelIds.push(txtNovel.id);
 
-    const txtJob = await createTranslationJobFromNovelDetails({
+    const txtJobCreated = await createTranslationJobFromNovelDetails({
       novelId: txtNovel.id,
+      profileId: profile.id,
+      userId: TEST_USER_ID,
+    });
+
+    const txtJob = await runTranslationJobBatch({
+      translationId: txtJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
     });
@@ -209,8 +216,14 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     });
     createdNovelIds.push(epubNovel.id);
 
-    const failedJob = await createTranslationJobFromNovelDetails({
+    const epubJobCreated = await createTranslationJobFromNovelDetails({
       novelId: epubNovel.id,
+      profileId: profile.id,
+      userId: TEST_USER_ID,
+    });
+
+    const failedJob = await runTranslationJobBatch({
+      translationId: epubJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
     });
@@ -219,7 +232,13 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     assert.equal(failedJob.failedChapterIndex, 1);
     assert.ok(failedJob.failureReason);
 
-    const recoveredJob = await retryTranslationJob({
+    await retryTranslationJob({
+      translationId: failedJob.id,
+      profileId: profile.id,
+      userId: TEST_USER_ID,
+    });
+
+    const recoveredJob = await runTranslationJobBatch({
       translationId: failedJob.id,
       profileId: profile.id,
       userId: TEST_USER_ID,

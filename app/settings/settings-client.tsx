@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -94,11 +95,14 @@ function ProfileSection({ user }: { user: SettingsProps["user"] }) {
       <CardContent>
         <div className="flex items-center gap-4">
           {user.image && (
-            <img
+            <Image
               src={user.image}
               alt={user.name ?? "Avatar"}
+              width={64}
+              height={64}
               className="size-16 rounded-full"
               referrerPolicy="no-referrer"
+              unoptimized
             />
           )}
           <div>

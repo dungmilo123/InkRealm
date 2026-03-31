@@ -149,7 +149,6 @@ export function ReaderClient({
   user,
   signOutAction,
   translatedParagraphs,
-  translatedTitle,
 }: ReaderClientProps) {
   const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
   // D-07: Default to translated when available

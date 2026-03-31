@@ -1,18 +1,17 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
 
+const emptySubscribe = () => () => {};
+const getTrue = () => true;
+const getFalse = () => false;
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Avoid hydration mismatch: render nothing until mounted on client
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(emptySubscribe, getTrue, getFalse);
 
   if (!mounted) {
     return <Button variant="ghost" size="icon" aria-label="Toggle theme" disabled />;

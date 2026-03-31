@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PollingJob = {
   id: string;
@@ -13,64 +13,98 @@ type JobStatusResponse = {
 };
 
 const POLL_INTERVAL_MS = 3_000;
+const HANGING_THRESHOLD_MS = 600_000; // 10 minutes
 
 function isActiveStatus(status: PollingJob["status"]) {
   return status === "PENDING" || status === "IN_PROGRESS";
 }
 
 export function useTranslationPolling<T extends PollingJob>(
-  jobs: T[],
-  onUpdate: (updater: (prev: T[]) => T[]) => void
-) {
-  const jobsRef = useRef(jobs);
+  job: T | null,
+  onUpdate: (updater: (prev: T | null) => T | null) => void
+): { isHanging: boolean; hangingChapterIndex: number | null } {
+  const jobRef = useRef(job);
+  const lastUpdatedAtRef = useRef<string | null>(null);
+  const lastUpdatedAtChangedRef = useRef<number>(Date.now());
+  const [isHanging, setIsHanging] = useState(false);
+  const [hangingChapterIndex, setHangingChapterIndex] = useState<number | null>(null);
 
-  const hasActiveJobs = jobs.some((j) => isActiveStatus(j.status));
+  const isActive = job !== null && isActiveStatus(job.status);
 
   useEffect(() => {
-    jobsRef.current = jobs;
+    jobRef.current = job;
   });
 
+  // Reset hanging state when job changes or becomes inactive
   useEffect(() => {
-    if (!hasActiveJobs) return;
+    if (!isActive) {
+      setIsHanging(false);
+      setHangingChapterIndex(null);
+      lastUpdatedAtRef.current = null;
+    }
+  }, [isActive]);
+
+  const onUpdateStable = useCallback(onUpdate, [onUpdate]);
+
+  useEffect(() => {
+    if (!isActive || !job) return;
 
     let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    async function pollActiveJobs() {
-      const current = jobsRef.current;
-      const active = current.filter((j) => isActiveStatus(j.status));
-      if (active.length === 0) {
+    async function pollJob() {
+      const current = jobRef.current;
+      if (!current || !isActiveStatus(current.status)) {
         if (intervalId) clearInterval(intervalId);
         return;
       }
 
-      const results = await Promise.allSettled(
-        active.map(async (j) => {
-          const res = await fetch(`/api/translation/jobs/${j.id}/status`);
-          if (!res.ok) return null;
-          const data = (await res.json()) as JobStatusResponse;
-          return data.job;
-        })
-      );
+      try {
+        const res = await fetch(`/api/translation/jobs/${current.id}/status`);
+        if (!res.ok) return;
+        const data = (await res.json()) as JobStatusResponse;
+        const updated = data.job;
 
-      onUpdate((prev) => {
-        let next = prev;
-        for (const result of results) {
-          if (result.status !== "fulfilled" || !result.value) continue;
-          const updated = result.value;
-          next = next.map((j) => {
-            if (j.id !== updated.id) return j;
-            // Only apply if newer
-            if (new Date(updated.updatedAt) <= new Date(j.updatedAt)) return j;
-            return { ...j, ...updated } as T;
-          });
+        onUpdateStable((prev) => {
+          if (!prev || prev.id !== updated.id) return prev;
+          // Only apply if newer
+          if (new Date(updated.updatedAt) <= new Date(prev.updatedAt)) return prev;
+          return { ...prev, ...updated } as T;
+        });
+
+        // Check for hanging detection
+        const now = Date.now();
+        if (lastUpdatedAtRef.current !== updated.updatedAt) {
+          // updatedAt changed — reset timer
+          lastUpdatedAtRef.current = updated.updatedAt;
+          lastUpdatedAtChangedRef.current = now;
+          setIsHanging(false);
+          setHangingChapterIndex(null);
+        } else {
+          // updatedAt hasn't changed — check if past threshold
+          const elapsed = now - lastUpdatedAtChangedRef.current;
+          if (elapsed >= HANGING_THRESHOLD_MS && isActiveStatus(updated.status)) {
+            setIsHanging(true);
+            // Extract completedChapters to infer hanging chapter
+            const completedChapters = (updated as Record<string, unknown>).completedChapters;
+            if (typeof completedChapters === "number") {
+              setHangingChapterIndex(completedChapters + 1);
+            }
+          }
         }
-        return next;
-      });
+      } catch {
+        // Network error — skip this poll cycle
+      }
+    }
+
+    // Initialize tracking
+    if (job) {
+      lastUpdatedAtRef.current = job.updatedAt;
+      lastUpdatedAtChangedRef.current = Date.now();
     }
 
     // Initial poll
-    void pollActiveJobs();
-    intervalId = setInterval(() => void pollActiveJobs(), POLL_INTERVAL_MS);
+    void pollJob();
+    intervalId = setInterval(() => void pollJob(), POLL_INTERVAL_MS);
 
     function handleVisibilityChange() {
       if (document.visibilityState === "hidden") {
@@ -80,9 +114,9 @@ export function useTranslationPolling<T extends PollingJob>(
         }
       } else {
         // Tab became visible — immediate fetch + restart interval
-        void pollActiveJobs();
+        void pollJob();
         if (!intervalId) {
-          intervalId = setInterval(() => void pollActiveJobs(), POLL_INTERVAL_MS);
+          intervalId = setInterval(() => void pollJob(), POLL_INTERVAL_MS);
         }
       }
     }
@@ -93,5 +127,7 @@ export function useTranslationPolling<T extends PollingJob>(
       if (intervalId) clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [hasActiveJobs, onUpdate]);
+  }, [isActive, job, onUpdateStable]);
+
+  return { isHanging, hangingChapterIndex };
 }

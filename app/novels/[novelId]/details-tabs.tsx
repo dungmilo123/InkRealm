@@ -21,7 +21,8 @@ type DetailsTabsProps = {
   readingProgress: ReadingProgressData;
   isReadable: boolean;
   serializedDefaultProfile: SerializedDefaultProfile;
-  serializedJobs: SerializedTranslationJob[];
+  serializedLatestJob: SerializedTranslationJob | null;
+  chapterCount: number;
 };
 
 const TABS = ["Chapters", "Translation", "Glossary"] as const;
@@ -86,7 +87,8 @@ export function DetailsTabs({
   readingProgress,
   isReadable,
   serializedDefaultProfile,
-  serializedJobs,
+  serializedLatestJob,
+  chapterCount,
 }: DetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Chapters");
 
@@ -129,7 +131,8 @@ export function DetailsTabs({
             novelId={novelId}
             isReadable={isReadable}
             defaultProfile={serializedDefaultProfile}
-            initialJobs={serializedJobs}
+            initialJob={serializedLatestJob}
+            chapterCount={chapterCount}
           />
         )}
 

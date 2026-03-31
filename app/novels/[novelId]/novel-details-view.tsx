@@ -42,7 +42,8 @@ type NovelDetailsViewProps = {
   readingProgress: ReadingProgressData;
   translationDataError: string | null;
   serializedDefaultProfile: SerializedDefaultProfile;
-  serializedJobs: SerializedTranslationJob[];
+  serializedLatestJob: SerializedTranslationJob | null;
+  chapterCount: number;
 };
 
 function formatFileSize(bytes: number): string {
@@ -71,7 +72,8 @@ export function NovelDetailsView({
   readingProgress,
   translationDataError,
   serializedDefaultProfile,
-  serializedJobs,
+  serializedLatestJob,
+  chapterCount,
 }: NovelDetailsViewProps) {
   const readHref = readingProgress
     ? `/novels/${novel.id}/read/${readingProgress.lastChapterIndex}`
@@ -165,7 +167,8 @@ export function NovelDetailsView({
           readingProgress={readingProgress}
           isReadable={readerSummary.isReadable}
           serializedDefaultProfile={serializedDefaultProfile}
-          serializedJobs={serializedJobs}
+          serializedLatestJob={serializedLatestJob}
+          chapterCount={chapterCount}
         />
       </div>
     </LibraryShelf>

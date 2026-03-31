@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getNovelByIdOrNotFound } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { getDefaultProfile } from "@/app/lib/translation/profiles";
-import { listNovelTranslationJobViews } from "@/app/lib/translation/service";
+import { getLatestNovelTranslationJobView } from "@/app/lib/translation/service";
 import { getReadingProgress } from "@/app/lib/reading-progress";
 import {
   NovelDetailsView,
@@ -28,13 +28,13 @@ export default async function NovelDetailsPage({
   ]);
 
   let defaultProfile: Awaited<ReturnType<typeof getDefaultProfile>> = null;
-  let translationJobs: Awaited<ReturnType<typeof listNovelTranslationJobViews>> = [];
+  let latestJob: Awaited<ReturnType<typeof getLatestNovelTranslationJobView>> = null;
   let translationDataError: string | null = null;
 
   try {
-    [defaultProfile, translationJobs] = await Promise.all([
+    [defaultProfile, latestJob] = await Promise.all([
       getDefaultProfile(session.user.id),
-      listNovelTranslationJobViews(novel.id, session.user.id),
+      getLatestNovelTranslationJobView(novel.id, session.user.id),
     ]);
   } catch {
     translationDataError = "Translation data is currently unavailable.";
@@ -50,11 +50,13 @@ export default async function NovelDetailsPage({
       }
     : null;
 
-  const serializedJobs: SerializedTranslationJob[] = translationJobs.map((job) => ({
-    ...job,
-    createdAt: job.createdAt.toISOString(),
-    updatedAt: job.updatedAt.toISOString(),
-  }));
+  const serializedLatestJob: SerializedTranslationJob | null = latestJob
+    ? {
+        ...latestJob,
+        createdAt: latestJob.createdAt.toISOString(),
+        updatedAt: latestJob.updatedAt.toISOString(),
+      }
+    : null;
 
   return (
     <NovelDetailsView
@@ -63,7 +65,8 @@ export default async function NovelDetailsPage({
       readingProgress={readingProgress}
       translationDataError={translationDataError}
       serializedDefaultProfile={serializedDefaultProfile}
-      serializedJobs={serializedJobs}
+      serializedLatestJob={serializedLatestJob}
+      chapterCount={readerSummary.chapterCount}
     />
   );
 }

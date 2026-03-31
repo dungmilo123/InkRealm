@@ -244,12 +244,7 @@ export async function createTranslationJobFromNovelDetails(input: {
     })),
   });
 
-  return runTranslationJobBatch({
-    translationId: created.id,
-    profileId: profile.profileId,
-    allowFailedState: false,
-    userId: input.userId,
-  });
+  return toTranslationJobView(created);
 }
 
 export async function runTranslationJobBatch(input: {
@@ -499,12 +494,12 @@ export async function retryTranslationJob(input: {
 
   await prepareTranslationRetry(input.translationId);
 
-  return runTranslationJobBatch({
-    translationId: input.translationId,
-    profileId: input.profileId,
-    allowFailedState: true,
-    userId: input.userId,
-  });
+  const retried = await getTranslationJobById(input.translationId);
+  if (!retried) {
+    throw new TranslationHttpError(404, "Translation job not found after retry preparation.");
+  }
+
+  return toTranslationJobView(retried);
 }
 
 export async function getTranslationJobStatus(translationId: string, userId: string) {

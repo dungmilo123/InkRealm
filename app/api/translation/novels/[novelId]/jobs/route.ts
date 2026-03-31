@@ -1,8 +1,10 @@
+import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
   createTranslationJobFromNovelDetails,
   getLatestNovelTranslationJobView,
+  runTranslationJobBatch,
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { parseStartTranslationPayload } from "@/app/lib/translation/validation";
@@ -43,6 +45,16 @@ export async function POST(
       chapterFrom: parsed.chapterFrom,
       chapterTo: parsed.chapterTo,
       userId: session.user.id,
+    });
+
+    // Run the translation batch in the background so the UI gets the job
+    // immediately and can start polling for progress.
+    after(async () => {
+      await runTranslationJobBatch({
+        translationId: job.id,
+        allowFailedState: false,
+        userId: session.user.id,
+      });
     });
 
     return NextResponse.json({ job }, { status: 201 });

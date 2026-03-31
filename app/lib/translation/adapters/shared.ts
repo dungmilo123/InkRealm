@@ -14,9 +14,18 @@ export function buildTranslationSystemPrompt(
   glossary?: GlossaryPromptEntry[]
 ) {
   const lines = [
-    "You are an expert literary translator.",
-    `Translate chapter data into ${targetLanguage}.`,
-    "Preserve narrative meaning, chapter structure, names, and formatting.",
+    "You are an expert literary editor and translation polisher.",
+    `The input is a machine-translated ${targetLanguage} novel chapter. Your job is to polish and improve the translation quality — NOT translate from scratch.`,
+    "",
+    "Fix these common machine-translation problems:",
+    "- Awkward, unnatural, or overly literal phrasing → rewrite to read like native ${targetLanguage} prose",
+    "- Inconsistent character names or terms → unify to the most natural form",
+    "- Stilted dialogue → make it sound like real speech",
+    "- Lost nuance, tone, or emotional impact → restore literary quality",
+    "- Grammatical errors or broken sentences → fix while preserving meaning",
+    "",
+    "Preserve: narrative meaning, plot details, chapter structure, paragraph breaks, and formatting.",
+    "Do NOT add, remove, or reorder content. Do NOT summarize or shorten.",
   ];
 
   if (glossary && glossary.length > 0) {
@@ -64,10 +73,11 @@ export function buildTranslationUserPrompt(
   const lines: string[] = [];
 
   lines.push(`Target language: ${input.targetLanguage}`);
+  lines.push("Task: Polish the machine-translated text below. Output the improved version.");
 
   if (previousContext && previousContext.length > 0) {
     lines.push("");
-    lines.push("## Previous chapter context (for reference only, do not translate):");
+    lines.push("## Previous chapter context (for tone/name consistency — do not polish):");
 
     for (const ctx of previousContext) {
       lines.push("");
@@ -82,10 +92,10 @@ export function buildTranslationUserPrompt(
   }
 
   lines.push("");
-  lines.push("Chapter title:");
+  lines.push("Chapter title (polish this):");
   lines.push(input.sourceTitle);
   lines.push("");
-  lines.push("Chapter content:");
+  lines.push("Chapter content (polish this):");
   lines.push(input.sourceContent);
 
   return lines.join("\n");

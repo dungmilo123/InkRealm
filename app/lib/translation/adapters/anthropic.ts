@@ -56,6 +56,12 @@ export class AnthropicAdapter implements TranslationAdapter {
     }
 
     const baseUrl = resolveBaseUrl(context);
+
+    // Minimax M2.7 has extended thinking enabled by default — thinking
+    // tokens count against max_tokens, so we need a larger budget to
+    // avoid truncating the actual translation JSON for long chapters.
+    const maxTokens = context.provider === TranslationProvider.MINIMAX ? 16384 : 4096;
+
     const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -65,7 +71,7 @@ export class AnthropicAdapter implements TranslationAdapter {
       },
       body: JSON.stringify({
         model: context.model,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
         temperature: 0.2,
         system: buildTranslationSystemPrompt(input.targetLanguage, input.glossary),
         messages: [

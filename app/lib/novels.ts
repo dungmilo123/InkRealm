@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "./prisma";
 import type { Novel } from "../generated/prisma/client";
 import { notFound } from "next/navigation";
@@ -27,6 +28,8 @@ export async function getNovelById(id: string): Promise<Novel | null> {
   return prisma.novel.findUnique({ where: { id } });
 }
 
+export const cachedGetNovelById = cache(getNovelById);
+
 export async function updateNovelChapterCount(
   id: string,
   chapterCount: number
@@ -38,7 +41,7 @@ export async function updateNovelChapterCount(
 }
 
 export async function getNovelByIdOrNotFound(id: string, userId: string): Promise<Novel> {
-  const novel = await prisma.novel.findUnique({ where: { id } });
+  const novel = await cachedGetNovelById(id);
 
   if (!novel || novel.userId !== userId) {
     notFound();

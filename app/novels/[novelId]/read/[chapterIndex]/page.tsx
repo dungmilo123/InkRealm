@@ -56,12 +56,10 @@ export default async function ReaderChapterPage({
   // Fire-and-forget: record chapter visit for reading progress
   void recordChapterVisit(session.user.id, novelId, chapterIndex);
 
-  const preferences = await getUserReadingPreferences(session.user.id);
-  const translatedChapter = await getTranslatedChapterForReader(
-    novel.id,
-    chapterIndex,
-    session.user.id
-  );
+  const [preferences, translatedChapter] = await Promise.all([
+    getUserReadingPreferences(session.user.id),
+    getTranslatedChapterForReader(novel.id, chapterIndex, session.user.id),
+  ]);
   const { document, chapter } = chapterData;
 
   return (

@@ -225,15 +225,34 @@ export async function getTranslationJobById(translationId: string) {
   });
 }
 
+const translationJobRunnerSelect = {
+  id: true,
+  status: true,
+  novelId: true,
+  providerSnapshot: true,
+  modelSnapshot: true,
+  targetLanguage: true,
+  contextChapters: true,
+  contextSummaries: true,
+  useGlossary: true,
+  totalChapters: true,
+  novel: {
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      fileType: true,
+      storagePath: true,
+      updatedAt: true,
+      chapterCount: true,
+    },
+  },
+} as const;
+
 export async function getTranslationJobForRunner(translationId: string) {
   return prisma.novelTranslation.findUnique({
     where: { id: translationId },
-    include: {
-      novel: true,
-      chapters: {
-        orderBy: { chapterIndex: "asc" },
-      },
-    },
+    select: translationJobRunnerSelect,
   });
 }
 

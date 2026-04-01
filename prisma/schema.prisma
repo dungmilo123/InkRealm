@@ -163,6 +163,8 @@ model NovelTranslation {
   updatedAt         DateTime                @updatedAt
   novel             Novel                   @relation(fields: [novelId], references: [id], onDelete: Cascade)
   chapters          NovelTranslationChapter[]
+
+  @@index([novelId])
 }
 
 model NovelTranslationChapter {
@@ -180,6 +182,7 @@ model NovelTranslationChapter {
   translation      NovelTranslation       @relation(fields: [translationId], references: [id], onDelete: Cascade)
 
   @@unique([translationId, chapterIndex])
+  @@index([translationId, status])
 }
 
 model NovelGlossaryEntry {

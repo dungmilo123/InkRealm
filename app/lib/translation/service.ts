@@ -15,6 +15,7 @@ import {
   getTranslatedChapterContent,
   getTranslationJobById,
   getTranslationJobForRunner,
+  getTranslationJobWithOwnershipAndStatuses,
   listPendingChaptersForRun,
   listPreviousTranslatedChapters,
   listTranslatedChaptersForExport,
@@ -521,23 +522,18 @@ export async function retryTranslationJob(input: {
 }
 
 export async function getTranslationJobStatus(translationId: string, userId: string) {
-  const job = await getTranslationJobById(translationId);
-  if (!job) {
+  const result = await getTranslationJobWithOwnershipAndStatuses(translationId, userId);
+  if (!result) {
     throw new TranslationHttpError(404, "Translation job not found.");
   }
 
-  const novel = await getNovelById(job.novelId);
-  if (!novel || novel.userId !== userId) {
-    throw new TranslationHttpError(404, "Translation job not found.");
-  }
-
-  const rawStatuses = await getChapterTranslationStatuses(translationId);
-  const chapterStatuses: ChapterStatusItem[] = rawStatuses.map((ch) => ({
+  const { chapters, ...jobData } = result;
+  const chapterStatuses: ChapterStatusItem[] = chapters.map((ch) => ({
     chapterIndex: ch.chapterIndex,
     status: mapChapterStatus(ch.status),
   }));
 
-  return { job: toTranslationJobView(job), chapterStatuses };
+  return { job: toTranslationJobView(jobData), chapterStatuses };
 }
 
 export async function getDownloadableTranslationJob(translationId: string, userId: string) {

@@ -1,4 +1,4 @@
-import { ChapterTranslationStatus as PrismaChapterTranslationStatus, TranslationStatus, type TranslationProvider } from "@/app/generated/prisma/client";
+import { ChapterTranslationStatus as PrismaChapterTranslationStatus, TranslationStatus, type TranslationProvider, type Novel } from "@/app/generated/prisma/client";
 import { getNovelById, cachedGetNovelById } from "@/app/lib/novels";
 import {
   ReaderUnavailableError,
@@ -318,7 +318,7 @@ export async function runTranslationJobBatch(input: {
 
   let readerDocument: Awaited<ReturnType<typeof getReaderDocument>>;
   try {
-    readerDocument = await getReaderDocument(runnerState.novel);
+    readerDocument = await getReaderDocument(runnerState.novel as Novel);
   } catch (error) {
     if (error instanceof ReaderUnavailableError) {
       const failed = await setTranslationFailed({

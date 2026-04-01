@@ -521,3 +521,30 @@ export async function getTranslatedChapterContent(translationId: string, chapter
     },
   });
 }
+
+/**
+ * Fetches a translation job with ownership verification and chapter statuses
+ * in a single query. Uses the novel relation to filter by userId.
+ * Returns null if job doesn't exist or ownership fails.
+ */
+export async function getTranslationJobWithOwnershipAndStatuses(
+  translationId: string,
+  userId: string
+) {
+  return prisma.novelTranslation.findFirst({
+    where: {
+      id: translationId,
+      novel: { userId },
+    },
+    select: {
+      ...translationJobSummarySelect,
+      chapters: {
+        select: {
+          chapterIndex: true,
+          status: true,
+        },
+        orderBy: { chapterIndex: "asc" },
+      },
+    },
+  });
+}

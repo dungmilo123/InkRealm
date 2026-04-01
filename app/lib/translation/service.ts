@@ -1,5 +1,5 @@
 import { ChapterTranslationStatus as PrismaChapterTranslationStatus, TranslationStatus, type TranslationProvider } from "@/app/generated/prisma/client";
-import { getNovelById } from "@/app/lib/novels";
+import { getNovelById, cachedGetNovelById } from "@/app/lib/novels";
 import {
   ReaderUnavailableError,
   getReaderDocument,
@@ -583,7 +583,7 @@ export async function cancelTranslationJob(input: {
 }
 
 export async function getLatestNovelTranslationJobView(novelId: string, userId: string) {
-  const novel = await getNovelById(novelId);
+  const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) {
     throw new TranslationHttpError(404, "Novel not found.");
   }
@@ -592,7 +592,7 @@ export async function getLatestNovelTranslationJobView(novelId: string, userId: 
 }
 
 export async function getInitialChapterStatuses(novelId: string, userId: string): Promise<ChapterStatusItem[]> {
-  const novel = await getNovelById(novelId);
+  const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) {
     return [];
   }
@@ -611,7 +611,7 @@ export async function getTranslatedChapterForReader(
   chapterIndex: number,
   userId: string
 ): Promise<{ translatedTitle: string; translatedParagraphs: string[] } | null> {
-  const novel = await getNovelById(novelId);
+  const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) return null;
 
   const job = await getLatestTranslationJobForNovel(novelId);

@@ -57,7 +57,13 @@ export async function getReadingProgressBatch(
 
   const progressList = await prisma.readingProgress.findMany({
     where: { userId, novelId: { in: novelIds } },
-    include: { chapterVisits: { select: { chapterIndex: true } } },
+    select: {
+      novelId: true,
+      lastChapterIndex: true,
+      _count: {
+        select: { chapterVisits: true },
+      },
+    },
   });
 
   const map = new Map<
@@ -68,7 +74,7 @@ export async function getReadingProgressBatch(
   for (const p of progressList) {
     map.set(p.novelId, {
       lastChapterIndex: p.lastChapterIndex,
-      totalVisited: p.chapterVisits.length,
+      totalVisited: p._count.chapterVisits,
     });
   }
 

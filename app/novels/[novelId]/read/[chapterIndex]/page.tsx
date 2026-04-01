@@ -54,7 +54,9 @@ export default async function ReaderChapterPage({
   }
 
   // Fire-and-forget: record chapter visit for reading progress
-  void recordChapterVisit(session.user.id, novelId, chapterIndex);
+  recordChapterVisit(session.user.id, novelId, chapterIndex).catch((err) =>
+    console.error("Failed to record chapter visit:", err)
+  );
 
   const [preferences, translatedChapter] = await Promise.all([
     getUserReadingPreferences(session.user.id),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import Link from "next/link";
 import type { ReaderSummary } from "@/app/lib/reader";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ type DetailsTabsProps = {
 const TABS = ["Chapters", "Translation", "Glossary"] as const;
 type Tab = (typeof TABS)[number];
 
-function ChapterList({
+const ChapterList = memo(function ChapterList({
   novelId,
   chapters,
   readingProgress,
@@ -98,7 +98,7 @@ function ChapterList({
       })}
     </div>
   );
-}
+});
 
 export function DetailsTabs({
   novelId,

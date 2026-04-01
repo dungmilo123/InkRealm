@@ -9,6 +9,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: "20mb",
+    optimizePackageImports: ["lucide-react"],
   },
 };
 

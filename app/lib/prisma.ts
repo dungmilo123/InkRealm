@@ -13,7 +13,24 @@ function createPrismaClient() {
   }
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  const base = new PrismaClient({ adapter });
+
+  if (process.env.PRISMA_QUERY_LOG === "true") {
+    return base.$extends({
+      query: {
+        $allOperations({ operation, model, args, query }) {
+          const start = performance.now();
+          return query(args).then((result) => {
+            const duration = performance.now() - start;
+            console.log(`[prisma] ${model}.${operation} ${duration.toFixed(1)}ms`);
+            return result;
+          });
+        },
+      },
+    }) as unknown as PrismaClient;
+  }
+
+  return base;
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

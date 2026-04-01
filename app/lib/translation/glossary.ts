@@ -216,25 +216,50 @@ export async function createPendingGlossaryEntries(input: {
 
   if (newTerms.length === 0) return [];
 
-  const created = [];
-  for (const term of newTerms) {
-    const type = parseGlossaryEntryType(term.type);
-    const entry = await prisma.novelGlossaryEntry.create({
-      data: {
-        novelId: input.novelId,
-        canonical: term.canonical,
-        type,
-        status: GlossaryEntryStatus.PENDING,
-        variants: {
-          create: (term.variants ?? []).map((v) => ({ variant: v })),
-        },
-      },
-      select: glossaryEntrySelect,
-    });
-    created.push(entry);
+  // Step 1: Batch-create all glossary entries and get back their IDs
+  const createdEntries = await prisma.novelGlossaryEntry.createManyAndReturn({
+    data: newTerms.map((term) => ({
+      novelId: input.novelId,
+      canonical: term.canonical,
+      type: parseGlossaryEntryType(term.type),
+      status: GlossaryEntryStatus.PENDING,
+    })),
+    select: {
+      id: true,
+      novelId: true,
+      canonical: true,
+      type: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  // Step 2: Build variant data referencing the created entry IDs
+  const variantData: Array<{ entryId: string; variant: string }> = [];
+  for (let i = 0; i < createdEntries.length; i++) {
+    const entry = createdEntries[i];
+    const termVariants = newTerms[i].variants ?? [];
+    for (const variant of termVariants) {
+      variantData.push({ entryId: entry.id, variant });
+    }
   }
 
-  return created;
+  // Step 3: Batch-create all variants
+  if (variantData.length > 0) {
+    await prisma.novelGlossaryVariant.createMany({
+      data: variantData,
+    });
+  }
+
+  // Step 4: Re-query entries with variants to match expected return shape
+  if (createdEntries.length === 0) return [];
+
+  const createdIds = createdEntries.map((e) => e.id);
+  return prisma.novelGlossaryEntry.findMany({
+    where: { id: { in: createdIds } },
+    select: glossaryEntrySelect,
+  });
 }
 
 function parseGlossaryEntryType(value?: string): GlossaryEntryType {

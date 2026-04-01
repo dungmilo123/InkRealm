@@ -318,7 +318,7 @@ export async function runTranslationJobBatch(input: {
 
   let readerDocument: Awaited<ReturnType<typeof getReaderDocument>>;
   try {
-    readerDocument = await getReaderDocument(runnerState.novel as Novel);
+    readerDocument = await getReaderDocument(runnerState.novel as unknown as Novel);
   } catch (error) {
     if (error instanceof ReaderUnavailableError) {
       const failed = await setTranslationFailed({

@@ -48,7 +48,7 @@ export function ReadingStatsBanner({
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {stats.map((stat) => (
             <div key={stat.label} className="flex items-center gap-1.5">
-              <stat.icon className="size-3.5 text-muted-foreground/70" />
+              <stat.icon className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
               <span className="text-xs text-muted-foreground">
                 {stat.label}
               </span>
@@ -61,7 +61,14 @@ export function ReadingStatsBanner({
 
         {/* Overall library progress bar */}
         <div className="flex items-center gap-2 min-w-[140px]">
-          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"
+            role="progressbar"
+            aria-valuenow={overallProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Library exploration: ${overallProgress}%`}
+          >
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${overallProgress}%` }}

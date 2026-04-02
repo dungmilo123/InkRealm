@@ -37,6 +37,7 @@ export function NovelList({ novels, progressData }: NovelListProps) {
             key={novel.id}
             href={`/novels/${novel.id}`}
             className="group"
+            aria-label={`Open ${novel.title}`}
           >
             <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 motion-safe:group-hover:scale-[1.02] motion-safe:group-hover:-translate-y-1 group-hover:shadow-md">
               <div className="relative">
@@ -49,7 +50,14 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                 {progress && progress.totalChapters > 0 && (
                   <>
                     {/* Progress bar along bottom edge of book cover */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-1 bg-black/20"
+                      role="progressbar"
+                      aria-valuenow={progressPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Reading progress: ${progressPercent}%`}
+                    >
                       <div
                         className={`h-full transition-all duration-300 ${
                           isComplete
@@ -66,6 +74,11 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                           ? "bg-green-600 text-white dark:bg-green-500"
                           : "bg-primary text-primary-foreground"
                       }`}
+                      aria-label={
+                        isComplete
+                          ? "Reading complete"
+                          : `Chapter ${progress.lastChapterIndex} of ${progress.totalChapters}`
+                      }
                     >
                       {isComplete
                         ? "\u2713 Done"

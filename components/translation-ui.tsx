@@ -134,6 +134,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
           onChange={(e) => setApiKey(e.target.value)}
           placeholder={initialValues?.provider ? "••••••••" : "Enter your API key"}
           required={!initialValues?.provider}
+          autoComplete="off"
         />
       </div>
 
@@ -152,7 +153,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
         </p>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} aria-busy={loading} className="w-full">
         {loading ? "Saving..." : "Save Settings"}
       </Button>
     </form>
@@ -209,7 +210,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
         </select>
       </div>
 
-      <Button type="submit" disabled={loading || disabled} className="w-full">
+      <Button type="submit" disabled={loading || disabled} aria-busy={loading} className="w-full">
         {loading ? "Starting..." : "Start Translation"}
       </Button>
     </form>

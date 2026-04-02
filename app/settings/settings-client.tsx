@@ -266,7 +266,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             />
           </div>
 
-          <Button type="submit" disabled={loading} size="lg">
+          <Button type="submit" disabled={loading} aria-busy={loading} size="lg">
             {loading
               ? "Saving..."
               : hasPassword

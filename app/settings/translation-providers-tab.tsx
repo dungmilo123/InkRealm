@@ -356,6 +356,7 @@ export function TranslationProvidersTab({
                       value={editApiKey}
                       onChange={(e) => setEditApiKey(e.target.value)}
                       placeholder="Enter new API key (leave blank to keep current)"
+                      autoComplete="off"
                     />
                   </div>
 
@@ -568,6 +569,7 @@ export function TranslationProvidersTab({
                   onChange={(e) => setCreateApiKey(e.target.value)}
                   placeholder="Paste API key"
                   required
+                  autoComplete="off"
                 />
               </div>
 

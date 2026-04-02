@@ -1,6 +1,6 @@
 export default function ReaderLoading() {
   return (
-    <div className="flex flex-col flex-1 bg-background">
+    <div className="flex flex-col flex-1 bg-background" aria-busy="true" aria-label="Loading chapter">
       <header className="w-full border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-3">

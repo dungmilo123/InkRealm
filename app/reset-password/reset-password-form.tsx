@@ -135,6 +135,7 @@ export function ResetPasswordForm() {
           <Button
             type="submit"
             disabled={loading}
+            aria-busy={loading}
             className="w-full"
             size="lg"
           >

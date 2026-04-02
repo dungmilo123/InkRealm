@@ -1,6 +1,6 @@
 export default function SettingsLoading() {
   return (
-    <div className="flex min-h-screen justify-center bg-background">
+    <div className="flex min-h-screen justify-center bg-background" aria-busy="true" aria-label="Loading settings">
       <div className="w-full max-w-2xl space-y-6 px-6 py-12">
         <div>
           <div className="h-4 w-32 rounded bg-muted animate-pulse" />

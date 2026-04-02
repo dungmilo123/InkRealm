@@ -500,17 +500,17 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
           {[1, 2, 3].map((i) => (
             <div key={i} className="rounded-lg border border-border bg-background p-3 space-y-2">
               <div className="flex items-center gap-2">
-                <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-                <div className="h-4 w-16 rounded-full bg-muted animate-pulse" />
-                <div className="h-4 w-16 rounded-full bg-muted animate-pulse" />
+                <div className="h-4 w-24 rounded bg-muted motion-safe:animate-pulse" />
+                <div className="h-4 w-16 rounded-full bg-muted motion-safe:animate-pulse" />
+                <div className="h-4 w-16 rounded-full bg-muted motion-safe:animate-pulse" />
               </div>
               <div className="flex gap-1">
-                <div className="h-5 w-20 rounded-md bg-muted animate-pulse" />
-                <div className="h-5 w-16 rounded-md bg-muted animate-pulse" />
+                <div className="h-5 w-20 rounded-md bg-muted motion-safe:animate-pulse" />
+                <div className="h-5 w-16 rounded-md bg-muted motion-safe:animate-pulse" />
               </div>
               <div className="flex gap-1.5">
-                <div className="h-7 w-14 rounded-md bg-muted animate-pulse" />
-                <div className="h-7 w-14 rounded-md bg-muted animate-pulse" />
+                <div className="h-7 w-14 rounded-md bg-muted motion-safe:animate-pulse" />
+                <div className="h-7 w-14 rounded-md bg-muted motion-safe:animate-pulse" />
               </div>
             </div>
           ))}

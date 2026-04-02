@@ -103,9 +103,10 @@ function SettingsPopover({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Theme</span>
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Theme">
             <button
               type="button"
+              aria-pressed={preferences.theme === "LIGHT"}
               onClick={() => onChange({ ...preferences, theme: "LIGHT" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "LIGHT"
@@ -117,6 +118,7 @@ function SettingsPopover({
             </button>
             <button
               type="button"
+              aria-pressed={preferences.theme === "DARK"}
               onClick={() => onChange({ ...preferences, theme: "DARK" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "DARK"
@@ -131,9 +133,10 @@ function SettingsPopover({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Font</span>
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Font family">
             <button
               type="button"
+              aria-pressed={preferences.fontFamily === "SANS"}
               onClick={() => onChange({ ...preferences, fontFamily: "SANS" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SANS"
@@ -145,6 +148,7 @@ function SettingsPopover({
             </button>
             <button
               type="button"
+              aria-pressed={preferences.fontFamily === "SERIF"}
               onClick={() => onChange({ ...preferences, fontFamily: "SERIF" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SERIF"

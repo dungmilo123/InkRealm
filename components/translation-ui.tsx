@@ -259,7 +259,7 @@ export function TranslationProgress({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{Math.round(progress)}% complete</span>
-        {isInProgress && <span className="animate-pulse">Translation in progress...</span>}
+        {isInProgress && <span className="motion-safe:animate-pulse">Translation in progress...</span>}
         {isFailed && <span className="text-destructive">Failed at chapter {failedChapterIndex}</span>}
         {isCompleted && <span className="text-green-600 dark:text-green-400">Completed!</span>}
       </div>

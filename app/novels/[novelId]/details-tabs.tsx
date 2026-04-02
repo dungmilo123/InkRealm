@@ -100,7 +100,7 @@ const ChapterList = memo(function ChapterList({
               </Badge>
             )}
             {translationStatus === "translating" && (
-              <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
+              <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs motion-safe:animate-pulse">
                 Translating...
               </Badge>
             )}

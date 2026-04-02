@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { UserMenu } from "@/components/user-menu";
 import { GlossaryReader } from "./glossary-reader";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
@@ -19,9 +20,20 @@ type ReaderClientProps = {
   user: { name?: string | null; image?: string | null };
   signOutAction: () => Promise<void>;
   translatedParagraphs: string[] | null;
-  translatedTitle: string | null;
 };
 
+/**
+ * Render a popover dialog for adjusting reading preferences.
+ *
+ * Provides controls for font size, line height, content width, theme, and font family.
+ * Each control updates values from `preferences` and invokes `onChange` with the updated
+ * `ReadingPreferences`. The container is exposed as a dialog for accessibility (`role="dialog"`,
+ * `aria-label="Reading settings"`).
+ *
+ * @param preferences - Current reading preferences used to populate control values
+ * @param onChange - Callback invoked with the updated `ReadingPreferences` when any control changes
+ * @returns The settings popover element
+ */
 function SettingsPopover({
   preferences,
   onChange,
@@ -30,7 +42,11 @@ function SettingsPopover({
   onChange: (prefs: ReadingPreferences) => void;
 }) {
   return (
-    <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-border bg-card p-4 shadow-lg">
+    <div
+      role="dialog"
+      aria-label="Reading settings"
+      className="absolute right-0 top-full mt-2 z-50 w-72 rounded-lg border border-border bg-card p-4 shadow-lg"
+    >
       <h3 className="text-sm font-medium text-foreground mb-3">Reading Settings</h3>
 
       <div className="space-y-4">
@@ -45,6 +61,8 @@ function SettingsPopover({
             max={32}
             value={preferences.fontSize}
             onChange={(e) => onChange({ ...preferences, fontSize: Number(e.target.value) })}
+            aria-label="Font size"
+            aria-valuetext={`${preferences.fontSize} pixels`}
             className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
@@ -76,6 +94,8 @@ function SettingsPopover({
             step={20}
             value={preferences.maxWidth}
             onChange={(e) => onChange({ ...preferences, maxWidth: Number(e.target.value) })}
+            aria-label="Content width"
+            aria-valuetext={`${preferences.maxWidth} pixels`}
             className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
@@ -140,6 +160,24 @@ function SettingsPopover({
   );
 }
 
+/**
+ * Client-side reader component that displays a chapter's content, reading controls, and chapter navigation.
+ *
+ * Renders the chapter title and metadata, a toggle between original and translated text (when translations are provided),
+ * a settings popover for adjusting reading preferences, and previous/next chapter navigation.
+ *
+ * Preference changes are persisted via a debounced PUT to /api/reading/preferences (300ms).
+ *
+ * @param novelId - The novel's unique identifier (used for links and glossary lookups)
+ * @param novelTitle - The novel's display title (shown in header)
+ * @param chapter - The current chapter object (includes `index`, `title`, and `paragraphs`)
+ * @param chapterCount - Total number of chapters in the novel
+ * @param preferences - Initial reading preferences (font size, line height, max width, theme, font family)
+ * @param user - Current authenticated user (passed to the user menu)
+ * @param signOutAction - Callback invoked to sign the user out
+ * @param translatedParagraphs - Optional translated paragraphs; when provided the component defaults to showing translations and exposes a toggle to switch to the original
+ * @returns The component's rendered React element
+ */
 export function ReaderClient({
   novelId,
   novelTitle,
@@ -183,16 +221,25 @@ export function ReaderClient({
     [savePreferences]
   );
 
-  // Close popover on outside click
+  // Close popover on outside click or Escape key
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettings(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setShowSettings(false);
+      }
+    }
     if (showSettings) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleKeyDown);
+      };
     }
   }, [showSettings]);
 
@@ -210,20 +257,13 @@ export function ReaderClient({
       <header className="w-full border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm mb-3">
-            <div className="flex items-center gap-x-4">
-              <Link
-                href={`/novels/${novelId}`}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Novel details
-              </Link>
-              <Link
-                href="/dashboard"
-                className="font-heading font-bold text-muted-foreground hover:text-foreground transition-colors"
-              >
-                InkRealm
-              </Link>
-            </div>
+            <Breadcrumbs
+              items={[
+                { label: "Dashboard", href: "/dashboard" },
+                { label: novelTitle, href: `/novels/${novelId}` },
+                { label: chapter.title },
+              ]}
+            />
             <div className="flex items-center gap-x-3">
               {hasTranslation && (
                 <div
@@ -292,6 +332,7 @@ export function ReaderClient({
       </header>
 
       <main
+        id="main"
         className="w-full mx-auto px-8 py-8"
         style={{ maxWidth: `${preferences.maxWidth}px` }}
       >

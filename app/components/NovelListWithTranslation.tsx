@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BookCover } from "@/components/book-cover";
 import type { Novel } from "@/app/generated/prisma/client";
+import { formatFileSize } from "@/app/lib/format";
 
 interface TranslationSummary {
   hasTranslation: boolean;
@@ -23,12 +24,11 @@ interface NovelCardProps {
   novel: NovelWithTranslation;
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
+/**
+ * Format a date using the en-US locale in short-month "Month day, year" style.
+ *
+ * @returns The formatted date string in the form `Mon D, YYYY` (for example, `Apr 2, 2026`).
+ */
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",

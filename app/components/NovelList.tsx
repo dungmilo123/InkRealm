@@ -2,18 +2,24 @@ import Link from "next/link";
 import type { Novel } from "@/app/generated/prisma/client";
 import { BookCover } from "@/components/book-cover";
 import { Card } from "@/components/ui/card";
+import { formatFileSize } from "@/app/lib/format";
 
 interface NovelListProps {
   novels: Novel[];
   progressData?: Record<string, { lastChapterIndex: number; totalChapters: number }>;
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
+/**
+ * Render a responsive grid of novel cards linking to each novel's detail page.
+ *
+ * Each card shows the book cover, title, file type and formatted size. If `progressData`
+ * contains an entry for a novel with `totalChapters > 0`, a progress badge showing
+ * `Ch {lastChapterIndex}/{totalChapters}` is displayed on that novel's cover.
+ *
+ * @param novels - Array of novels to display
+ * @param progressData - Optional progress keyed by `novel.id`; each value should include `lastChapterIndex` and `totalChapters`
+ * @returns A JSX element containing the grid of novel cards, or `null` when `novels` is empty
+ */
 export function NovelList({ novels, progressData }: NovelListProps) {
   if (novels.length === 0) {
     return null;
@@ -29,7 +35,7 @@ export function NovelList({ novels, progressData }: NovelListProps) {
             href={`/novels/${novel.id}`}
             className="group"
           >
-            <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 group-hover:scale-[1.02] group-hover:-translate-y-1 group-hover:shadow-md">
+            <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 motion-safe:group-hover:scale-[1.02] motion-safe:group-hover:-translate-y-1 group-hover:shadow-md">
               <div className="relative">
                 <BookCover
                   title={novel.title}

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const GOOGLE_ICON = (
   <svg className="size-5" viewBox="0 0 24 24">
@@ -28,6 +29,13 @@ const GOOGLE_ICON = (
   </svg>
 );
 
+/**
+ * Render a login form that supports email/password sign-in and Google OAuth.
+ *
+ * Reads optional URL query parameters to show a password-reset success banner or an OAuth account conflict message, displays validation and authentication errors, and provides controls for credential submission and Google sign-in.
+ *
+ * @returns A JSX element containing the complete login UI and its interactive handlers (credential submission, OAuth initiation, and post-sign-in navigation).
+ */
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -74,7 +82,7 @@ export function LoginForm() {
   const displayError = error || conflictMessage;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <main id="main" className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
@@ -125,9 +133,8 @@ export function LoginForm() {
                 Forgot password?
               </Link>
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
@@ -171,6 +178,6 @@ export function LoginForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

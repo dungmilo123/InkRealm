@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,17 @@ async function readJsonOrError<T>(response: Response): Promise<T> {
   return payload;
 }
 
+/**
+ * Renders and manages the translation providers UI, including listing profiles,
+ * creating new profiles, editing existing profiles, setting a profile as the default,
+ * and deleting profiles with confirmation and feedback.
+ *
+ * This component keeps local state for profiles, edit/create forms, busy status,
+ * and transient feedback banners (auto-dismissed with toast notifications).
+ *
+ * @param initialProfiles - Initial list of persisted translation profiles used to seed the component state
+ * @returns A React element containing the translation providers management interface
+ */
 export function TranslationProvidersTab({
   initialProfiles,
 }: TranslationProvidersTabProps) {
@@ -85,9 +97,23 @@ export function TranslationProvidersTab({
   const [createApiKey, setCreateApiKey] = useState("");
   const [createCustomPrompt, setCreateCustomPrompt] = useState("");
 
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
+
   function setFeedbackWithDismiss(fb: { type: "success" | "error"; text: string }) {
+    if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     setFeedback(fb);
-    setTimeout(() => setFeedback(null), 5000);
+    dismissTimerRef.current = setTimeout(() => setFeedback(null), 5000);
+    if (fb.type === "success") {
+      toast.success(fb.text);
+    } else {
+      toast.error(fb.text);
+    }
   }
 
   async function refreshProfiles() {
@@ -126,9 +152,10 @@ export function TranslationProvidersTab({
     setBusy(true);
     setFeedback(null);
     try {
-      await fetch(`/api/translation/profiles/${profileId}/default`, {
+      const defaultRes = await fetch(`/api/translation/profiles/${profileId}/default`, {
         method: "PUT",
       });
+      await readJsonOrError(defaultRes);
       await refreshProfiles();
       setFeedbackWithDismiss({
         type: "success",
@@ -151,9 +178,10 @@ export function TranslationProvidersTab({
     setBusy(true);
     setFeedback(null);
     try {
-      await fetch(`/api/translation/profiles/${profileId}`, {
+      const deleteRes = await fetch(`/api/translation/profiles/${profileId}`, {
         method: "DELETE",
       });
+      await readJsonOrError(deleteRes);
       await refreshProfiles();
       setEditingId(null);
       setFeedbackWithDismiss({ type: "success", text: "Provider deleted." });

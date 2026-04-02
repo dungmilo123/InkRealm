@@ -100,6 +100,21 @@ const ChapterList = memo(function ChapterList({
   );
 });
 
+/**
+ * Render a tabbed interface ("Chapters", "Translation", "Glossary") for a novel,
+ * including a translation progress bar, live polling of translation job status,
+ * and per-chapter translation/reading indicators.
+ *
+ * @param novelId - Identifier for the novel used to build links and panel props
+ * @param readerSummary - Summary of the reader data, including chapter list and readability flag
+ * @param readingProgress - User reading progress (may be null); used to mark visited/last chapters
+ * @param isReadable - Whether the novel is readable by the current user
+ * @param serializedDefaultProfile - Serialized default translation profile passed to the Translation panel
+ * @param serializedLatestJob - Initial translation job state used to seed polling and progress display
+ * @param chapterCount - Total number of chapters for progress calculations when job metadata is missing
+ * @param initialChapterStatuses - Server-rendered chapter translation statuses used as a fallback until polling returns data
+ * @returns The React element displaying the tabs, progress bar, and the active tab panel
+ */
 export function DetailsTabs({
   novelId,
   readerSummary,
@@ -145,7 +160,7 @@ export function DetailsTabs({
             className="h-2 w-full rounded-full bg-muted overflow-hidden"
           >
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-primary motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -161,11 +176,15 @@ export function DetailsTabs({
           </p>
         </div>
       )}
-      <div className="flex border-b border-border">
+      <div role="tablist" aria-label="Novel sections" className="flex border-b border-border">
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            aria-controls={`tabpanel-${tab.toLowerCase()}`}
+            id={`tab-${tab.toLowerCase()}`}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === tab
@@ -178,7 +197,12 @@ export function DetailsTabs({
         ))}
       </div>
 
-      <div className="pt-4">
+      <div
+        role="tabpanel"
+        id={`tabpanel-${activeTab.toLowerCase()}`}
+        aria-labelledby={`tab-${activeTab.toLowerCase()}`}
+        className="pt-4"
+      >
         {activeTab === "Chapters" && (
           readerSummary.isReadable && readerSummary.chapters ? (
             <ChapterList

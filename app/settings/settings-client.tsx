@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -44,23 +44,25 @@ interface SettingsProps {
   initialProfiles: SerializedTranslationProfile[];
 }
 
+/**
+ * Renders the Settings page UI with Account and Translation Providers tabs.
+ *
+ * The Account tab shows profile info, password management, and linked account controls.
+ *
+ * @param user - The current user's profile and authentication state (e.g., name, email, image, hasPassword, hasGoogle).
+ * @param initialProfiles - Serialized translation provider profiles used to populate the Translation Providers tab.
+ * @returns The settings page JSX element containing the "Account" and "Translation Providers" tabs.
+ */
 export function SettingsClient({ user, initialProfiles }: SettingsProps) {
   return (
-    <div className="flex min-h-screen justify-center bg-background">
-      <div className="w-full max-w-2xl space-y-6 px-6 py-12">
-        <div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            &larr; Back to dashboard
-          </Link>
-          <h1 className="mt-4 text-3xl font-heading font-semibold tracking-tight text-foreground">
-            Settings
-          </h1>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
+          Settings
+        </h1>
+      </div>
 
-        <Tabs defaultValue="account">
+      <Tabs defaultValue="account">
           <TabsList variant="line">
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="translation-providers">
@@ -81,7 +83,6 @@ export function SettingsClient({ user, initialProfiles }: SettingsProps) {
             <TranslationProvidersTab initialProfiles={initialProfiles} />
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 }
@@ -118,6 +119,16 @@ function ProfileSection({ user }: { user: SettingsProps["user"] }) {
   );
 }
 
+/**
+ * Render the password form card for setting a new password or changing an existing one.
+ *
+ * Displays inputs for new and confirmed passwords, conditionally shows a current-password input
+ * when the user already has a password, validates that the new and confirmation match, and
+ * submits the form to the appropriate authentication endpoint while showing success or error messages.
+ *
+ * @param hasPassword - If true, show the "current password" field and perform a password change; if false, render the set-password flow.
+ * @returns The password management card UI to be rendered in the settings page.
+ */
 function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -225,9 +236,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               >
                 Current password
               </label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
@@ -243,9 +253,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               New password
             </label>
-            <Input
+            <PasswordInput
               id="newPassword"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="At least 8 characters"
@@ -262,9 +271,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               Confirm new password
             </label>
-            <Input
+            <PasswordInput
               id="confirmNewPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repeat your password"
@@ -287,6 +295,13 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   );
 }
 
+/**
+ * Render the "Linked accounts" settings section for managing Google sign-in.
+ *
+ * @param hasGoogle - Whether the user's account is currently linked to Google
+ * @param hasPassword - Whether the user has a local password set (required to unlink Google)
+ * @returns A React element displaying Google connection status and actions to link or unlink the account
+ */
 function LinkedAccountsSection({
   hasGoogle,
   hasPassword,
@@ -295,11 +310,9 @@ function LinkedAccountsSection({
   hasPassword: boolean;
 }) {
   const router = useRouter();
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleUnlinkGoogle() {
-    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/unlink-google", {
@@ -307,12 +320,12 @@ function LinkedAccountsSection({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error);
+        toast.error(data.error || "Failed to unlink Google account");
       } else {
         router.refresh();
       }
     } catch {
-      setError("Something went wrong");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -331,12 +344,6 @@ function LinkedAccountsSection({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        )}
-
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <svg className="size-5" viewBox="0 0 24 24">

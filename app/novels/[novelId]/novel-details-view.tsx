@@ -2,8 +2,10 @@ import Link from "next/link";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LibraryShelf } from "@/components/library-shelf";
 import { DetailsTabs } from "./details-tabs";
+import { formatFileSize } from "@/app/lib/format";
 
 export type SerializedDefaultProfile = {
   id: string;
@@ -52,18 +54,11 @@ type NovelDetailsViewProps = {
   initialChapterStatuses: ChapterTranslationStatus[];
 };
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
+/**
+ * Format a Date as a human-readable US English date (e.g., "January 1, 2020").
+ *
+ * @returns A string formatted as "Month day, year" using the en-US locale with the month spelled out in full.
+ */
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
@@ -72,6 +67,19 @@ function formatDate(date: Date): string {
   }).format(new Date(date));
 }
 
+/**
+ * Render the novel details view showing metadata, reading controls, translation status, and details tabs.
+ *
+ * @param novel - The novel model to display (title, id, file metadata, timestamps).
+ * @param readerSummary - Reader-derived summary including readability, chapter count, and any unavailable reason.
+ * @param readingProgress - Optional progress data containing `lastChapterIndex` used to compute continuation links and labels.
+ * @param translationDataError - Optional error message related to translation data to display as a destructive alert.
+ * @param serializedDefaultProfile - Optional serialized AI profile snapshot to pass into translation-related tabs.
+ * @param serializedLatestJob - Optional serialized translation job snapshot to pass into translation-related tabs.
+ * @param chapterCount - Total number of chapters for the novel (used by details and reading context).
+ * @param initialChapterStatuses - Initial per-chapter translation statuses to seed the details tabs.
+ * @returns The rendered NovelDetailsView React element.
+ */
 export function NovelDetailsView({
   novel,
   readerSummary,
@@ -91,6 +99,12 @@ export function NovelDetailsView({
 
   return (
     <LibraryShelf showBack backHref="/dashboard">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: novel.title },
+        ]}
+      />
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row gap-8 items-start">
           <BookCover

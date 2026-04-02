@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "tsx --test app/lib/translation/crypto.test.ts app/lib/translation/validation.test.ts app/lib/translation/quality-preset.test.ts app/lib/translation/glossary-prompts.test.ts app/lib/reader/cache.test.ts",
+    "test:unit": "tsx --test app/lib/translation/crypto.test.ts app/lib/translation/validation.test.ts app/lib/translation/quality-preset.test.ts app/lib/translation/glossary-prompts.test.ts app/lib/reader/cache.test.ts app/lib/format.test.ts components/breadcrumbs.test.tsx components/library-shelf.test.tsx components/ui/password-input.test.tsx app/register/register-form.test.tsx",
     "test:integration": "tsx --test app/lib/translation/lifecycle.test.ts app/lib/translation/profiles.test.ts app/lib/translation/state.test.ts app/lib/translation/export.test.ts app/lib/translation/export-route.test.ts app/lib/translation/novel-details-view.test.ts"
   },
   "dependencies": {
@@ -33,6 +33,7 @@
     "react-dom": "19.2.4",
     "resend": "^6.9.4",
     "shadcn": "^4.1.1",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0"
   },

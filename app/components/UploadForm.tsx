@@ -242,7 +242,10 @@ export function UploadForm() {
       />
 
       {/* Status message */}
-      <div aria-live="polite" role="status">
+      <div
+        aria-live={message?.type === "error" ? "assertive" : "polite"}
+        role={message?.type === "error" ? "alert" : "status"}
+      >
         {message && (
           <div
             className={`flex items-center gap-2 p-3 rounded-lg text-sm ${

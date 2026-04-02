@@ -85,6 +85,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
         type: "error",
         text: error instanceof Error ? error.message : "Failed to load glossary.",
       });
+      setLoaded(true);
     }
   }, [novelId]);
 

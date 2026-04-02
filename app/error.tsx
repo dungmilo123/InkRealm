@@ -10,13 +10,15 @@ import { useEffect } from "react";
  * fonts, and the ThemeProvider. Catches runtime errors from any
  * page or layout below the root.
  */
+type ErrorPageProps = {
+  error: Error & { digest?: string };
+  reset: () => void;
+};
+
 export default function ErrorPage({
   error,
   reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+}: ErrorPageProps) {
   useEffect(() => {
     // Log to your error reporting service in production
     console.error("[ErrorBoundary]", error);

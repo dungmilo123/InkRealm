@@ -8,13 +8,15 @@
  * Because it replaces the root layout, it must render its own
  * <html> and <body> tags.
  */
+type GlobalErrorProps = {
+  error: Error & { digest?: string };
+  reset: () => void;
+};
+
 export default function GlobalError({
   error,
   reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+}: GlobalErrorProps) {
   return (
     <html lang="en">
       <body className="min-h-dvh flex items-center justify-center bg-[#1a1814] text-[#e8e0d4] font-sans antialiased">

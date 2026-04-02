@@ -5,10 +5,12 @@ export const metadata: Metadata = {
   description: "Set a new password for your InkRealm account",
 };
 
+type ResetPasswordLayoutProps = {
+  children: React.ReactNode;
+};
+
 export default function ResetPasswordLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: ResetPasswordLayoutProps) {
   return children;
 }

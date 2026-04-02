@@ -6,7 +6,7 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
-const securityHeaders = [
+const SECURITY_HEADERS = [
   // Prevent clickjacking — only allow same-origin framing
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   // Block MIME-type sniffing (e.g. serving uploaded .txt as HTML)
@@ -20,17 +20,17 @@ const securityHeaders = [
   },
   // Opt out of Google FLoC / Topics
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  // Prevent cross-origin resource attacks
-  { key: "X-DNS-Prefetch-Control", value: "on" },
+  // Opt out of DNS prefetching to reduce information leakage
+  { key: "X-DNS-Prefetch-Control", value: "off" },
 ];
 
 const nextConfig: NextConfig = {
-  async headers() {
+  async headers(): Promise<Array<{ source: string; headers: { key: string; value: string }[] }>> {
     return [
       {
         // Apply security headers to all routes
         source: "/(.*)",
-        headers: securityHeaders,
+        headers: SECURITY_HEADERS,
       },
     ];
   },

@@ -5,6 +5,7 @@ import { BookCover } from "@/components/book-cover";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LibraryShelf } from "@/components/library-shelf";
 import { DetailsTabs } from "./details-tabs";
+import { DeleteNovelButton } from "./delete-novel-button";
 import { formatFileSize } from "@/app/lib/format";
 import {
   estimateReadingMinutes,
@@ -106,9 +107,12 @@ export function NovelDetailsView({
           />
           <div className="flex-1 space-y-4">
             <div>
-              <h1 className="text-2xl font-heading font-bold tracking-tight text-foreground">
-                {novel.title}
-              </h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-2xl font-heading font-bold tracking-tight text-foreground">
+                  {novel.title}
+                </h1>
+                <DeleteNovelButton novelId={novel.id} novelTitle={novel.title} />
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Added {formatDate(novel.createdAt)}
               </p>
@@ -189,6 +193,7 @@ export function NovelDetailsView({
 
         <DetailsTabs
           novelId={novel.id}
+          novelTitle={novel.title}
           readerSummary={readerSummary}
           readingProgress={readingProgress}
           isReadable={readerSummary.isReadable}

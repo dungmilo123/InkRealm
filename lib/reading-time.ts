@@ -64,6 +64,7 @@ export function formatReadingTime(minutes: number): string {
  */
 export function formatWordCount(wordCount: number): string {
   if (wordCount < 1000) return `${wordCount}`;
+  if (wordCount < 10000) return `${(wordCount / 1000).toFixed(1)}k`;
   if (wordCount < 100000) return `${(wordCount / 1000).toFixed(1)}k`;
   return `${Math.round(wordCount / 1000)}k`;
 }

@@ -3,10 +3,12 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
 import { getReadingProgressBatch } from "@/app/lib/reading-progress";
-import { NovelList } from "@/app/components/NovelList";
+import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
+import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
 import type { Novel } from "@/app/generated/prisma/client";
+import type { NovelProgressData } from "@/app/components/NovelList";
 
 export const metadata: Metadata = {
   title: "Library",
@@ -35,11 +37,12 @@ export default async function DashboardPage() {
     error = "Failed to load novels. Please ensure the database is configured.";
   }
 
-  const progressData: Record<string, { lastChapterIndex: number; totalChapters: number }> = {};
+  const progressData: Record<string, NovelProgressData> = {};
   for (const [novelId, prog] of progressMap) {
     progressData[novelId] = {
       lastChapterIndex: prog.lastChapterIndex,
       totalChapters: novels.find((n) => n.id === novelId)?.chapterCount ?? 0,
+      totalVisited: prog.totalVisited,
     };
   }
 
@@ -91,7 +94,13 @@ export default async function DashboardPage() {
             </p>
           </div>
         ) : (
-          <NovelList novels={novels} progressData={progressData} />
+          <>
+            <ReadingStatsBanner
+              totalNovels={novels.length}
+              progressData={progressData}
+            />
+            <NovelLibrary novels={novels} progressData={progressData} />
+          </>
         )}
       </section>
     </LibraryShelf>

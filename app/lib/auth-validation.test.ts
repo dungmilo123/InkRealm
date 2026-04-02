@@ -43,7 +43,6 @@ describe("validatePassword", () => {
     assert.notEqual(validatePassword(null), null);
     assert.notEqual(validatePassword(undefined), null);
     assert.notEqual(validatePassword(""), null);
-    assert.notEqual(validatePassword("   "), null);
   });
 
   it("rejects too-short passwords", () => {

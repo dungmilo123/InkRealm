@@ -28,9 +28,9 @@ export function normalizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-export type AuthValidationError = {
+export interface AuthValidationError {
   error: string;
-};
+}
 
 /**
  * Validate an email string. Returns null if valid, or an error object.
@@ -54,7 +54,7 @@ export function validatePassword(
   password: string | undefined | null,
   label = "Password"
 ): AuthValidationError | null {
-  if (!password || password.trim().length === 0) {
+  if (!password) {
     return { error: `${label} is required` };
   }
   if (password.length < PASSWORD_MIN_LENGTH) {

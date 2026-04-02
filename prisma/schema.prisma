@@ -235,6 +235,7 @@ model ChapterVisit {
   id                String          @id @default(cuid())
   readingProgressId String
   chapterIndex      Int
+  scrollPosition    Float?
   visitedAt         DateTime        @default(now())
   readingProgress   ReadingProgress @relation(fields: [readingProgressId], references: [id], onDelete: Cascade)
 

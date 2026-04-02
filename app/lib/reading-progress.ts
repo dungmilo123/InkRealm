@@ -29,6 +29,71 @@ export async function recordChapterVisit(
   });
 }
 
+/**
+ * Save the reader's scroll position (0–1 ratio) for a specific chapter.
+ * Creates the ReadingProgress + ChapterVisit if they don't exist yet.
+ */
+export async function saveScrollPosition(
+  userId: string,
+  novelId: string,
+  chapterIndex: number,
+  scrollPosition: number
+): Promise<void> {
+  const clamped = Math.min(1, Math.max(0, scrollPosition));
+
+  const progress = await prisma.readingProgress.upsert({
+    where: { userId_novelId: { userId, novelId } },
+    create: { userId, novelId, lastChapterIndex: chapterIndex },
+    update: {},
+    select: { id: true },
+  });
+
+  await prisma.chapterVisit.upsert({
+    where: {
+      readingProgressId_chapterIndex: {
+        readingProgressId: progress.id,
+        chapterIndex,
+      },
+    },
+    create: {
+      readingProgressId: progress.id,
+      chapterIndex,
+      scrollPosition: clamped,
+      visitedAt: new Date(),
+    },
+    update: { scrollPosition: clamped },
+  });
+}
+
+/**
+ * Load the saved scroll position for a specific chapter.
+ * Returns a 0–1 ratio, or null if no position was saved.
+ */
+export async function getScrollPosition(
+  userId: string,
+  novelId: string,
+  chapterIndex: number
+): Promise<number | null> {
+  const progress = await prisma.readingProgress.findUnique({
+    where: { userId_novelId: { userId, novelId } },
+    select: { id: true },
+  });
+
+  if (!progress) return null;
+
+  const visit = await prisma.chapterVisit.findUnique({
+    where: {
+      readingProgressId_chapterIndex: {
+        readingProgressId: progress.id,
+        chapterIndex,
+      },
+    },
+    select: { scrollPosition: true },
+  });
+
+  return visit?.scrollPosition ?? null;
+}
+
 export async function getReadingProgress(
   userId: string,
   novelId: string

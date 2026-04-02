@@ -12,8 +12,12 @@ type ShortcutActions = {
   toggleSettings: () => void;
   /** Toggle the glossary mode */
   toggleGlossary?: () => void;
+  /** Toggle the chapter table of contents drawer */
+  toggleChapterDrawer: () => void;
   /** Toggle the keyboard shortcuts help dialog */
   toggleHelp: () => void;
+  /** Toggle the in-chapter text search */
+  toggleSearch: () => void;
 };
 
 /**
@@ -27,6 +31,8 @@ type ShortcutActions = {
  *   t — Toggle original/translated text
  *   s — Toggle reading settings
  *   g — Toggle glossary mode
+ *   c — Open chapter table of contents
+ *   f — Open in-chapter text search (also Ctrl/⌘+F)
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -51,6 +57,13 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         target.tagName === "SELECT" ||
         target.isContentEditable
       ) {
+        return;
+      }
+
+      // Intercept Ctrl/⌘+F to open in-reader search instead of browser find
+      if (e.key === "f" && (e.ctrlKey || e.metaKey) && !e.altKey) {
+        e.preventDefault();
+        actionsRef.current.toggleSearch();
         return;
       }
 
@@ -95,6 +108,16 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
             e.preventDefault();
             actionsRef.current.toggleGlossary();
           }
+          break;
+
+        case "c":
+          e.preventDefault();
+          actionsRef.current.toggleChapterDrawer();
+          break;
+
+        case "f":
+          e.preventDefault();
+          actionsRef.current.toggleSearch();
           break;
 
         case "?":

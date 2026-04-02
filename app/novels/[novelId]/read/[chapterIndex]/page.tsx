@@ -85,6 +85,10 @@ export default async function ReaderChapterPage({
   ]);
   const { document, chapter } = chapterData;
   const wordCount = countWordsInParagraphs(chapter.paragraphs);
+  const chapterTitles = document.chapters.map((ch) => ({
+    index: ch.index,
+    title: ch.title,
+  }));
 
   return (
     <ReaderClient
@@ -95,6 +99,7 @@ export default async function ReaderChapterPage({
         title: chapter.title,
         paragraphs: chapter.paragraphs,
       }}
+      chapters={chapterTitles}
       chapterCount={document.chapterCount}
       wordCount={wordCount}
       preferences={preferences}

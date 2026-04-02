@@ -33,6 +33,7 @@ import {
   type TranslationJobSummary,
 } from "@/app/lib/translation/data";
 import { canDownloadTranslationExport, writeTranslatedExportFile } from "@/app/lib/translation/export";
+import { buildTranslatedEpub } from "@/app/lib/translation/epub-export";
 import { TranslationHttpError, toErrorMessage } from "@/app/lib/translation/errors";
 import {
   getCredentialForTranslationSnapshot,
@@ -565,6 +566,43 @@ export async function getDownloadableTranslationJob(translationId: string, userI
   }
 
   return job;
+}
+
+/**
+ * Generates an EPUB buffer on-demand for a completed translation.
+ * Unlike the TXT export (pre-generated at finalization), the EPUB is assembled
+ * in memory each time since it requires ZIP construction and XHTML formatting.
+ */
+export async function buildEpubExportForJob(translationId: string, novelId: string) {
+  const novel = await getNovelById(novelId);
+  if (!novel) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
+
+  const chapters = await listTranslatedChaptersForExport(translationId);
+  if (chapters.length === 0) {
+    throw new TranslationHttpError(404, "No translated chapters available for export.");
+  }
+
+  const job = await getTranslationJobById(translationId);
+  const targetLanguage = job?.targetLanguage ?? "Vietnamese";
+
+  const buffer = buildTranslatedEpub({
+    translationId,
+    novelTitle: novel.title,
+    targetLanguage,
+    chapters,
+  });
+
+  const safeTitle = novel.title
+    .replace(/[^a-zA-Z0-9\-\s_]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase() || "novel";
+  const safeLang = targetLanguage.toLowerCase();
+  const fileName = `${safeTitle}-${safeLang}-${translationId}.epub`;
+
+  return { buffer, fileName };
 }
 
 export async function cancelTranslationJob(input: {

@@ -6,9 +6,8 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
-const SECURITY_HEADERS = [
-  // Prevent clickjacking — only allow same-origin framing
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+const securityHeaders = [
+  // X-Frame-Options removed — CSP frame-ancestors 'self' (set in proxy.ts) is the modern replacement
   // Block MIME-type sniffing (e.g. serving uploaded .txt as HTML)
   { key: "X-Content-Type-Options", value: "nosniff" },
   // Control Referer header leakage
@@ -20,17 +19,17 @@ const SECURITY_HEADERS = [
   },
   // Opt out of Google FLoC / Topics
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  // Opt out of DNS prefetching to reduce information leakage
-  { key: "X-DNS-Prefetch-Control", value: "off" },
+  // Enable DNS prefetch for external resources
+  { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
 const nextConfig: NextConfig = {
-  async headers(): Promise<Array<{ source: string; headers: { key: string; value: string }[] }>> {
+  async headers() {
     return [
       {
         // Apply security headers to all routes
         source: "/(.*)",
-        headers: SECURITY_HEADERS,
+        headers: securityHeaders,
       },
     ];
   },

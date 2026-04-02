@@ -3,8 +3,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 import { validatePassword } from "@/app/lib/auth-validation";
+import {
+  authActionLimiter,
+  getClientIp,
+  rateLimitResponse,
+} from "@/app/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = authActionLimiter.check(ip);
+  if (!rl.allowed) {
+    return rateLimitResponse(rl);
+  }
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

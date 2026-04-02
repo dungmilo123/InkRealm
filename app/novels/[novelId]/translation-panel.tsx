@@ -8,13 +8,14 @@ import { useTranslationEta } from "./use-translation-eta";
 import {
   Play,
   X,
-  Download,
   RotateCcw,
   AlertCircle,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
   Settings2,
+  FileText,
+  BookOpen,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -454,14 +455,32 @@ export function TranslationPanel({
           </div>
 
           {job.downloadUrl ? (
-            <a
-              href={job.downloadUrl}
-              download
-              className={buttonVariants({ className: "w-full h-10 px-6" })}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Translation
-            </a>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-card-foreground">Download as</p>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={job.downloadUrl}
+                  download
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "h-10 px-4 text-sm gap-2",
+                  })}
+                >
+                  <FileText className="h-4 w-4" />
+                  Plain Text
+                </a>
+                <a
+                  href={`${job.downloadUrl}?format=epub`}
+                  download
+                  className={buttonVariants({
+                    className: "h-10 px-4 text-sm gap-2",
+                  })}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  EPUB
+                </a>
+              </div>
+            </div>
           ) : null}
 
           <div className="flex justify-center mt-2">

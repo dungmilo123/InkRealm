@@ -7,8 +7,19 @@ import {
   validateEmail,
   validatePassword,
 } from "@/app/lib/auth-validation";
+import {
+  authLimiter,
+  getClientIp,
+  rateLimitResponse,
+} from "@/app/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = authLimiter.check(ip);
+  if (!rl.allowed) {
+    return rateLimitResponse(rl);
+  }
+
   const body = await request.json();
   const { email: rawEmail, password } = body as {
     email?: string;

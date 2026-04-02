@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { TranslationProvidersTab } from "./translation-providers-tab";
+import { PASSWORD_MAX_LENGTH } from "@/app/lib/auth-validation";
 
 type SerializedTranslationProfile = {
   id: string;
@@ -118,7 +119,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSetPassword(e: React.FormEvent) {
+  async function handleSetPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -144,13 +145,13 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         setConfirmPassword("");
       }
     } catch {
-      setError("Something went wrong");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleChangePassword(e: React.FormEvent) {
+  async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -177,7 +178,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         setConfirmPassword("");
       }
     } catch {
-      setError("Something went wrong");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -199,12 +200,12 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
           className="space-y-4"
         >
           {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
           {success && (
-            <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+            <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
               {success}
             </div>
           )}
@@ -238,9 +239,10 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               id="newPassword"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="8–72 characters"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
@@ -259,11 +261,12 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               placeholder="Repeat your password"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
 
-          <Button type="submit" disabled={loading} size="lg">
+          <Button type="submit" disabled={loading} aria-busy={loading} size="lg">
             {loading
               ? "Saving..."
               : hasPassword
@@ -299,7 +302,7 @@ function LinkedAccountsSection({
         router.refresh();
       }
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Could not connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -320,7 +323,7 @@ function LinkedAccountsSection({
       <CardContent>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <svg className="size-5" viewBox="0 0 24 24">
+            <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                 fill="#4285F4"

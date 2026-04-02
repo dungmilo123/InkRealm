@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 
 const GOOGLE_ICON = (
-  <svg className="size-5" viewBox="0 0 24 24">
+  <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
     <path
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
       fill="#4285F4"
@@ -44,7 +44,7 @@ export function LoginForm() {
       ? "This email already has an account. Sign in with your password, then link Google from Settings."
       : null;
 
-  async function handleCredentialsSubmit(e: React.FormEvent) {
+  async function handleCredentialsSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -62,7 +62,7 @@ export function LoginForm() {
         window.location.href = "/dashboard";
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -87,13 +87,13 @@ export function LoginForm() {
         </div>
 
         {resetSuccess && (
-          <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+          <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
             Your password has been reset. Sign in with your new password.
           </div>
         )}
 
         {displayError && (
-          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {displayError}
           </div>
         )}
@@ -139,6 +139,7 @@ export function LoginForm() {
           <Button
             type="submit"
             disabled={loading}
+            aria-busy={loading}
             className="w-full"
             size="lg"
           >

@@ -173,6 +173,7 @@ async function finalizeTranslationState(input: {
   return toTranslationJobView(updated);
 }
 
+/** Lists all translation jobs for a novel, enriched with progress percentage and download URL. */
 export async function listNovelTranslationJobViews(novelId: string, userId: string) {
   const novel = await getNovelById(novelId);
   if (!novel || novel.userId !== userId) {
@@ -182,6 +183,16 @@ export async function listNovelTranslationJobViews(novelId: string, userId: stri
   return jobs.map(toTranslationJobView);
 }
 
+/**
+ * Creates a new translation job for a novel.
+ * Parses the novel's source file, determines which chapters to translate
+ * (respecting optional `chapterFrom`/`chapterTo` range or skipping
+ * already-translated chapters from prior completed jobs), and inserts
+ * the job + chapter records.
+ *
+ * @throws {TranslationHttpError} 404 if novel not found / not owned by user
+ * @throws {TranslationHttpError} 400 if file can't be parsed or no chapters to translate
+ */
 export async function createTranslationJobFromNovelDetails(input: {
   novelId: string;
   profileId: string;
@@ -268,6 +279,16 @@ export async function createTranslationJobFromNovelDetails(input: {
   return toTranslationJobView(created);
 }
 
+/**
+ * Sequentially translates all pending chapters in a translation job.
+ * Runs in a while-loop, processing one chapter at a time: claim → translate
+ * via the AI adapter → persist result. Checks for cancellation between
+ * chapters. On failure, marks the job as FAILED and returns immediately.
+ * On success of all chapters, finalizes the job (export file + COMPLETED).
+ *
+ * @param input.allowFailedState - When true, allows running a FAILED job
+ *   (used after retry preparation resets failed chapters to PENDING).
+ */
 export async function runTranslationJobBatch(input: {
   translationId: string;
   profileId?: string;
@@ -495,6 +516,11 @@ export async function runTranslationJobBatch(input: {
   });
 }
 
+/**
+ * Prepares a failed translation job for re-running by resetting failed
+ * and in-progress chapters back to PENDING.
+ * Does not re-run the job — call {@link runTranslationJobBatch} afterward.
+ */
 export async function retryTranslationJob(input: {
   translationId: string;
   profileId?: string;
@@ -524,6 +550,7 @@ export async function retryTranslationJob(input: {
   return toTranslationJobView(retried);
 }
 
+/** Returns the job summary and per-chapter status/completion timestamps for the polling UI. */
 export async function getTranslationJobStatus(translationId: string, userId: string) {
   const result = await getTranslationJobWithOwnershipAndStatuses(translationId, userId);
   if (!result) {
@@ -544,6 +571,11 @@ export async function getTranslationJobStatus(translationId: string, userId: str
   return { job: toTranslationJobView(jobData), chapterStatuses };
 }
 
+/**
+ * Fetches a translation job after verifying ownership and confirming that
+ * an export file is available for download.
+ * @throws {TranslationHttpError} 404 if not found, not owned, or no export available
+ */
 export async function getDownloadableTranslationJob(translationId: string, userId: string) {
   const job = await getTranslationJobById(translationId);
   if (!job) {
@@ -605,6 +637,7 @@ export async function buildEpubExportForJob(translationId: string, novelId: stri
   return { buffer, fileName };
 }
 
+/** Cancels an active (PENDING or IN_PROGRESS) translation job. */
 export async function cancelTranslationJob(input: {
   translationId: string;
   userId: string;
@@ -627,6 +660,7 @@ export async function cancelTranslationJob(input: {
   return toTranslationJobView(cancelled);
 }
 
+/** Returns the most recent translation job view for a novel, or `null` if none exist. */
 export async function getLatestNovelTranslationJobView(novelId: string, userId: string) {
   const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) {
@@ -636,6 +670,10 @@ export async function getLatestNovelTranslationJobView(novelId: string, userId: 
   return job ? toTranslationJobView(job) : null;
 }
 
+/**
+ * Returns initial per-chapter translation statuses for the novel detail page.
+ * Used to show chapter translation badges before the polling loop starts.
+ */
 export async function getInitialChapterStatuses(novelId: string, userId: string): Promise<ChapterStatusItem[]> {
   const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) {
@@ -651,6 +689,11 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
   }));
 }
 
+/**
+ * Loads a translated chapter's content for the reader view.
+ * Returns the translated title and paragraph array, or `null` if the
+ * chapter hasn't been translated yet.
+ */
 export async function getTranslatedChapterForReader(
   novelId: string,
   chapterIndex: number,

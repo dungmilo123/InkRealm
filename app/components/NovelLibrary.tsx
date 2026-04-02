@@ -79,9 +79,11 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search input */}
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <label htmlFor="novel-search" className="sr-only">Search novels by title</label>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
           <Input
-            type="text"
+            id="novel-search"
+            type="search"
             placeholder="Search by title…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -94,7 +96,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Clear search"
             >
-              <X className="size-3.5" />
+              <X className="size-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -104,7 +106,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
           {/* File type filter — only show if multiple types exist */}
           {availableFileTypes.length > 1 && (
             <Select value={fileType} onValueChange={(v) => setFileType(v as FileTypeFilter)}>
-              <SelectTrigger size="sm" className="min-w-[90px]">
+              <SelectTrigger size="sm" className="min-w-[90px]" aria-label="Filter by file type">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -120,7 +122,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
 
           {/* Sort control */}
           <Select value={sort} onValueChange={(v) => setSort(v as SortField)}>
-            <SelectTrigger size="sm" className="min-w-[120px]">
+            <SelectTrigger size="sm" className="min-w-[120px]" aria-label="Sort novels">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -137,10 +139,12 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
 
       {/* Results count when filtering */}
       {hasActiveFilters && (
-        <p className="text-xs text-muted-foreground">
-          {filtered.length === 0
-            ? "No novels match your filters"
-            : `Showing ${filtered.length} of ${novels.length} novel${novels.length !== 1 ? "s" : ""}`}
+        <div className="text-xs text-muted-foreground">
+          <span role="status" aria-live="polite" aria-atomic="true" className="inline">
+            {filtered.length === 0
+              ? "No novels match your filters"
+              : `Showing ${filtered.length} of ${novels.length} novel${novels.length !== 1 ? "s" : ""}`}
+          </span>
           {hasActiveFilters && (
             <button
               type="button"
@@ -153,7 +157,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
               Clear filters
             </button>
           )}
-        </p>
+        </div>
       )}
 
       {/* Novel grid */}

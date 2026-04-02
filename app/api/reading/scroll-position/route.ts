@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   saveScrollPosition,
   getScrollPosition,
 } from "@/app/lib/reading-progress";
+import { apiFrequentLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 /**
  * PUT /api/reading/scroll-position
@@ -13,10 +14,12 @@ import {
  * scrollPosition is a 0–1 ratio representing how far through the chapter.
  */
 export async function PUT(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const ip = getClientIp(request);
+  const rl = apiFrequentLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   let body: Record<string, unknown>;
   try {
@@ -48,7 +51,7 @@ export async function PUT(request: Request) {
       chapterIndex,
       scrollPosition
     );
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to save scroll position:", error);
     return NextResponse.json(
@@ -63,10 +66,12 @@ export async function PUT(request: Request) {
  * Returns the saved scroll position for a specific chapter.
  */
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const ip = getClientIp(request);
+  const rl = apiFrequentLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   const url = new URL(request.url);
   const novelId = url.searchParams.get("novelId");

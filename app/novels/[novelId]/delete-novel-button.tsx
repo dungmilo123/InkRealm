@@ -30,7 +30,7 @@ export function DeleteNovelButton({
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<void> {
     setDeleting(true);
     try {
       const res = await fetch(`/api/novels/${novelId}`, { method: "DELETE" });
@@ -46,7 +46,7 @@ export function DeleteNovelButton({
       router.push("/dashboard");
       router.refresh();
     } catch {
-      toast.error("Failed to delete novel. Please try again.");
+      toast.error("Could not delete novel. Please try again.");
     } finally {
       setDeleting(false);
     }
@@ -64,7 +64,7 @@ export function DeleteNovelButton({
           />
         }
       >
-        <Trash2 className="size-4 mr-1.5" />
+        <Trash2 className="size-4 mr-1.5" aria-hidden="true" />
         {deleting ? "Deleting..." : "Delete Novel"}
       </AlertDialogTrigger>
       <AlertDialogContent>

@@ -3,7 +3,7 @@ import { validateUpload } from "@/app/lib/validation";
 import { generateStorageKey, writeNovelFile } from "@/app/lib/storage";
 import { createNovel } from "@/app/lib/novels";
 import { unlink } from "fs/promises";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   uploadLimiter,
   getClientIp,
@@ -41,10 +41,8 @@ export async function POST(request: Request) {
       return rateLimitResponse(rl);
     }
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const formData = await request.formData();
     const allFileEntries = Array.from(formData.values()).filter(
       (value): value is File => value instanceof File

@@ -75,6 +75,7 @@ export function ChapterDrawer({
       <div
         ref={drawerRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Chapter table of contents"
         className="fixed inset-y-0 left-0 z-[91] w-80 max-w-[85vw] bg-card border-r border-border shadow-xl flex flex-col animate-in slide-in-from-left duration-200"
       >
@@ -89,7 +90,7 @@ export function ChapterDrawer({
             className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Close table of contents"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 

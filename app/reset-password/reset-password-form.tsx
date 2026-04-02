@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PASSWORD_MAX_LENGTH } from "@/app/lib/auth-validation";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -38,7 +39,7 @@ export function ResetPasswordForm() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -49,6 +50,11 @@ export function ResetPasswordForm() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (new TextEncoder().encode(password).length > PASSWORD_MAX_LENGTH) {
+      setError("Password exceeds the maximum length allowed by the password algorithm");
       return;
     }
 
@@ -69,7 +75,7 @@ export function ResetPasswordForm() {
 
       router.push("/login?reset=success");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -89,7 +95,7 @@ export function ResetPasswordForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -98,12 +104,11 @@ export function ResetPasswordForm() {
             <label htmlFor="password" className="text-sm font-medium text-foreground">
               New password
             </label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="8–72 characters"
               required
               minLength={8}
               autoComplete="new-password"
@@ -114,9 +119,8 @@ export function ResetPasswordForm() {
             <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
               Confirm new password
             </label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repeat your password"
@@ -129,6 +133,7 @@ export function ResetPasswordForm() {
           <Button
             type="submit"
             disabled={loading}
+            aria-busy={loading}
             className="w-full"
             size="lg"
           >

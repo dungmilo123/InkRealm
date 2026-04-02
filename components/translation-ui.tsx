@@ -52,7 +52,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
     setModel(MODEL_OPTIONS[newProvider]?.[0] || "");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -77,12 +77,12 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm">
+        <div role="status" className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm">
           Settings saved successfully!
         </div>
       )}
@@ -134,6 +134,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
           onChange={(e) => setApiKey(e.target.value)}
           placeholder={initialValues?.provider ? "••••••••" : "Enter your API key"}
           required={!initialValues?.provider}
+          autoComplete="off"
         />
       </div>
 
@@ -152,7 +153,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
         </p>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading} aria-busy={loading} className="w-full">
         {loading ? "Saving..." : "Save Settings"}
       </Button>
     </form>
@@ -169,7 +170,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -185,7 +186,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
@@ -209,7 +210,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
         </select>
       </div>
 
-      <Button type="submit" disabled={loading || disabled} className="w-full">
+      <Button type="submit" disabled={loading || disabled} aria-busy={loading} className="w-full">
         {loading ? "Starting..." : "Start Translation"}
       </Button>
     </form>
@@ -258,13 +259,13 @@ export function TranslationProgress({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{Math.round(progress)}% complete</span>
-        {isInProgress && <span className="animate-pulse">Translation in progress...</span>}
+        {isInProgress && <span className="motion-safe:animate-pulse">Translation in progress...</span>}
         {isFailed && <span className="text-destructive">Failed at chapter {failedChapterIndex}</span>}
         {isCompleted && <span className="text-green-600 dark:text-green-400">Completed!</span>}
       </div>
 
       {failureReason && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {failureReason}
         </div>
       )}

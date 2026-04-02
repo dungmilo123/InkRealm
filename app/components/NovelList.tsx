@@ -37,6 +37,7 @@ export function NovelList({ novels, progressData }: NovelListProps) {
             key={novel.id}
             href={`/novels/${novel.id}`}
             className="group"
+            aria-label={`Open ${novel.title}`}
           >
             <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 motion-safe:group-hover:scale-[1.02] motion-safe:group-hover:-translate-y-1 group-hover:shadow-md">
               <div className="relative">
@@ -49,7 +50,14 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                 {progress && progress.totalChapters > 0 && (
                   <>
                     {/* Progress bar along bottom edge of book cover */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+                    <div
+                      className="absolute bottom-0 left-0 right-0 h-1 bg-black/20"
+                      role="progressbar"
+                      aria-valuenow={progressPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Reading progress: ${progressPercent}%`}
+                    >
                       <div
                         className={`h-full transition-all duration-300 ${
                           isComplete
@@ -67,9 +75,16 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                           : "bg-primary text-primary-foreground"
                       }`}
                     >
-                      {isComplete
-                        ? "\u2713 Done"
-                        : `Ch ${progress.lastChapterIndex}/${progress.totalChapters}`}
+                      <span className="sr-only">
+                        {isComplete
+                          ? "Reading complete"
+                          : `Chapter ${progress.lastChapterIndex} of ${progress.totalChapters}`}
+                      </span>
+                      <span aria-hidden="true">
+                        {isComplete
+                          ? "\u2713 Done"
+                          : `Ch ${progress.lastChapterIndex}/${progress.totalChapters}`}
+                      </span>
                     </span>
                   </>
                 )}

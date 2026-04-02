@@ -3,7 +3,6 @@ import {
   GlossaryEntryType,
 } from "@/app/generated/prisma/client";
 import { prisma } from "@/app/lib/prisma";
-import { getNovelById } from "@/app/lib/novels";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 
 const glossaryEntrySelect = {
@@ -26,8 +25,15 @@ export type GlossaryEntryWithVariants = Awaited<
   ReturnType<typeof listGlossaryEntries>
 >[number];
 
+/**
+ * Verifies that the given novel exists and belongs to the user.
+ * Uses a minimal select (only `userId`) to avoid fetching the full Novel row.
+ */
 async function validateNovelOwnership(novelId: string, userId: string) {
-  const novel = await getNovelById(novelId);
+  const novel = await prisma.novel.findUnique({
+    where: { id: novelId },
+    select: { id: true, userId: true },
+  });
   if (!novel || novel.userId !== userId) {
     throw new TranslationHttpError(404, "Novel not found.");
   }
@@ -77,6 +83,36 @@ export async function getGlossaryEntryById(entryId: string) {
   });
 }
 
+/**
+ * Fetches a glossary entry and verifies that its parent novel belongs to the
+ * given user — in a single database round-trip (JOIN via `include`).
+ *
+ * Replaces the previous two-query pattern:
+ *   `getGlossaryEntryById(id)` → `validateNovelOwnership(entry.novelId, userId)`
+ */
+async function getOwnedGlossaryEntry(entryId: string, userId: string) {
+  const entry = await prisma.novelGlossaryEntry.findUnique({
+    where: { id: entryId },
+    select: {
+      ...glossaryEntrySelect,
+      novel: { select: { userId: true } },
+    },
+  });
+
+  if (!entry) {
+    throw new TranslationHttpError(404, "Glossary entry not found.");
+  }
+
+  if (entry.novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
+
+  // Strip the `novel` field — callers expect the standard GlossaryEntry shape
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { novel: _novel, ...glossaryEntry } = entry;
+  return glossaryEntry;
+}
+
 export async function updateGlossaryEntry(input: {
   entryId: string;
   canonical?: string;
@@ -84,12 +120,7 @@ export async function updateGlossaryEntry(input: {
   variants?: string[];
   userId: string;
 }) {
-  const entry = await getGlossaryEntryById(input.entryId);
-  if (!entry) {
-    throw new TranslationHttpError(404, "Glossary entry not found.");
-  }
-
-  await validateNovelOwnership(entry.novelId, input.userId);
+  await getOwnedGlossaryEntry(input.entryId, input.userId);
 
   return prisma.$transaction(async (tx) => {
     if (input.variants !== undefined) {
@@ -119,12 +150,7 @@ export async function updateGlossaryEntry(input: {
 }
 
 export async function deleteGlossaryEntry(entryId: string, userId: string) {
-  const entry = await getGlossaryEntryById(entryId);
-  if (!entry) {
-    throw new TranslationHttpError(404, "Glossary entry not found.");
-  }
-
-  await validateNovelOwnership(entry.novelId, userId);
+  await getOwnedGlossaryEntry(entryId, userId);
 
   await prisma.novelGlossaryEntry.delete({
     where: { id: entryId },
@@ -139,12 +165,7 @@ export async function updateGlossaryEntryStatus(input: {
   variants?: string[];
   userId: string;
 }) {
-  const entry = await getGlossaryEntryById(input.entryId);
-  if (!entry) {
-    throw new TranslationHttpError(404, "Glossary entry not found.");
-  }
-
-  await validateNovelOwnership(entry.novelId, input.userId);
+  await getOwnedGlossaryEntry(input.entryId, input.userId);
 
   if (input.status === GlossaryEntryStatus.CONFIRMED) {
     return prisma.$transaction(async (tx) => {

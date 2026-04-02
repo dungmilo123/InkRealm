@@ -216,7 +216,7 @@ export function TranslationProvidersTab({
     }
   }
 
-  async function handleCreateProfile(event: React.FormEvent) {
+  async function handleCreateProfile(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setBusy(true);
     setFeedback(null);
@@ -262,7 +262,7 @@ export function TranslationProvidersTab({
         )}
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Settings2 className="h-6 w-6 text-muted-foreground" />
+            <Settings2 className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
           </div>
           <p className="text-foreground font-bold">
             No translation providers
@@ -275,7 +275,7 @@ export function TranslationProvidersTab({
             className="border-dashed"
             onClick={() => setShowCreateForm(true)}
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add Provider
           </Button>
         </div>
@@ -356,6 +356,7 @@ export function TranslationProvidersTab({
                       value={editApiKey}
                       onChange={(e) => setEditApiKey(e.target.value)}
                       placeholder="Enter new API key (leave blank to keep current)"
+                      autoComplete="off"
                     />
                   </div>
 
@@ -568,6 +569,7 @@ export function TranslationProvidersTab({
                   onChange={(e) => setCreateApiKey(e.target.value)}
                   placeholder="Paste API key"
                   required
+                  autoComplete="off"
                 />
               </div>
 
@@ -636,7 +638,7 @@ function FeedbackBanner({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+    <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
       {text}
     </div>
   );

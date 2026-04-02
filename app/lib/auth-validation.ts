@@ -60,9 +60,9 @@ export function validatePassword(
   if (password.length < PASSWORD_MIN_LENGTH) {
     return { error: `${label} must be at least ${PASSWORD_MIN_LENGTH} characters` };
   }
-  if (password.length > PASSWORD_MAX_LENGTH) {
+  if (new TextEncoder().encode(password).length > PASSWORD_MAX_LENGTH) {
     return {
-      error: `${label} must be at most ${PASSWORD_MAX_LENGTH} characters`,
+      error: `${label} exceeds the maximum length allowed by the password algorithm`,
     };
   }
   return null;

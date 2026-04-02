@@ -187,7 +187,7 @@ export function TranslationReaderClient({
       <main className="w-full max-w-3xl mx-auto px-8 py-8">
         <article className="p-6 md:p-8 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-6 leading-8 text-zinc-800 dark:text-zinc-100">
           {loading && version === "translated" ? (
-            <div className="animate-pulse space-y-4">
+            <div className="motion-safe:animate-pulse space-y-4" aria-busy="true" aria-label="Loading translated chapter" role="status">
               <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-3/4" />
               <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded" />
               <div className="h-4 bg-zinc-200 dark:bg-zinc-700 rounded w-5/6" />

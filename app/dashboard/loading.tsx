@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="flex flex-col flex-1 bg-background">
+    <div className="flex flex-col flex-1 bg-background" aria-busy="true" aria-label="Loading your library">
       <header className="w-full border-b border-border bg-card">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">

@@ -1,8 +1,6 @@
 import { ChapterTranslationStatus } from "@/app/generated/prisma/client";
 import { prisma } from "@/app/lib/prisma";
-import { getNovelById } from "@/app/lib/novels";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
-import { getGlossaryEntryById } from "@/app/lib/translation/glossary";
 
 export type ReplacementMatch = {
   chapterId: string;
@@ -15,20 +13,51 @@ export type ReplacementMatch = {
   }>;
 };
 
+/**
+ * Fetches a glossary entry and verifies ownership of its parent novel —
+ * in a single database round-trip.
+ */
+async function getOwnedEntryWithVariants(
+  entryId: string,
+  novelId: string,
+  userId: string
+) {
+  const entry = await prisma.novelGlossaryEntry.findUnique({
+    where: { id: entryId },
+    select: {
+      id: true,
+      novelId: true,
+      canonical: true,
+      variants: { select: { variant: true } },
+      novel: { select: { userId: true } },
+    },
+  });
+
+  if (!entry) {
+    throw new TranslationHttpError(404, "Glossary entry not found.");
+  }
+
+  if (entry.novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
+
+  if (entry.novelId !== novelId) {
+    throw new TranslationHttpError(404, "Glossary entry not found.");
+  }
+
+  return entry;
+}
+
 export async function previewGlossaryReplacement(input: {
   entryId: string;
   novelId: string;
   userId: string;
 }): Promise<ReplacementMatch[]> {
-  const novel = await getNovelById(input.novelId);
-  if (!novel || novel.userId !== input.userId) {
-    throw new TranslationHttpError(404, "Novel not found.");
-  }
-
-  const entry = await getGlossaryEntryById(input.entryId);
-  if (!entry || entry.novelId !== input.novelId) {
-    throw new TranslationHttpError(404, "Glossary entry not found.");
-  }
+  const entry = await getOwnedEntryWithVariants(
+    input.entryId,
+    input.novelId,
+    input.userId
+  );
 
   if (entry.variants.length === 0) {
     return [];
@@ -93,15 +122,11 @@ export async function applyGlossaryReplacement(input: {
   novelId: string;
   userId: string;
 }): Promise<{ chaptersUpdated: number; totalReplacements: number }> {
-  const novel = await getNovelById(input.novelId);
-  if (!novel || novel.userId !== input.userId) {
-    throw new TranslationHttpError(404, "Novel not found.");
-  }
-
-  const entry = await getGlossaryEntryById(input.entryId);
-  if (!entry || entry.novelId !== input.novelId) {
-    throw new TranslationHttpError(404, "Glossary entry not found.");
-  }
+  const entry = await getOwnedEntryWithVariants(
+    input.entryId,
+    input.novelId,
+    input.userId
+  );
 
   if (entry.variants.length === 0) {
     return { chaptersUpdated: 0, totalReplacements: 0 };

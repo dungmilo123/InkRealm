@@ -1,6 +1,6 @@
 import { basename } from "path";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import { readTranslatedExportFile } from "@/app/lib/translation/export";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import { handleTranslationRouteError } from "@/app/lib/translation/http";
@@ -8,6 +8,7 @@ import {
   getDownloadableTranslationJob,
   buildEpubExportForJob,
 } from "@/app/lib/translation/service";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 const VALID_FORMATS = new Set(["txt", "epub"]);
 
@@ -16,10 +17,12 @@ export async function GET(
   context: { params: Promise<{ translationId: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
+    const { session, response } = await requireAuth();
+    if (response) return response;
 
     const { translationId } = await context.params;
     const url = new URL(request.url);

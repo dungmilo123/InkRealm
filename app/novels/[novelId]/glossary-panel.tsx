@@ -85,6 +85,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
         type: "error",
         text: error instanceof Error ? error.message : "Failed to load glossary.",
       });
+      setLoaded(true);
     }
   }, [novelId]);
 
@@ -113,7 +114,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
     setShowAddForm(true);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setFeedback(null);
@@ -307,7 +308,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => handleConfirm(entry.id)}
-                className="h-7 rounded-md bg-green-600 px-2.5 text-[11px] font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                className="h-7 rounded-md bg-green-600 px-2.5 text-[11px] font-medium text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Confirm
               </button>
@@ -315,7 +316,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => startEdit(entry)}
-                className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Edit & Confirm
               </button>
@@ -323,7 +324,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => handleDismiss(entry.id)}
-                className="h-7 rounded-md bg-red-600 px-2.5 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                className="h-7 rounded-md bg-red-600 px-2.5 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Dismiss
               </button>
@@ -334,7 +335,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => startEdit(entry)}
-                className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Edit
               </button>
@@ -342,7 +343,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => handleDelete(entry.id)}
-                className="h-7 rounded-md border border-red-200 px-2.5 text-[11px] font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                className="h-7 rounded-md border border-red-200 px-2.5 text-[11px] font-medium text-red-700 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 Delete
               </button>
@@ -351,7 +352,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                   type="button"
                   disabled={busy}
                   onClick={() => handlePreview(entry.id)}
-                  className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                  className="h-7 rounded-md border border-input px-2.5 text-[11px] font-medium text-foreground hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Apply to chapters
                 </button>
@@ -382,11 +383,14 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
       </div>
 
       {feedback && (
-        <div className={`rounded-lg border px-3 py-2 text-sm ${
-          feedback.type === "success"
-            ? "border-green-200 bg-green-50 text-green-800"
-            : "border-red-200 bg-red-50 text-red-800"
-        }`}>
+        <div
+          role={feedback.type === "error" ? "alert" : "status"}
+          className={`rounded-lg border px-3 py-2 text-sm ${
+            feedback.type === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
           {feedback.text}
         </div>
       )}
@@ -432,7 +436,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
           <button
             type="submit"
             disabled={busy}
-            className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+            className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {busy ? "Saving..." : editingId ? "Update entry" : "Create entry"}
           </button>
@@ -482,7 +486,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
                 type="button"
                 disabled={busy}
                 onClick={() => handleApply(previewEntryId)}
-                className="h-8 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                className="h-8 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {busy ? "Applying..." : "Apply replacements"}
               </button>
@@ -491,34 +495,61 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
         </div>
       )}
 
-      {/* Pending entries (review section) */}
-      {pendingEntries.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-amber-800">
-            Pending review ({pendingEntries.length})
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Terms detected by the LLM during translation. Confirm to keep or dismiss to remove.
-          </p>
-          <div className="space-y-2">
-            {pendingEntries.map((entry) => renderEntry(entry, true))}
-          </div>
+      {/* Loading skeleton while fetching entries */}
+      {!loaded ? (
+        <div className="space-y-2" aria-busy="true" aria-label="Loading glossary entries">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg border border-border bg-background p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-24 rounded bg-muted motion-safe:animate-pulse" />
+                <div className="h-4 w-16 rounded-full bg-muted motion-safe:animate-pulse" />
+                <div className="h-4 w-16 rounded-full bg-muted motion-safe:animate-pulse" />
+              </div>
+              <div className="flex gap-1">
+                <div className="h-5 w-20 rounded-md bg-muted motion-safe:animate-pulse" />
+                <div className="h-5 w-16 rounded-md bg-muted motion-safe:animate-pulse" />
+              </div>
+              <div className="flex gap-1.5">
+                <div className="h-7 w-14 rounded-md bg-muted motion-safe:animate-pulse" />
+                <div className="h-7 w-14 rounded-md bg-muted motion-safe:animate-pulse" />
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+      ) : (
+        <>
+          {/* Pending entries (review section) */}
+          {pendingEntries.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-amber-800">
+                Pending review ({pendingEntries.length})
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Terms detected by the LLM during translation. Confirm to keep or dismiss to remove.
+              </p>
+              <div className="space-y-2">
+                {pendingEntries.map((entry) => renderEntry(entry, true))}
+              </div>
+            </div>
+          )}
 
-      {/* Confirmed entries */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-card-foreground">
-          Confirmed entries ({confirmedEntries.length})
-        </h3>
-        {confirmedEntries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No glossary entries yet. Add one above.</p>
-        ) : (
+          {/* Confirmed entries */}
           <div className="space-y-2">
-            {confirmedEntries.map((entry) => renderEntry(entry, false))}
+            <h3 className="text-sm font-medium text-card-foreground">
+              Confirmed entries ({confirmedEntries.length})
+            </h3>
+            {confirmedEntries.length === 0 && pendingEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No glossary entries yet. Add one above.</p>
+            ) : confirmedEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No confirmed entries yet. Review the pending entries above.</p>
+            ) : (
+              <div className="space-y-2">
+                {confirmedEntries.map((entry) => renderEntry(entry, false))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </section>
   );
 }

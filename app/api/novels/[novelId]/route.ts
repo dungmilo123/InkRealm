@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import { deleteNovel, NovelNotFoundError } from "@/app/lib/novels";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ novelId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const ip = getClientIp(request);
+  const rl = apiLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   const { novelId } = await params;
   if (!novelId || typeof novelId !== "string") {

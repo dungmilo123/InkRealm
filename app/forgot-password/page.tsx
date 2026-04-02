@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
 
         {submitted ? (
           <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+            <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
               If an account exists, a reset link has been sent. Check your email.
             </div>
             <p className="text-center text-sm text-muted-foreground">
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
           <>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {error}
                 </div>
               )}
@@ -87,6 +87,7 @@ export default function ForgotPasswordPage() {
               <Button
                 type="submit"
                 disabled={loading}
+                aria-busy={loading}
                 className="w-full"
                 size="lg"
               >

@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   listGlossaryEntries,
   createGlossaryEntry,
 } from "@/app/lib/translation/glossary";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { GlossaryEntryType } from "@/app/generated/prisma/client";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { novelId } = await context.params;
     const entries = await listGlossaryEntries(novelId, session.user.id);
     return NextResponse.json({ entries });
@@ -29,10 +32,12 @@ export async function POST(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { novelId } = await context.params;
     const body = await safeReadJson(request) as {
       canonical?: string;
@@ -44,13 +49,35 @@ export async function POST(
       return NextResponse.json({ error: "canonical is required." }, { status: 400 });
     }
 
+    if (body.canonical.length > 500) {
+      return NextResponse.json(
+        { error: "canonical must be at most 500 characters." },
+        { status: 400 }
+      );
+    }
+
     const type = (body.type?.toUpperCase() ?? "OTHER") as GlossaryEntryType;
     if (!Object.values(GlossaryEntryType).includes(type)) {
       return NextResponse.json({ error: "Invalid type." }, { status: 400 });
     }
 
+    if (Array.isArray(body.variants) && body.variants.length > 50) {
+      return NextResponse.json(
+        { error: "variants must have at most 50 entries." },
+        { status: 400 }
+      );
+    }
+
+    if (Array.isArray(body.variants) && body.variants.some((v) => typeof v === "string" && v.length > 500)) {
+      return NextResponse.json(
+        { error: "Each variant must be at most 500 characters." },
+        { status: 400 }
+      );
+    }
+
     const variants = Array.isArray(body.variants)
-      ? body.variants.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      ? body.variants
+          .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
       : [];
 
     const entry = await createGlossaryEntry({

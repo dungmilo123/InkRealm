@@ -77,6 +77,8 @@ function SettingsPopover({
             max={250}
             value={Math.round(preferences.lineHeight * 100)}
             onChange={(e) => onChange({ ...preferences, lineHeight: Number(e.target.value) / 100 })}
+            aria-label="Line height"
+            aria-valuetext={`${Math.round(preferences.lineHeight * 100)}%`}
             className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>
@@ -101,9 +103,10 @@ function SettingsPopover({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Theme</span>
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Theme">
             <button
               type="button"
+              aria-pressed={preferences.theme === "LIGHT"}
               onClick={() => onChange({ ...preferences, theme: "LIGHT" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "LIGHT"
@@ -115,6 +118,7 @@ function SettingsPopover({
             </button>
             <button
               type="button"
+              aria-pressed={preferences.theme === "DARK"}
               onClick={() => onChange({ ...preferences, theme: "DARK" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.theme === "DARK"
@@ -129,9 +133,10 @@ function SettingsPopover({
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Font</span>
-          <div className="flex rounded-md border border-border overflow-hidden">
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Font family">
             <button
               type="button"
+              aria-pressed={preferences.fontFamily === "SANS"}
               onClick={() => onChange({ ...preferences, fontFamily: "SANS" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SANS"
@@ -143,6 +148,7 @@ function SettingsPopover({
             </button>
             <button
               type="button"
+              aria-pressed={preferences.fontFamily === "SERIF"}
               onClick={() => onChange({ ...preferences, fontFamily: "SERIF" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
                 preferences.fontFamily === "SERIF"
@@ -315,9 +321,10 @@ export function ReaderClient({
                     : "border-border text-muted-foreground hover:bg-muted"
                 }`}
                 aria-label="Table of contents"
+                aria-expanded={showChapterDrawer}
                 title="Table of contents (C)"
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -328,9 +335,10 @@ export function ReaderClient({
                     : "border-border text-muted-foreground hover:bg-muted"
                 }`}
                 aria-label="Search in chapter"
+                aria-expanded={search.isOpen}
                 title="Search in chapter (F)"
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-4 w-4" aria-hidden="true" />
               </button>
               {hasTranslation && (
                 <div
@@ -376,6 +384,7 @@ export function ReaderClient({
                       : "border-border text-muted-foreground hover:bg-muted"
                   }`}
                   aria-label="Reading settings"
+                  aria-expanded={showSettings}
                 >
                   Aa
                 </button>

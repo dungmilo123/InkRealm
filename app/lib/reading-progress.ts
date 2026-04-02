@@ -1,5 +1,10 @@
 import { prisma } from "./prisma";
 
+/**
+ * Records that a user visited a specific chapter.
+ * Creates or updates the ReadingProgress (with `lastChapterIndex`) and
+ * upserts a ChapterVisit timestamp — all inside a transaction.
+ */
 export async function recordChapterVisit(
   userId: string,
   novelId: string,
@@ -94,6 +99,11 @@ export async function getScrollPosition(
   return visit?.scrollPosition ?? null;
 }
 
+/**
+ * Returns the user's reading progress for a novel: the last chapter opened
+ * and the set of all chapter indices ever visited. Returns `null` if the
+ * user has never opened this novel.
+ */
 export async function getReadingProgress(
   userId: string,
   novelId: string
@@ -114,6 +124,11 @@ export async function getReadingProgress(
   };
 }
 
+/**
+ * Batch-loads reading progress for multiple novels in a single query.
+ * Used by the dashboard to show per-novel progress badges without N+1.
+ * Returns a Map keyed by novelId with `lastChapterIndex` and `totalVisited`.
+ */
 export async function getReadingProgressBatch(
   userId: string,
   novelIds: string[]

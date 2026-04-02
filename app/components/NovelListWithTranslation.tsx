@@ -131,8 +131,10 @@ export function NovelListWithTranslation({ initialNovels }: NovelListWithTransla
               const data = await response.json();
               return { ...novel, translation: data as TranslationSummary };
             }
-          } catch {
-            // ignore
+          } catch (error) {
+            // Log failed translation fetches for debugging — the UI gracefully
+            // falls back to "Not translated" so we don't surface this to the user.
+            console.warn(`Failed to fetch translation status for novel ${novel.id}:`, error);
           }
           return { ...novel, translation: null };
         })

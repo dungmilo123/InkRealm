@@ -15,10 +15,12 @@ export type NovelCreateInput = {
   userId: string;
 };
 
+/** Inserts a new novel record into the database. */
 export async function createNovel(data: NovelCreateInput): Promise<Novel> {
   return prisma.novel.create({ data });
 }
 
+/** Lists all novels owned by the given user, newest first. */
 export async function listNovels(userId: string): Promise<Novel[]> {
   return prisma.novel.findMany({
     where: { userId },
@@ -26,12 +28,19 @@ export async function listNovels(userId: string): Promise<Novel[]> {
   });
 }
 
+/** Fetches a single novel by primary key, or `null` if not found. */
 export async function getNovelById(id: string): Promise<Novel | null> {
   return prisma.novel.findUnique({ where: { id } });
 }
 
+/**
+ * React `cache()`-wrapped version of {@link getNovelById}.
+ * De-duplicates the DB call within a single Server Component render cycle
+ * (used by both `generateMetadata` and page data fetching).
+ */
 export const cachedGetNovelById = cache(getNovelById);
 
+/** Updates the cached chapter count after parsing completes. */
 export async function updateNovelChapterCount(
   id: string,
   chapterCount: number
@@ -42,6 +51,11 @@ export async function updateNovelChapterCount(
   });
 }
 
+/**
+ * Fetches a novel by ID, throwing a Next.js `notFound()` if the record is
+ * missing or doesn't belong to the given user. Useful for Server Component
+ * pages where a 404 response is the correct fallback.
+ */
 export async function getNovelByIdOrNotFound(id: string, userId: string): Promise<Novel> {
   const novel = await cachedGetNovelById(id);
 

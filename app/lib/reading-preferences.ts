@@ -17,6 +17,10 @@ export const DEFAULT_READING_PREFERENCES: ReadingPreferences = {
   maxWidth: 720,
 };
 
+/**
+ * Loads the user's saved reading preferences, falling back to
+ * {@link DEFAULT_READING_PREFERENCES} if none have been persisted yet.
+ */
 export async function getUserReadingPreferences(
   userId: string
 ): Promise<ReadingPreferences> {
@@ -35,6 +39,11 @@ export async function getUserReadingPreferences(
   };
 }
 
+/**
+ * Validates and persists a partial update to reading preferences.
+ * Creates the DB row on first use (upsert). Throws if any value falls
+ * outside its allowed range (fontSize 12–32, lineHeight 1.25–2.5, etc.).
+ */
 export async function updateUserReadingPreferences(
   userId: string,
   partial: Partial<ReadingPreferences>

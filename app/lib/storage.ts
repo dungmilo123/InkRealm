@@ -8,6 +8,7 @@ async function ensureStorageDir(): Promise<void> {
   await mkdir(STORAGE_DIR, { recursive: true });
 }
 
+/** Generates a UUID-based storage key preserving the original file extension. */
 export function generateStorageKey(originalFileName: string): string {
   const ext = getExtension(originalFileName);
   return `${randomUUID()}${ext ? `.${ext}` : ""}`;
@@ -21,6 +22,10 @@ function getExtension(filename: string): string {
   return filename.slice(lastDot + 1).toLowerCase();
 }
 
+/**
+ * Writes a novel file buffer to `storage/novels/`, creating the directory
+ * if it doesn't exist. Returns the absolute file path written.
+ */
 export async function writeNovelFile(
   storageKey: string,
   buffer: Buffer
@@ -31,6 +36,7 @@ export async function writeNovelFile(
   return filePath;
 }
 
+/** Resolves a storage key to its absolute path under `storage/novels/`. */
 export function getStoragePath(storageKey: string): string {
   return join(STORAGE_DIR, storageKey);
 }

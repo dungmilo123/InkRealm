@@ -100,6 +100,21 @@ const ChapterList = memo(function ChapterList({
   );
 });
 
+/**
+ * Render a tabbed interface ("Chapters", "Translation", "Glossary") for a novel,
+ * including a translation progress bar, live polling of translation job status,
+ * and per-chapter translation/reading indicators.
+ *
+ * @param novelId - Identifier for the novel used to build links and panel props
+ * @param readerSummary - Summary of the reader data, including chapter list and readability flag
+ * @param readingProgress - User reading progress (may be null); used to mark visited/last chapters
+ * @param isReadable - Whether the novel is readable by the current user
+ * @param serializedDefaultProfile - Serialized default translation profile passed to the Translation panel
+ * @param serializedLatestJob - Initial translation job state used to seed polling and progress display
+ * @param chapterCount - Total number of chapters for progress calculations when job metadata is missing
+ * @param initialChapterStatuses - Server-rendered chapter translation statuses used as a fallback until polling returns data
+ * @returns The React element displaying the tabs, progress bar, and the active tab panel
+ */
 export function DetailsTabs({
   novelId,
   readerSummary,

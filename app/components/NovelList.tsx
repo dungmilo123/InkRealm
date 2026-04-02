@@ -9,6 +9,17 @@ interface NovelListProps {
   progressData?: Record<string, { lastChapterIndex: number; totalChapters: number }>;
 }
 
+/**
+ * Render a responsive grid of novel cards linking to each novel's detail page.
+ *
+ * Each card shows the book cover, title, file type and formatted size. If `progressData`
+ * contains an entry for a novel with `totalChapters > 0`, a progress badge showing
+ * `Ch {lastChapterIndex}/{totalChapters}` is displayed on that novel's cover.
+ *
+ * @param novels - Array of novels to display
+ * @param progressData - Optional progress keyed by `novel.id`; each value should include `lastChapterIndex` and `totalChapters`
+ * @returns A JSX element containing the grid of novel cards, or `null` when `novels` is empty
+ */
 export function NovelList({ novels, progressData }: NovelListProps) {
   if (novels.length === 0) {
     return null;

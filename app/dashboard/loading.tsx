@@ -1,3 +1,11 @@
+/**
+ * Renders a dashboard skeleton UI for a loading state.
+ *
+ * The returned element mirrors the dashboard layout using muted placeholder blocks and cards.
+ * Placeholder pulse animations are applied but respect the user's reduced-motion preference (gated by `motion-safe`).
+ *
+ * @returns A React element containing the dashboard loading skeleton with pulsing placeholders.
+ */
 export default function DashboardLoading() {
   return (
     <div className="flex flex-col flex-1 bg-background">

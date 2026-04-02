@@ -58,6 +58,17 @@ async function readJsonOrError<T>(response: Response): Promise<T> {
   return payload;
 }
 
+/**
+ * Renders and manages the translation providers UI, including listing profiles,
+ * creating new profiles, editing existing profiles, setting a profile as the default,
+ * and deleting profiles with confirmation and feedback.
+ *
+ * This component keeps local state for profiles, edit/create forms, busy status,
+ * and transient feedback banners (auto-dismissed with toast notifications).
+ *
+ * @param initialProfiles - Initial list of persisted translation profiles used to seed the component state
+ * @returns A React element containing the translation providers management interface
+ */
 export function TranslationProvidersTab({
   initialProfiles,
 }: TranslationProvidersTabProps) {

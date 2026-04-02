@@ -24,6 +24,11 @@ interface NovelCardProps {
   novel: NovelWithTranslation;
 }
 
+/**
+ * Format a date using the en-US locale in short-month "Month day, year" style.
+ *
+ * @returns The formatted date string in the form `Mon D, YYYY` (for example, `Apr 2, 2026`).
+ */
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",

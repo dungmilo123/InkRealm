@@ -22,6 +22,18 @@ type ReaderClientProps = {
   translatedParagraphs: string[] | null;
 };
 
+/**
+ * Render a popover dialog for adjusting reading preferences.
+ *
+ * Provides controls for font size, line height, content width, theme, and font family.
+ * Each control updates values from `preferences` and invokes `onChange` with the updated
+ * `ReadingPreferences`. The container is exposed as a dialog for accessibility (`role="dialog"`,
+ * `aria-label="Reading settings"`).
+ *
+ * @param preferences - Current reading preferences used to populate control values
+ * @param onChange - Callback invoked with the updated `ReadingPreferences` when any control changes
+ * @returns The settings popover element
+ */
 function SettingsPopover({
   preferences,
   onChange,
@@ -148,6 +160,24 @@ function SettingsPopover({
   );
 }
 
+/**
+ * Client-side reader component that displays a chapter's content, reading controls, and chapter navigation.
+ *
+ * Renders the chapter title and metadata, a toggle between original and translated text (when translations are provided),
+ * a settings popover for adjusting reading preferences, and previous/next chapter navigation.
+ *
+ * Preference changes are persisted via a debounced PUT to /api/reading/preferences (300ms).
+ *
+ * @param novelId - The novel's unique identifier (used for links and glossary lookups)
+ * @param novelTitle - The novel's display title (shown in header)
+ * @param chapter - The current chapter object (includes `index`, `title`, and `paragraphs`)
+ * @param chapterCount - Total number of chapters in the novel
+ * @param preferences - Initial reading preferences (font size, line height, max width, theme, font family)
+ * @param user - Current authenticated user (passed to the user menu)
+ * @param signOutAction - Callback invoked to sign the user out
+ * @param translatedParagraphs - Optional translated paragraphs; when provided the component defaults to showing translations and exposes a toggle to switch to the original
+ * @returns The component's rendered React element
+ */
 export function ReaderClient({
   novelId,
   novelTitle,

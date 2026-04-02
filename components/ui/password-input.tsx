@@ -4,6 +4,13 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders a password input that can toggle visibility with an inline show/hide button.
+ *
+ * @param className - Optional additional class names applied to the underlying input.
+ * @param props - All other native input props (the `type` prop is omitted) forwarded to the underlying input.
+ * @returns A JSX element containing the input and a button to toggle password visibility.
+ */
 function PasswordInput({
   className,
   ...props

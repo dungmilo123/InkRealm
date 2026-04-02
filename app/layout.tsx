@@ -24,6 +24,12 @@ export const metadata: Metadata = {
   description: "Your personal fantasy novel library",
 };
 
+/**
+ * Root layout component that provides the application's HTML shell, global fonts, theme provider, and toast layer.
+ *
+ * @param children - The page content to render inside the layout
+ * @returns The root HTML element containing <html> and <body> wrappers with font classes, theme provider, rendered children, and the toaster provider
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

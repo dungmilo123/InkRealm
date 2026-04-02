@@ -1,3 +1,10 @@
+/**
+ * Render a skeleton loading UI for the Novel Details page.
+ *
+ * Renders a header, hero/details placeholders (cover, title, metadata grid), a separator with action placeholders, and tabbed content rows — all using muted placeholder blocks to indicate loading state.
+ *
+ * @returns A React element that displays placeholder blocks for the Novel Details page while content is loading.
+ */
 export default function NovelDetailsLoading() {
   return (
     <div className="flex flex-col flex-1 bg-background">

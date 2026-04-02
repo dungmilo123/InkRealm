@@ -44,6 +44,15 @@ interface SettingsProps {
   initialProfiles: SerializedTranslationProfile[];
 }
 
+/**
+ * Renders the Settings page UI with Account and Translation Providers tabs.
+ *
+ * The Account tab shows profile info, password management, and linked account controls.
+ *
+ * @param user - The current user's profile and authentication state (e.g., name, email, image, hasPassword, hasGoogle).
+ * @param initialProfiles - Serialized translation provider profiles used to populate the Translation Providers tab.
+ * @returns The settings page JSX element containing the "Account" and "Translation Providers" tabs.
+ */
 export function SettingsClient({ user, initialProfiles }: SettingsProps) {
   return (
     <div className="space-y-6">
@@ -110,6 +119,16 @@ function ProfileSection({ user }: { user: SettingsProps["user"] }) {
   );
 }
 
+/**
+ * Render the password form card for setting a new password or changing an existing one.
+ *
+ * Displays inputs for new and confirmed passwords, conditionally shows a current-password input
+ * when the user already has a password, validates that the new and confirmation match, and
+ * submits the form to the appropriate authentication endpoint while showing success or error messages.
+ *
+ * @param hasPassword - If true, show the "current password" field and perform a password change; if false, render the set-password flow.
+ * @returns The password management card UI to be rendered in the settings page.
+ */
 function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -276,6 +295,13 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   );
 }
 
+/**
+ * Render the "Linked accounts" settings section for managing Google sign-in.
+ *
+ * @param hasGoogle - Whether the user's account is currently linked to Google
+ * @param hasPassword - Whether the user has a local password set (required to unlink Google)
+ * @returns A React element displaying Google connection status and actions to link or unlink the account
+ */
 function LinkedAccountsSection({
   hasGoogle,
   hasPassword,

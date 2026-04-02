@@ -5,6 +5,15 @@ import { listTranslationProfilesForDisplay } from "@/app/lib/translation/profile
 import { LibraryShelf } from "@/components/library-shelf";
 import { SettingsClient } from "./settings-client";
 
+/**
+ * Server component that renders the Settings page with authenticated user data and serialized translation profiles.
+ *
+ * Validates the current session and redirects to "/login" when authentication is missing, loads the user and
+ * translation profiles, converts profile timestamps to ISO strings, and returns the page layout containing a
+ * sign-out action and the client settings UI populated with initial props.
+ *
+ * @returns The rendered Settings page element (layout and client component).
+ */
 export default async function SettingsPage() {
   const session = await auth();
   if (!session?.user?.id) {

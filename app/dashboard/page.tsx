@@ -7,6 +7,13 @@ import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
 import type { Novel } from "@/app/generated/prisma/client";
 
+/**
+ * Render the dashboard UI for the authenticated user's library.
+ *
+ * Redirects to "/login" when the user is not authenticated. Loads the user's novels and reading progress, then renders a LibraryShelf containing an upload form, an error or empty-state message when appropriate, or a NovelList with per-novel progress data.
+ *
+ * @returns A React element representing the dashboard page.
+ */
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) {

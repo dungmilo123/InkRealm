@@ -90,6 +90,23 @@ async function readJsonOrError<T>(response: Response): Promise<T> {
   return payload;
 }
 
+/**
+ * UI panel for managing and observing a translation job for a novel.
+ *
+ * Renders controls to start, monitor, cancel, retry, and complete translation jobs,
+ * displays progress and errors, and provides an optional chapter range picker.
+ *
+ * @param novelId - Identifier of the novel to translate
+ * @param isReadable - Whether the novel is readable in-app; when false, translation controls are disabled
+ * @param defaultProfile - The selected translation provider profile; when null, a setup prompt is shown
+ * @param job - Current translation job state (may be `null`)
+ * @param onJobUpdate - Callback invoked with an updated `TranslationJob` or `null` to replace the current job state
+ * @param isHanging - Whether the current job appears to be stuck on a chapter
+ * @param hangingChapterIndex - Index of the chapter suspected to be hanging (when `isHanging` is true)
+ * @param chapterCount - Total number of chapters in the novel
+ * @param chapterStatuses - Per-chapter statuses used to compute live progress while translating
+ * @returns The translation panel React element
+ */
 export function TranslationPanel({
   novelId,
   isReadable,

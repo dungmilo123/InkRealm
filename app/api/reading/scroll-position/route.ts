@@ -4,6 +4,7 @@ import {
   saveScrollPosition,
   getScrollPosition,
 } from "@/app/lib/reading-progress";
+import { apiFrequentLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 /**
  * PUT /api/reading/scroll-position
@@ -13,6 +14,10 @@ import {
  * scrollPosition is a 0–1 ratio representing how far through the chapter.
  */
 export async function PUT(request: Request) {
+  const ip = getClientIp(request);
+  const rl = apiFrequentLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -63,6 +68,10 @@ export async function PUT(request: Request) {
  * Returns the saved scroll position for a specific chapter.
  */
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rl = apiFrequentLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

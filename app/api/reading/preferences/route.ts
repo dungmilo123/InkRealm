@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { updateUserReadingPreferences } from "@/app/lib/reading-preferences";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function PUT(request: Request) {
+  const ip = getClientIp(request);
+  const rl = apiLimiter.check(ip);
+  if (!rl.allowed) return rateLimitResponse(rl);
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

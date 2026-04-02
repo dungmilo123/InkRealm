@@ -8,12 +8,17 @@ import {
   handleTranslationRouteError,
   safeReadJson,
 } from "@/app/lib/translation/http";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ profileId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,6 +36,10 @@ export async function PATCH(
   context: { params: Promise<{ profileId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

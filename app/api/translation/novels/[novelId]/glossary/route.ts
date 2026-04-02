@@ -6,12 +6,17 @@ import {
 } from "@/app/lib/translation/glossary";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { GlossaryEntryType } from "@/app/generated/prisma/client";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,6 +34,10 @@ export async function POST(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

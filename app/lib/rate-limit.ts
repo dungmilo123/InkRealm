@@ -154,6 +154,32 @@ export const uploadLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
 });
 
+// ─── Pre-configured limiters for authenticated API routes ────────
+
+/**
+ * General-purpose limiter for authenticated CRUD endpoints.
+ * 60 requests per 15 minutes per IP.
+ *
+ * Protects: translation profiles, glossary entries, reading preferences.
+ * Generous enough for normal interactive use but blocks automated abuse.
+ */
+export const apiLimiter = createRateLimiter({
+  limit: 60,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
+
+/**
+ * Higher-throughput limiter for endpoints called automatically by the UI.
+ * 120 requests per 15 minutes per IP.
+ *
+ * Protects: scroll-position saves (fired on every chapter read/scroll),
+ * and similar high-frequency client-initiated operations.
+ */
+export const apiFrequentLimiter = createRateLimiter({
+  limit: 120,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
+
 // ─── Helpers ───────────────────────────────────────────────────────
 
 /**

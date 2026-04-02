@@ -62,7 +62,7 @@ export function LoginForm() {
         window.location.href = "/dashboard";
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

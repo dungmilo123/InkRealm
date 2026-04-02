@@ -21,6 +21,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { TranslationProvidersTab } from "./translation-providers-tab";
+import { PASSWORD_MAX_LENGTH } from "@/app/lib/auth-validation";
 
 type SerializedTranslationProfile = {
   id: string;
@@ -144,7 +145,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         setConfirmPassword("");
       }
     } catch {
-      setError("Something went wrong");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -177,7 +178,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         setConfirmPassword("");
       }
     } catch {
-      setError("Something went wrong");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -238,9 +239,10 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               id="newPassword"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="8–72 characters"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
@@ -259,6 +261,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               placeholder="Repeat your password"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
@@ -299,7 +302,7 @@ function LinkedAccountsSection({
         router.refresh();
       }
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Could not connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }

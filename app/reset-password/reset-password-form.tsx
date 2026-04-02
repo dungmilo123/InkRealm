@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PASSWORD_MAX_LENGTH } from "@/app/lib/auth-validation";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -52,6 +53,11 @@ export function ResetPasswordForm() {
       return;
     }
 
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      setError(`Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -69,7 +75,7 @@ export function ResetPasswordForm() {
 
       router.push("/login?reset=success");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Could not connect to the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -102,9 +108,10 @@ export function ResetPasswordForm() {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
+              placeholder="8–72 characters"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
@@ -120,6 +127,7 @@ export function ResetPasswordForm() {
               placeholder="Repeat your password"
               required
               minLength={8}
+              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>

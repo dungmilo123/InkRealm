@@ -4,8 +4,13 @@ import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LibraryShelf } from "@/components/library-shelf";
+import dynamic from "next/dynamic";
 import { DetailsTabs } from "./details-tabs";
-import { DeleteNovelButton } from "./delete-novel-button";
+
+const DeleteNovelButton = dynamic(() =>
+  import("./delete-novel-button").then((m) => m.DeleteNovelButton),
+  { ssr: false }
+);
 import { formatFileSize } from "@/app/lib/format";
 import {
   estimateReadingMinutes,

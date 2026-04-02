@@ -78,7 +78,7 @@ test("Breadcrumbs renders separator / between items", () => {
 
   // Separator / should be present with aria-hidden
   assert.ok(html.includes('aria-hidden="true"'));
-  assert.ok(html.includes("/"));
+  assert.match(html, /aria-hidden="true"[^>]*>\s*\/\s*</);
 });
 
 test("Breadcrumbs does not render separator before first item", () => {
@@ -96,19 +96,19 @@ test("Breadcrumbs does not render separator before first item", () => {
   assert.equal(separatorCount, 1);
 });
 
-test("Breadcrumbs item without href renders as span even if not last", () => {
-  // An item at a non-last position but without href should render as span (not link)
+test("Breadcrumbs item without href renders as span when not last", () => {
   const html = renderToStaticMarkup(
     createElement(Breadcrumbs, {
       items: [
-        { label: "No Link" }, // no href, position 0 (also last here)
+        { label: "No Link" }, // non-last, no href
+        { label: "Linked", href: "/linked" },
+        { label: "Current" },
       ],
     })
   );
 
-  // Should not render an anchor tag
-  assert.equal(html.includes("<a "), false);
-  assert.ok(html.includes("<span"));
+  assert.match(html, /<span[^>]*>No Link<\/span>/);
+  assert.match(html, /<a[^>]*href="\/linked"[^>]*>Linked<\/a>/);
 });
 
 test("Breadcrumbs last item with href renders as span (not link)", () => {

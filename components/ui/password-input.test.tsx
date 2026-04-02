@@ -82,7 +82,6 @@ test("PasswordInput passes through required and autoComplete props", () => {
 
   // React renders boolean required as required=""
   assert.ok(html.includes('required=""'));
-  // React preserves camelCase autoComplete in static markup
   assert.ok(html.includes('autoComplete="new-password"'));
 });
 
@@ -91,7 +90,6 @@ test("PasswordInput passes through minLength prop", () => {
     createElement(PasswordInput, { minLength: 8 })
   );
 
-  // React preserves camelCase minLength in static markup
   assert.ok(html.includes('minLength="8"'));
 });
 

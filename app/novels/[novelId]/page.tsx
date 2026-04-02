@@ -1,6 +1,7 @@
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getNovelByIdOrNotFound } from "@/app/lib/novels";
+import { getNovelByIdOrNotFound, cachedGetNovelById } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { getDefaultProfile } from "@/app/lib/translation/profiles";
 import { getLatestNovelTranslationJobView, getInitialChapterStatuses } from "@/app/lib/translation/service";
@@ -10,6 +11,24 @@ import {
   type SerializedTranslationJob,
   type ChapterTranslationStatus,
 } from "./novel-details-view";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ novelId: string }>;
+}): Promise<Metadata> {
+  const { novelId } = await params;
+  const novel = await cachedGetNovelById(novelId);
+
+  if (!novel) {
+    return { title: "Novel Not Found" };
+  }
+
+  return {
+    title: novel.title,
+    description: `Read "${novel.title}" — ${novel.fileType.toUpperCase()} novel on InkRealm`,
+  };
+}
 
 export default async function NovelDetailsPage({
   params,

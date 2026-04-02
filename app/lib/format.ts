@@ -1,10 +1,8 @@
 // app/lib/format.ts
 
 /**
- * Convert a byte count into a human-readable size string using B, KB, or MB.
- *
- * @param bytes - Number of bytes to format.
- * @returns The formatted size: "`<n> B`" for values less than 1024; "`<x.x> KB`" for values less than 1,048,576; "`<x.x> MB`" for larger values. KB and MB use one decimal place.
+ * Formats a byte count as a human-readable string.
+ * Examples: 512 → "512 B", 2048 → "2.0 KB", 3145728 → "3.0 MB"
  */
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;

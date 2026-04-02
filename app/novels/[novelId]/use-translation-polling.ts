@@ -10,7 +10,7 @@ type PollingJob = {
 
 type JobStatusResponse = {
   job: PollingJob & Record<string, unknown>;
-  chapterStatuses?: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>;
+  chapterStatuses?: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated"; completedAt?: string }>;
 };
 
 const POLL_INTERVAL_MS = 3_000;
@@ -26,7 +26,7 @@ export function useTranslationPolling<T extends PollingJob>(
 ): {
   isHanging: boolean;
   hangingChapterIndex: number | null;
-  chapterStatuses: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>;
+  chapterStatuses: Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated"; completedAt?: string }>;
 } {
   const jobRef = useRef(job);
   const lastUpdatedAtRef = useRef<string | null>(null);
@@ -34,7 +34,7 @@ export function useTranslationPolling<T extends PollingJob>(
   const [isHanging, setIsHanging] = useState(false);
   const [hangingChapterIndex, setHangingChapterIndex] = useState<number | null>(null);
   const [chapterStatuses, setChapterStatuses] = useState<
-    Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated" }>
+    Array<{ chapterIndex: number; status: "translated" | "translating" | "untranslated"; completedAt?: string }>
   >([]);
 
   const isActive = job !== null && isActiveStatus(job.status);

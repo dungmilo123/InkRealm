@@ -7,6 +7,8 @@ import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { encode as defaultEncode } from "next-auth/jwt";
 
+import { normalizeEmail } from "@/app/lib/auth-validation";
+
 const adapter = PrismaAdapter(prisma);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -19,10 +21,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string;
+        const rawEmail = credentials?.email as string;
         const password = credentials?.password as string;
-        if (!email || !password) return null;
+        if (!rawEmail || !password) return null;
 
+        const email = normalizeEmail(rawEmail);
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !user.passwordHash) return null;
 

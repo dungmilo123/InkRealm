@@ -59,6 +59,8 @@ export type TranslationJobView = TranslationJobSummary & {
 export type ChapterStatusItem = {
   chapterIndex: number;
   status: "translated" | "translating" | "untranslated";
+  /** ISO timestamp when this chapter finished translating (only present for translated chapters) */
+  completedAt?: string;
 };
 
 function mapChapterStatus(prismaStatus: PrismaChapterTranslationStatus): "translated" | "translating" | "untranslated" {
@@ -528,10 +530,15 @@ export async function getTranslationJobStatus(translationId: string, userId: str
   }
 
   const { chapters, ...jobData } = result;
-  const chapterStatuses: ChapterStatusItem[] = chapters.map((ch) => ({
-    chapterIndex: ch.chapterIndex,
-    status: mapChapterStatus(ch.status),
-  }));
+  const chapterStatuses: ChapterStatusItem[] = chapters.map((ch) => {
+    const status = mapChapterStatus(ch.status);
+    return {
+      chapterIndex: ch.chapterIndex,
+      status,
+      // Include completedAt for translated chapters — enables client-side ETA calculation
+      ...(status === "translated" ? { completedAt: ch.updatedAt.toISOString() } : {}),
+    };
+  });
 
   return { job: toTranslationJobView(jobData), chapterStatuses };
 }

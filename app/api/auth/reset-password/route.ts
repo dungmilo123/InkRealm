@@ -1,27 +1,37 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
+import {
+  normalizeEmail,
+  validateEmail,
+  validatePassword,
+} from "@/app/lib/auth-validation";
 
 export async function POST(request: Request) {
-  const { email, token, password } = (await request.json()) as {
+  const { email: rawEmail, token, password } = (await request.json()) as {
     email?: string;
     token?: string;
     password?: string;
   };
 
-  if (!email || !token || !password) {
+  const emailError = validateEmail(rawEmail);
+  if (emailError) {
+    return NextResponse.json(emailError, { status: 400 });
+  }
+
+  if (!token) {
     return NextResponse.json(
-      { error: "Email, token, and password are required" },
+      { error: "Reset token is required" },
       { status: 400 }
     );
   }
 
-  if (password.length < 8) {
-    return NextResponse.json(
-      { error: "Password must be at least 8 characters" },
-      { status: 400 }
-    );
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return NextResponse.json(passwordError, { status: 400 });
   }
+
+  const email = normalizeEmail(rawEmail!);
 
   // Find the token
   const verificationToken = await prisma.verificationToken.findUnique({
@@ -47,7 +57,7 @@ export async function POST(request: Request) {
   }
 
   // Update password and delete token
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password!, 12);
 
   await prisma.user.update({
     where: { email },

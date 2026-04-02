@@ -1,7 +1,8 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-import { getNovelByIdOrNotFound } from "@/app/lib/novels";
+import { getNovelByIdOrNotFound, cachedGetNovelById } from "@/app/lib/novels";
 import {
   getReaderChapter,
   InvalidChapterIndexError,
@@ -10,6 +11,7 @@ import {
 import { recordChapterVisit } from "@/app/lib/reading-progress";
 import { getUserReadingPreferences } from "@/app/lib/reading-preferences";
 import { getTranslatedChapterForReader } from "@/app/lib/translation/service";
+import { countWordsInParagraphs } from "@/lib/reading-time";
 import { ReaderClient } from "./reader-client";
 
 function parseChapterIndex(value: string): number {
@@ -20,14 +22,25 @@ function parseChapterIndex(value: string): number {
   return Number(value);
 }
 
-/**
- * Render the reader page for a specific novel chapter, handling authentication, parameter validation, data loading, and recording reading progress.
- *
- * If the user is unauthenticated this route redirects to "/login". If the chapter index is invalid or the requested chapter is unavailable, the handler triggers a not-found response. The function records the chapter visit as a fire-and-forget side effect and concurrently loads the user's reading preferences and any available translated paragraphs before rendering the reader UI.
- *
- * @param params - A promise that resolves to route parameters containing `novelId` and `chapterIndex` as strings.
- * @returns The JSX element for the chapter reader populated with novel metadata, chapter content, user preferences, and translated paragraphs when available.
- */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ novelId: string; chapterIndex: string }>;
+}): Promise<Metadata> {
+  const { novelId, chapterIndex: chapterIndexParam } = await params;
+  const novel = await cachedGetNovelById(novelId);
+  const chapterIndex = parseChapterIndex(chapterIndexParam);
+
+  if (!novel || !Number.isInteger(chapterIndex) || chapterIndex <= 0) {
+    return { title: "Reader" };
+  }
+
+  return {
+    title: `Chapter ${chapterIndex} — ${novel.title}`,
+    description: `Reading chapter ${chapterIndex} of "${novel.title}" on InkRealm`,
+  };
+}
+
 export default async function ReaderChapterPage({
   params,
 }: {
@@ -71,6 +84,7 @@ export default async function ReaderChapterPage({
     getTranslatedChapterForReader(novel.id, chapterIndex, session.user.id),
   ]);
   const { document, chapter } = chapterData;
+  const wordCount = countWordsInParagraphs(chapter.paragraphs);
 
   return (
     <ReaderClient
@@ -82,6 +96,7 @@ export default async function ReaderChapterPage({
         paragraphs: chapter.paragraphs,
       }}
       chapterCount={document.chapterCount}
+      wordCount={wordCount}
       preferences={preferences}
       user={session.user}
       signOutAction={async () => {

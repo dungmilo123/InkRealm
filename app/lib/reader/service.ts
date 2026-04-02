@@ -15,6 +15,7 @@ import {
   type ReaderDocument,
   type ReaderSummary,
 } from "./types";
+import { countWordsInParagraphs } from "@/lib/reading-time";
 
 function normalizeInlineWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -122,10 +123,18 @@ export async function getReaderSummary(novel: Novel): Promise<ReaderSummary> {
       void updateNovelChapterCount(novel.id, document.chapterCount);
     }
 
+    const chapters = document.chapters.map((ch) => {
+      const wordCount = countWordsInParagraphs(ch.paragraphs);
+      return { index: ch.index, title: ch.title, wordCount };
+    });
+
+    const totalWordCount = chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+
     return {
       isReadable: true,
       chapterCount: document.chapterCount,
-      chapters: document.chapters.map((ch) => ({ index: ch.index, title: ch.title })),
+      chapters,
+      totalWordCount,
     };
   } catch (error) {
     if (error instanceof ReaderUnavailableError) {
@@ -133,6 +142,7 @@ export async function getReaderSummary(novel: Novel): Promise<ReaderSummary> {
         isReadable: false,
         chapterCount: 0,
         unavailableReason: error.message,
+        totalWordCount: 0,
       };
     }
 

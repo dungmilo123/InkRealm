@@ -9,17 +9,6 @@ interface BreadcrumbsProps {
   items: BreadcrumbItem[];
 }
 
-/**
- * Render a breadcrumb navigation from an ordered list of items.
- *
- * Renders a <nav aria-label="Breadcrumb"> containing an ordered list of breadcrumb entries.
- * Items with an `href` render as links unless they are the last item; the last item or items without
- * an `href` render as plain text and receive `aria-current="page"`. A visual "/" separator is shown
- * between items.
- *
- * @param items - Array of breadcrumb entries, each with a required `label` and optional `href`
- * @returns A <nav> element containing the breadcrumb list
- */
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className="mb-4">

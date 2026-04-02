@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 
-/**
- * Renders a registration form UI and handles creating a new user account.
- *
- * Performs client-side validation (password match and minimum length), sends a POST to `/api/auth/register` with the `email` and `password`, displays server or network errors, and navigates to `/dashboard` on successful registration.
- *
- * @returns The registration form as a JSX element.
- */
 export function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

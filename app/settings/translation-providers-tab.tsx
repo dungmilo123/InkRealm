@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { readJsonOrError } from "@/lib/fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,25 +51,6 @@ type TranslationProvidersTabProps = {
   initialProfiles: SerializedTranslationProfile[];
 };
 
-async function readJsonOrError<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
-  }
-  return payload;
-}
-
-/**
- * Renders and manages the translation providers UI, including listing profiles,
- * creating new profiles, editing existing profiles, setting a profile as the default,
- * and deleting profiles with confirmation and feedback.
- *
- * This component keeps local state for profiles, edit/create forms, busy status,
- * and transient feedback banners (auto-dismissed with toast notifications).
- *
- * @param initialProfiles - Initial list of persisted translation profiles used to seed the component state
- * @returns A React element containing the translation providers management interface
- */
 export function TranslationProvidersTab({
   initialProfiles,
 }: TranslationProvidersTabProps) {

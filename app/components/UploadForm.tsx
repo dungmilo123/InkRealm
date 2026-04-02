@@ -3,16 +3,6 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-/**
- * Renders a file upload form for submitting novel files (.txt, .epub) and displays status messages.
- *
- * The form validates that a file is selected, posts the file as multipart/form-data to `/api/uploads`,
- * and shows success or error messages based on the response. While an upload is in progress the submit
- * button is disabled and shows a loading state. On successful upload the file input is cleared and the
- * current route is refreshed.
- *
- * @returns The upload form JSX that accepts `.txt` and `.epub` files, shows an inline spinner and status messages, and disables submission during upload.
- */
 export function UploadForm() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);

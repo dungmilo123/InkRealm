@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
 import { useTranslationPolling } from "./use-translation-polling";
+import { useTranslationEta } from "./use-translation-eta";
+import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type {
   SerializedDefaultProfile,
   SerializedTranslationJob,
@@ -39,7 +41,7 @@ const ChapterList = memo(function ChapterList({
   chapterStatuses,
 }: {
   novelId: string;
-  chapters: { index: number; title: string }[];
+  chapters: { index: number; title: string; wordCount: number }[];
   readingProgress: ReadingProgressData;
   chapterStatuses: ChapterTranslationStatus[];
 }) {
@@ -67,6 +69,7 @@ const ChapterList = memo(function ChapterList({
         }
 
         const translationStatus = statusMap.get(ch.index);
+        const readingMin = estimateReadingMinutes(ch.wordCount);
 
         return (
           <Link
@@ -83,13 +86,18 @@ const ChapterList = memo(function ChapterList({
             <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
               {ch.title}
             </span>
+            {ch.wordCount > 0 && (
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
+                {formatReadingTime(readingMin)}
+              </span>
+            )}
             {translationStatus === "translated" && (
-              <Badge className="ml-auto shrink-0 bg-primary/10 text-primary border-0 text-xs">
+              <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
                 Translated
               </Badge>
             )}
             {translationStatus === "translating" && (
-              <Badge className="ml-auto shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
+              <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
                 Translating...
               </Badge>
             )}
@@ -100,21 +108,6 @@ const ChapterList = memo(function ChapterList({
   );
 });
 
-/**
- * Render a tabbed interface ("Chapters", "Translation", "Glossary") for a novel,
- * including a translation progress bar, live polling of translation job status,
- * and per-chapter translation/reading indicators.
- *
- * @param novelId - Identifier for the novel used to build links and panel props
- * @param readerSummary - Summary of the reader data, including chapter list and readability flag
- * @param readingProgress - User reading progress (may be null); used to mark visited/last chapters
- * @param isReadable - Whether the novel is readable by the current user
- * @param serializedDefaultProfile - Serialized default translation profile passed to the Translation panel
- * @param serializedLatestJob - Initial translation job state used to seed polling and progress display
- * @param chapterCount - Total number of chapters for progress calculations when job metadata is missing
- * @param initialChapterStatuses - Server-rendered chapter translation statuses used as a fallback until polling returns data
- * @returns The React element displaying the tabs, progress bar, and the active tab panel
- */
 export function DetailsTabs({
   novelId,
   readerSummary,
@@ -146,6 +139,10 @@ export function DetailsTabs({
     ? Math.round((translatedCount / totalChaptersForProgress) * 100)
     : 0;
   const isCompleted = job?.status === "COMPLETED";
+  const isTranslating = job?.status === "IN_PROGRESS" || job?.status === "PENDING";
+
+  // ETA calculation from chapter completion timestamps
+  const { etaLabel } = useTranslationEta(chapterStatuses, totalChaptersForProgress, job?.createdAt);
 
   return (
     <div>
@@ -171,6 +168,11 @@ export function DetailsTabs({
             {!isCompleted && (
               <span className="text-xs text-muted-foreground ml-2">
                 ({progressPercent}%)
+              </span>
+            )}
+            {isTranslating && etaLabel && (
+              <span className="text-xs text-muted-foreground/70 ml-1.5">
+                · {etaLabel} remaining
               </span>
             )}
           </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { readJsonOrError } from "@/lib/fetch";
 
 type GlossaryVariant = {
   id: string;
@@ -19,14 +20,6 @@ type GlossaryReaderProps = {
   novelId: string;
   paragraphs: string[];
 };
-
-async function readJsonOrError<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
-  }
-  return payload;
-}
 
 function GlossaryPopover({
   entry,

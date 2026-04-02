@@ -120,9 +120,9 @@ export function UploadForm() {
 
   const fileIcon =
     selectedFile?.file.name.endsWith(".epub") ? (
-      <BookOpen className="size-5 text-primary" />
+      <BookOpen className="size-5 text-primary" aria-hidden="true" />
     ) : (
-      <FileText className="size-5 text-primary" />
+      <FileText className="size-5 text-primary" aria-hidden="true" />
     );
 
   const canSubmit = selectedFile && !selectedFile.error && !uploading;
@@ -134,6 +134,7 @@ export function UploadForm() {
         <div
           role="button"
           tabIndex={0}
+          aria-label="Select a novel file to upload (.txt or .epub)"
           onClick={() => fileInputRef.current?.click()}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -159,6 +160,7 @@ export function UploadForm() {
               className={`size-5 transition-colors ${
                 isDragOver ? "text-primary" : "text-muted-foreground"
               }`}
+              aria-hidden="true"
             />
           </div>
           <div className="text-center">
@@ -190,7 +192,7 @@ export function UploadForm() {
             </p>
             {selectedFile.error && (
               <p className="flex items-center gap-1.5 text-xs text-destructive mt-1.5">
-                <AlertCircle className="size-3 shrink-0" />
+                <AlertCircle className="size-3 shrink-0" aria-hidden="true" />
                 {selectedFile.error}
               </p>
             )}
@@ -200,7 +202,7 @@ export function UploadForm() {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
               >
                 {uploading && (
                   <svg
@@ -250,9 +252,9 @@ export function UploadForm() {
             }`}
           >
             {message.type === "success" ? (
-              <CheckCircle2 className="size-4 shrink-0" />
+              <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
             ) : (
-              <AlertCircle className="size-4 shrink-0" />
+              <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
             )}
             {message.text}
           </div>

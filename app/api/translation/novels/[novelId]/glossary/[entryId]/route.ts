@@ -29,14 +29,30 @@ export async function PUT(
       variants?: string[];
     };
 
+    if (body.canonical !== undefined && typeof body.canonical === "string" && body.canonical.length > 500) {
+      return NextResponse.json(
+        { error: "canonical must be at most 500 characters." },
+        { status: 400 }
+      );
+    }
+
     const type = body.type?.toUpperCase() as GlossaryEntryType | undefined;
     if (type && !Object.values(GlossaryEntryType).includes(type)) {
       return NextResponse.json({ error: "Invalid type." }, { status: 400 });
     }
 
+    if (Array.isArray(body.variants) && body.variants.length > 50) {
+      return NextResponse.json(
+        { error: "variants must have at most 50 entries." },
+        { status: 400 }
+      );
+    }
+
     const variants = body.variants !== undefined
       ? (Array.isArray(body.variants)
-        ? body.variants.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        ? body.variants
+            .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+            .filter((v) => v.length <= 500)
         : undefined)
       : undefined;
 
@@ -110,10 +126,27 @@ export async function PATCH(
       return NextResponse.json({ entry: null });
     }
 
+    if (body.canonical !== undefined && typeof body.canonical === "string" && body.canonical.length > 500) {
+      return NextResponse.json(
+        { error: "canonical must be at most 500 characters." },
+        { status: 400 }
+      );
+    }
+
     const type = body.type?.toUpperCase() as GlossaryEntryType | undefined;
+
+    if (Array.isArray(body.variants) && body.variants.length > 50) {
+      return NextResponse.json(
+        { error: "variants must have at most 50 entries." },
+        { status: 400 }
+      );
+    }
+
     const variants = body.variants !== undefined
       ? (Array.isArray(body.variants)
-        ? body.variants.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        ? body.variants
+            .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+            .filter((v) => v.length <= 500)
         : undefined)
       : undefined;
 

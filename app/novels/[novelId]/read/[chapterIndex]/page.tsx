@@ -81,7 +81,6 @@ export default async function ReaderChapterPage({
         await signOut({ redirectTo: "/login" });
       }}
       translatedParagraphs={translatedChapter?.translatedParagraphs ?? null}
-      translatedTitle={translatedChapter?.translatedTitle ?? null}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Play,
   X,
@@ -13,7 +14,7 @@ import {
   ChevronUp,
   Settings2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -144,8 +145,11 @@ export function TranslationPanel({
       });
       const data = await readJsonOrError<{ job: TranslationJob }>(res);
       onJobUpdate(data.job);
+      toast.success("Translation started");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start translation.");
+      const message = err instanceof Error ? err.message : "Failed to start translation.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -369,7 +373,7 @@ export function TranslationPanel({
             className="h-2 w-full rounded-full bg-muted overflow-hidden"
           >
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-primary motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out"
               style={{ width: `${liveProgressPercent}%` }}
             />
           </div>
@@ -447,11 +451,13 @@ export function TranslationPanel({
           </div>
 
           {job.downloadUrl ? (
-            <a href={job.downloadUrl}>
-              <Button className="w-full h-10 px-6">
-                <Download className="h-4 w-4 mr-2" />
-                Download Translation
-              </Button>
+            <a
+              href={job.downloadUrl}
+              download
+              className={buttonVariants({ className: "w-full h-10 px-6" })}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Translation
             </a>
           ) : null}
 

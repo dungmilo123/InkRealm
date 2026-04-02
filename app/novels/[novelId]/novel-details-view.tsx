@@ -2,8 +2,10 @@ import Link from "next/link";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LibraryShelf } from "@/components/library-shelf";
 import { DetailsTabs } from "./details-tabs";
+import { formatFileSize } from "@/app/lib/format";
 
 export type SerializedDefaultProfile = {
   id: string;
@@ -52,18 +54,6 @@ type NovelDetailsViewProps = {
   initialChapterStatuses: ChapterTranslationStatus[];
 };
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
@@ -91,6 +81,12 @@ export function NovelDetailsView({
 
   return (
     <LibraryShelf showBack backHref="/dashboard">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: novel.title },
+        ]}
+      />
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row gap-8 items-start">
           <BookCover

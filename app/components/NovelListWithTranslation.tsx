@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BookCover } from "@/components/book-cover";
 import type { Novel } from "@/app/generated/prisma/client";
+import { formatFileSize } from "@/app/lib/format";
 
 interface TranslationSummary {
   hasTranslation: boolean;
@@ -21,12 +22,6 @@ interface NovelWithTranslation extends Novel {
 
 interface NovelCardProps {
   novel: NovelWithTranslation;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDate(date: Date): string {

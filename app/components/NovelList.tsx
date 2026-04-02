@@ -2,16 +2,11 @@ import Link from "next/link";
 import type { Novel } from "@/app/generated/prisma/client";
 import { BookCover } from "@/components/book-cover";
 import { Card } from "@/components/ui/card";
+import { formatFileSize } from "@/app/lib/format";
 
 interface NovelListProps {
   novels: Novel[];
   progressData?: Record<string, { lastChapterIndex: number; totalChapters: number }>;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function NovelList({ novels, progressData }: NovelListProps) {
@@ -29,7 +24,7 @@ export function NovelList({ novels, progressData }: NovelListProps) {
             href={`/novels/${novel.id}`}
             className="group"
           >
-            <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 group-hover:scale-[1.02] group-hover:-translate-y-1 group-hover:shadow-md">
+            <Card className="overflow-hidden border-0 bg-transparent shadow-none transition-all duration-200 motion-safe:group-hover:scale-[1.02] motion-safe:group-hover:-translate-y-1 group-hover:shadow-md">
               <div className="relative">
                 <BookCover
                   title={novel.title}

@@ -39,6 +39,7 @@ export default async function DashboardPage() {
 
   return (
     <LibraryShelf
+      activeRoute="dashboard"
       user={session.user}
       signOutAction={async () => {
         "use server";

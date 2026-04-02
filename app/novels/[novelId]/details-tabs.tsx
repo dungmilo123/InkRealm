@@ -145,7 +145,7 @@ export function DetailsTabs({
             className="h-2 w-full rounded-full bg-muted overflow-hidden"
           >
             <div
-              className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-primary motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -161,11 +161,15 @@ export function DetailsTabs({
           </p>
         </div>
       )}
-      <div className="flex border-b border-border">
+      <div role="tablist" aria-label="Novel sections" className="flex border-b border-border">
         {TABS.map((tab) => (
           <button
             key={tab}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            aria-controls={`tabpanel-${tab.toLowerCase()}`}
+            id={`tab-${tab.toLowerCase()}`}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === tab
@@ -178,7 +182,12 @@ export function DetailsTabs({
         ))}
       </div>
 
-      <div className="pt-4">
+      <div
+        role="tabpanel"
+        id={`tabpanel-${activeTab.toLowerCase()}`}
+        aria-labelledby={`tab-${activeTab.toLowerCase()}`}
+        className="pt-4"
+      >
         {activeTab === "Chapters" && (
           readerSummary.isReadable && readerSummary.chapters ? (
             <ChapterList

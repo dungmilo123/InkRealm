@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Card,
   CardContent,
@@ -46,21 +46,14 @@ interface SettingsProps {
 
 export function SettingsClient({ user, initialProfiles }: SettingsProps) {
   return (
-    <div className="flex min-h-screen justify-center bg-background">
-      <div className="w-full max-w-2xl space-y-6 px-6 py-12">
-        <div>
-          <Link
-            href="/dashboard"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            &larr; Back to dashboard
-          </Link>
-          <h1 className="mt-4 text-3xl font-heading font-semibold tracking-tight text-foreground">
-            Settings
-          </h1>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
+          Settings
+        </h1>
+      </div>
 
-        <Tabs defaultValue="account">
+      <Tabs defaultValue="account">
           <TabsList variant="line">
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="translation-providers">
@@ -81,7 +74,6 @@ export function SettingsClient({ user, initialProfiles }: SettingsProps) {
             <TranslationProvidersTab initialProfiles={initialProfiles} />
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 }
@@ -225,9 +217,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
               >
                 Current password
               </label>
-              <Input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
@@ -243,9 +234,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               New password
             </label>
-            <Input
+            <PasswordInput
               id="newPassword"
-              type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="At least 8 characters"
@@ -262,9 +252,8 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
             >
               Confirm new password
             </label>
-            <Input
+            <PasswordInput
               id="confirmNewPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repeat your password"
@@ -308,6 +297,7 @@ function LinkedAccountsSection({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error);
+        toast.error(data.error || "Failed to unlink Google account");
       } else {
         router.refresh();
       }

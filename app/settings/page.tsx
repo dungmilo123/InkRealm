@@ -1,7 +1,8 @@
-import { auth } from "@/auth";
-import { prisma } from "@/app/lib/prisma";
+import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
+import { getUserWithAccounts } from "@/app/lib/users";
 import { listTranslationProfilesForDisplay } from "@/app/lib/translation/profiles";
+import { LibraryShelf } from "@/components/library-shelf";
 import { SettingsClient } from "./settings-client";
 
 export default async function SettingsPage() {
@@ -11,10 +12,7 @@ export default async function SettingsPage() {
   }
 
   const [user, profiles] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { accounts: { where: { provider: "google" } } },
-    }),
+    getUserWithAccounts(session.user.id),
     listTranslationProfilesForDisplay(session.user.id),
   ]);
 
@@ -29,15 +27,24 @@ export default async function SettingsPage() {
   }));
 
   return (
-    <SettingsClient
-      user={{
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        hasPassword: !!user.passwordHash,
-        hasGoogle: user.accounts.length > 0,
+    <LibraryShelf
+      activeRoute="settings"
+      user={session.user}
+      signOutAction={async () => {
+        "use server";
+        await signOut({ redirectTo: "/login" });
       }}
-      initialProfiles={serializedProfiles}
-    />
+    >
+      <SettingsClient
+        user={{
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          hasPassword: !!user.passwordHash,
+          hasGoogle: user.accounts.length > 0,
+        }}
+        initialProfiles={serializedProfiles}
+      />
+    </LibraryShelf>
   );
 }

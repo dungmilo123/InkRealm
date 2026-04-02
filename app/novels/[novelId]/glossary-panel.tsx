@@ -113,7 +113,7 @@ export function GlossaryPanel({ novelId }: GlossaryPanelProps) {
     setShowAddForm(true);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setFeedback(null);

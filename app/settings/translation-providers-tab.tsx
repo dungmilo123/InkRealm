@@ -216,7 +216,7 @@ export function TranslationProvidersTab({
     }
   }
 
-  async function handleCreateProfile(event: React.FormEvent) {
+  async function handleCreateProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setFeedback(null);

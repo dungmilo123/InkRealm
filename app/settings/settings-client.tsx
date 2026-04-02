@@ -118,7 +118,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSetPassword(e: React.FormEvent) {
+  async function handleSetPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -150,7 +150,7 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
     }
   }
 
-  async function handleChangePassword(e: React.FormEvent) {
+  async function handleChangePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setSuccess("");

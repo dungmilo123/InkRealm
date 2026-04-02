@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -38,7 +38,7 @@ export function ResetPasswordForm() {
     );
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -98,9 +98,8 @@ export function ResetPasswordForm() {
             <label htmlFor="password" className="text-sm font-medium text-foreground">
               New password
             </label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
@@ -114,9 +113,8 @@ export function ResetPasswordForm() {
             <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
               Confirm new password
             </label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repeat your password"

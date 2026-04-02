@@ -52,7 +52,7 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
     setModel(MODEL_OPTIONS[newProvider]?.[0] || "");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -169,7 +169,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);

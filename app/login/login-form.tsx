@@ -44,7 +44,7 @@ export function LoginForm() {
       ? "This email already has an account. Sign in with your password, then link Google from Settings."
       : null;
 
-  async function handleCredentialsSubmit(e: React.FormEvent) {
+  async function handleCredentialsSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);

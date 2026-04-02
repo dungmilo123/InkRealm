@@ -77,6 +77,8 @@ function SettingsPopover({
             max={250}
             value={Math.round(preferences.lineHeight * 100)}
             onChange={(e) => onChange({ ...preferences, lineHeight: Number(e.target.value) / 100 })}
+            aria-label="Line height"
+            aria-valuetext={`${Math.round(preferences.lineHeight * 100)}%`}
             className="w-full h-1.5 rounded-full appearance-none bg-muted accent-primary"
           />
         </div>

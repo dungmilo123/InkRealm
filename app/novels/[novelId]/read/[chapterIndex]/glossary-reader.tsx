@@ -308,6 +308,7 @@ function HighlightedParagraph({
             <button
               type="button"
               onClick={() => setActiveEntry(activeEntry?.id === entry.id ? null : entry)}
+              aria-label={`View glossary for "${part}"`}
               className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-900 dark:text-yellow-100 rounded px-0.5 cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800/60 transition-colors"
             >
               {part}

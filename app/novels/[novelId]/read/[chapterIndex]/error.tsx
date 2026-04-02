@@ -26,7 +26,7 @@ export default function ReaderChapterError({
       title="Couldn't load this chapter"
       description="We had trouble loading the chapter content. The novel file may be temporarily unavailable."
       backLabel="Back to novel"
-      backHref={params.novelId ? `/novels/${params.novelId}` : "/dashboard"}
+      backHref={params.novelId ? `/novels/${encodeURIComponent(params.novelId)}` : "/dashboard"}
       logLabel="ReaderChapterError"
     />
   );

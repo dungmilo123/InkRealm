@@ -53,8 +53,8 @@ export function ResetPasswordForm() {
       return;
     }
 
-    if (password.length > PASSWORD_MAX_LENGTH) {
-      setError(`Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
+    if (new TextEncoder().encode(password).length > PASSWORD_MAX_LENGTH) {
+      setError("Password exceeds the maximum length allowed by the password algorithm");
       return;
     }
 
@@ -111,7 +111,6 @@ export function ResetPasswordForm() {
               placeholder="8–72 characters"
               required
               minLength={8}
-              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>
@@ -127,7 +126,6 @@ export function ResetPasswordForm() {
               placeholder="Repeat your password"
               required
               minLength={8}
-              maxLength={PASSWORD_MAX_LENGTH}
               autoComplete="new-password"
             />
           </div>

@@ -9,7 +9,7 @@ import { useEffect } from "react";
  * Each route-level `error.tsx` passes its Next.js `error`/`reset` props
  * along with contextual copy (title, description) and a navigation link.
  */
-export interface ErrorBoundaryPageProps {
+export type ErrorBoundaryPageProps = {
   /** The error object provided by Next.js error boundaries. */
   error: Error & { digest?: string };
   /** Callback to re-render the segment that threw. */
@@ -24,7 +24,7 @@ export interface ErrorBoundaryPageProps {
   backHref: string;
   /** Prefix used when logging to console, e.g. "DashboardError". */
   logLabel?: string;
-}
+};
 
 /**
  * Shared error page layout used by all route-level `error.tsx` boundaries.
@@ -78,6 +78,7 @@ export default function ErrorBoundaryPage({
         )}
         <div className="mt-6 flex items-center justify-center gap-3">
           <button
+            type="button"
             onClick={reset}
             className="inline-flex h-10 items-center rounded-full bg-foreground text-background px-6 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >

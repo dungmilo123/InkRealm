@@ -77,12 +77,12 @@ export function TranslationSettingsForm({ onSave, initialValues }: TranslationSe
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
       {success && (
-        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm">
+        <div role="status" className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-700 dark:text-green-400 text-sm">
           Settings saved successfully!
         </div>
       )}
@@ -186,7 +186,7 @@ export function TranslationStartForm({ onStart, disabled }: TranslationStartForm
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {error}
         </div>
       )}
@@ -265,7 +265,7 @@ export function TranslationProgress({
       </div>
 
       {failureReason && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+        <div role="alert" className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm">
           {failureReason}
         </div>
       )}

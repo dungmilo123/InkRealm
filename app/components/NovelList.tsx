@@ -74,15 +74,17 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                           ? "bg-green-600 text-white dark:bg-green-500"
                           : "bg-primary text-primary-foreground"
                       }`}
-                      aria-label={
-                        isComplete
-                          ? "Reading complete"
-                          : `Chapter ${progress.lastChapterIndex} of ${progress.totalChapters}`
-                      }
                     >
-                      {isComplete
-                        ? "\u2713 Done"
-                        : `Ch ${progress.lastChapterIndex}/${progress.totalChapters}`}
+                      <span className="sr-only">
+                        {isComplete
+                          ? "Reading complete"
+                          : `Chapter ${progress.lastChapterIndex} of ${progress.totalChapters}`}
+                      </span>
+                      <span aria-hidden="true">
+                        {isComplete
+                          ? "\u2713 Done"
+                          : `Ch ${progress.lastChapterIndex}/${progress.totalChapters}`}
+                      </span>
                     </span>
                   </>
                 )}

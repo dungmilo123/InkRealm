@@ -139,10 +139,12 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
 
       {/* Results count when filtering */}
       {hasActiveFilters && (
-        <p className="text-xs text-muted-foreground" role="status">
-          {filtered.length === 0
-            ? "No novels match your filters"
-            : `Showing ${filtered.length} of ${novels.length} novel${novels.length !== 1 ? "s" : ""}`}
+        <div className="text-xs text-muted-foreground">
+          <span role="status" aria-live="polite" aria-atomic="true" className="inline">
+            {filtered.length === 0
+              ? "No novels match your filters"
+              : `Showing ${filtered.length} of ${novels.length} novel${novels.length !== 1 ? "s" : ""}`}
+          </span>
           {hasActiveFilters && (
             <button
               type="button"
@@ -155,7 +157,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
               Clear filters
             </button>
           )}
-        </p>
+        </div>
       )}
 
       {/* Novel grid */}

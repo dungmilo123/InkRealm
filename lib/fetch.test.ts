@@ -83,7 +83,7 @@ describe("readJsonOrError", () => {
     assert.equal(result.error, "not a real error");
   });
 
-  test("handles 204-equivalent edge case (201 Created)", async () => {
+  test("handles 201 Created response with JSON body", async () => {
     const body = { id: 42 };
     const response = new Response(JSON.stringify(body), { status: 201 });
 

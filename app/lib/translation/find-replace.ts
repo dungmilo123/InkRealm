@@ -33,7 +33,11 @@ async function getOwnedEntryWithVariants(
     },
   });
 
-  if (!entry || entry.novel.userId !== userId) {
+  if (!entry) {
+    throw new TranslationHttpError(404, "Glossary entry not found.");
+  }
+
+  if (entry.novel.userId !== userId) {
     throw new TranslationHttpError(404, "Novel not found.");
   }
 

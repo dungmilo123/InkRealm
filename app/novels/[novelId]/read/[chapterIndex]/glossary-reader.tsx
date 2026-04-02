@@ -83,6 +83,7 @@ function GlossaryPopover({
   }
 
   async function handlePreviewApply() {
+    setError(null);
     setBusy(true);
     try {
       const res = await fetch(
@@ -99,6 +100,7 @@ function GlossaryPopover({
   }
 
   async function handleApply() {
+    setError(null);
     setApplying(true);
     try {
       const res = await fetch(

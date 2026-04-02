@@ -298,7 +298,7 @@ export function TranslationPanel({
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setShowRange(!showRange)}
               aria-expanded={showRange}
-              aria-label="Chapter range options"
+              aria-controls="chapter-range-options"
             >
               {showRange ? (
                 <>
@@ -314,7 +314,7 @@ export function TranslationPanel({
             </button>
 
             {showRange ? (
-              <div className="mt-3 space-y-3">
+              <div id="chapter-range-options" className="mt-3 space-y-3">
                 <div className="flex items-end gap-2">
                   <div className="flex-1 space-y-1">
                     <Label htmlFor="chapter-from" className="text-sm text-muted-foreground">

@@ -68,10 +68,16 @@ export async function POST(
       );
     }
 
+    if (Array.isArray(body.variants) && body.variants.some((v) => typeof v === "string" && v.length > 500)) {
+      return NextResponse.json(
+        { error: "Each variant must be at most 500 characters." },
+        { status: 400 }
+      );
+    }
+
     const variants = Array.isArray(body.variants)
       ? body.variants
           .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
-          .filter((v) => v.length <= 500)
       : [];
 
     const entry = await createGlossaryEntry({

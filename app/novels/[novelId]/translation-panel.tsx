@@ -297,6 +297,8 @@ export function TranslationPanel({
               type="button"
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={() => setShowRange(!showRange)}
+              aria-expanded={showRange}
+              aria-label="Chapter range options"
             >
               {showRange ? (
                 <>

@@ -49,12 +49,14 @@ function GlossaryPopover({
   const [editType, setEditType] = useState(entry.type);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showApplyOffer, setShowApplyOffer] = useState(false);
   const [applyPreview, setApplyPreview] = useState<{ chapter: string; count: number }[] | null>(null);
   const [applying, setApplying] = useState(false);
 
   async function handleSave() {
     setBusy(true);
+    setError(null);
     try {
       const variants = editVariants.split(",").map((v) => v.trim()).filter(Boolean);
       const res = await fetch(
@@ -74,7 +76,7 @@ function GlossaryPopover({
       setEditing(false);
       setShowApplyOffer(true);
     } catch {
-      // silently fail in popover
+      setError("Could not save changes. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -88,7 +90,8 @@ function GlossaryPopover({
       );
       const data = await readJsonOrError<{ matches: { chapterTitle: string; occurrences: number }[] }>(res);
       setApplyPreview(data.matches.map((m) => ({ chapter: m.chapterTitle, count: m.occurrences })));
-    } catch {
+    } catch (err) {
+      console.warn("[glossary] preview failed for entry", entry.id, err);
       setApplyPreview([]);
     } finally {
       setBusy(false);
@@ -107,7 +110,7 @@ function GlossaryPopover({
       setApplyPreview(null);
       onUpdate();
     } catch {
-      // silently fail
+      setError("Could not apply changes. Please try again.");
     } finally {
       setApplying(false);
     }
@@ -129,6 +132,10 @@ function GlossaryPopover({
         )}
       </div>
 
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-destructive">{error}</p>
+      )}
+
       {showApplyOffer ? (
         <div className="mt-2 space-y-2">
           {applyPreview === null ? (
@@ -139,7 +146,7 @@ function GlossaryPopover({
                   type="button"
                   disabled={busy}
                   onClick={handlePreviewApply}
-                  className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                  className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {busy ? "Loading..." : "Preview"}
                 </button>
@@ -168,7 +175,7 @@ function GlossaryPopover({
                   type="button"
                   disabled={applying}
                   onClick={handleApply}
-                  className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                  className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {applying ? "Applying..." : "Apply All"}
                 </button>
@@ -198,11 +205,13 @@ function GlossaryPopover({
             onChange={(e) => setEditCanonical(e.target.value)}
             className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             placeholder="Canonical term"
+            aria-label="Canonical term"
           />
           <select
             value={editType}
             onChange={(e) => setEditType(e.target.value)}
             className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+            aria-label="Entry type"
           >
             {["CHARACTER", "PLACE", "TECHNIQUE", "OTHER"].map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -213,13 +222,14 @@ function GlossaryPopover({
             onChange={(e) => setEditVariants(e.target.value)}
             className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             placeholder="Variants (comma-separated)"
+            aria-label="Variants (comma-separated)"
           />
           <div className="flex gap-1">
             <button
               type="button"
               disabled={busy}
               onClick={handleSave}
-              className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+              className="h-7 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {busy ? "Saving..." : "Save"}
             </button>
@@ -344,8 +354,8 @@ export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMo
       const data = await readJsonOrError<{ entries: GlossaryEntry[] }>(res);
       setEntries(data.entries);
       setLoaded(true);
-    } catch {
-      // Silently fail - glossary mode just won't highlight
+    } catch (err) {
+      console.warn("[glossary] Failed to fetch entries for novel", novelId, err);
     }
   }
 
@@ -361,8 +371,8 @@ export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMo
           setEntries(data.entries);
           setLoaded(true);
         }
-      } catch {
-        // Silently fail - glossary mode just won't highlight
+      } catch (err) {
+        console.warn("[glossary] Failed to fetch entries for novel", novelId, err);
       }
     })();
 
@@ -375,6 +385,8 @@ export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMo
         <button
           type="button"
           onClick={() => handleToggle()}
+          aria-expanded={glossaryMode}
+          aria-label="Toggle glossary highlighting"
           className={`h-8 rounded-md px-3 text-xs font-medium transition-colors ${
             glossaryMode
               ? "bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200"

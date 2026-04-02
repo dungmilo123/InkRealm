@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "InkRealm — Your Personal Novel Sanctuary",
+  },
+  description:
+    "Upload, read, and translate novels with AI. InkRealm is your personal novel library with multi-provider translation support.",
+};
 
 export default function Home() {
   return (

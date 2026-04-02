@@ -63,6 +63,7 @@ test("novel details view shows metadata, reading entry, and translation progress
       readerSummary: {
         isReadable: true,
         chapterCount: 2,
+        totalWordCount: 5000,
       },
       readingProgress: null,
       translationDataError: null,
@@ -91,6 +92,7 @@ test("novel details view shows reader-unavailable state and hides translation st
         isReadable: false,
         chapterCount: 0,
         unavailableReason: "Could not read this text file from storage.",
+        totalWordCount: 0,
       },
       readingProgress: null,
       translationDataError: null,
@@ -115,6 +117,7 @@ test("novel details view shows translation data error banner", () => {
       readerSummary: {
         isReadable: true,
         chapterCount: 2,
+        totalWordCount: 5000,
       },
       readingProgress: null,
       translationDataError: "Translation data is currently unavailable.",
@@ -135,6 +138,7 @@ test("novel details view shows Continue Reading when progress exists", () => {
       readerSummary: {
         isReadable: true,
         chapterCount: 10,
+        totalWordCount: 25000,
       },
       readingProgress: {
         lastChapterIndex: 5,

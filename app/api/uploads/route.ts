@@ -4,6 +4,11 @@ import { generateStorageKey, writeNovelFile } from "@/app/lib/storage";
 import { createNovel } from "@/app/lib/novels";
 import { unlink } from "fs/promises";
 import { auth } from "@/auth";
+import {
+  uploadLimiter,
+  getClientIp,
+  rateLimitResponse,
+} from "@/app/lib/rate-limit";
 
 const VALID_FILE_TYPES = ["txt", "epub"];
 
@@ -30,6 +35,12 @@ function sanitizeTitle(fileName: string): string {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rl = uploadLimiter.check(ip);
+    if (!rl.allowed) {
+      return rateLimitResponse(rl);
+    }
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

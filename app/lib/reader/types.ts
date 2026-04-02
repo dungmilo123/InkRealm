@@ -19,7 +19,9 @@ export type ReaderSummary = {
   isReadable: boolean;
   chapterCount: number;
   unavailableReason?: string;
-  chapters?: { index: number; title: string }[];
+  chapters?: { index: number; title: string; wordCount: number }[];
+  /** Total word count across all chapters (0 when not readable) */
+  totalWordCount: number;
 };
 
 export class ReaderUnavailableError extends Error {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Cormorant_Garamond, Crimson_Pro } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { ToasterProvider } from "@/components/toaster-provider";
@@ -20,21 +21,20 @@ const crimsonPro = Crimson_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "InkRealm",
-  description: "Your personal fantasy novel library",
+  title: {
+    default: "InkRealm",
+    template: "%s | InkRealm",
+  },
+  description: "Your personal novel sanctuary — upload, read, and translate novels with AI",
 };
 
-/**
- * Root layout component that provides the application's HTML shell, global fonts, theme provider, and toast layer.
- *
- * @param children - The page content to render inside the layout
- * @returns The root HTML element containing <html> and <body> wrappers with font classes, theme provider, rendered children, and the toaster provider
- */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" className={`${cormorantGaramond.variable} ${crimsonPro.variable}`} suppressHydrationWarning>
       <body className="min-h-full font-sans antialiased">
@@ -44,7 +44,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} nonce={nonce}>
           {children}
           <ToasterProvider />
         </ThemeProvider>

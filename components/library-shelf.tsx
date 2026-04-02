@@ -11,23 +11,6 @@ interface LibraryShelfProps {
   signOutAction?: () => Promise<void>;
 }
 
-/**
- * Render a page shell with a header and a centered main area for the library UI.
- *
- * The header shows either a back link (when `showBack` is true) or the primary branding.
- * When `activeRoute` is provided and `showBack` is false, a small-screen-hidden main navigation
- * ("Library" and "Settings") is rendered and the matching route receives active styling and
- * `aria-current="page"`. If both `user` and `signOutAction` are provided, a `UserMenu` is shown;
- * otherwise a "My Library" link is displayed.
- *
- * @param children - Main content to render inside the page shell
- * @param showBack - When true, show a back link instead of the primary branding/navigation
- * @param backHref - Destination URL for the back link (defaults to "/dashboard")
- * @param activeRoute - If provided, highlights the corresponding primary navigation item
- * @param user - Authenticated user object; required alongside `signOutAction` to enable `UserMenu`
- * @param signOutAction - Action to sign the user out; required alongside `user` to enable `UserMenu`
- * @returns A React element representing the library page layout
- */
 export function LibraryShelf({ children, showBack, backHref = "/dashboard", activeRoute, user, signOutAction }: LibraryShelfProps) {
   return (
     <div className="flex flex-col flex-1 bg-background">

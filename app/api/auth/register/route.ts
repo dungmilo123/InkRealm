@@ -2,33 +2,42 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
+import {
+  normalizeEmail,
+  validateEmail,
+  validatePassword,
+} from "@/app/lib/auth-validation";
+import {
+  authLimiter,
+  getClientIp,
+  rateLimitResponse,
+} from "@/app/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = authLimiter.check(ip);
+  if (!rl.allowed) {
+    return rateLimitResponse(rl);
+  }
+
   const body = await request.json();
-  const { email, password } = body as { email?: string; password?: string };
+  const { email: rawEmail, password } = body as {
+    email?: string;
+    password?: string;
+  };
 
-  // Validate input
-  if (!email || !password) {
-    return NextResponse.json(
-      { error: "Email and password are required" },
-      { status: 400 }
-    );
+  // Validate input using shared rules
+  const emailError = validateEmail(rawEmail);
+  if (emailError) {
+    return NextResponse.json(emailError, { status: 400 });
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return NextResponse.json(
-      { error: "Invalid email format" },
-      { status: 400 }
-    );
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return NextResponse.json(passwordError, { status: 400 });
   }
 
-  if (password.length < 8) {
-    return NextResponse.json(
-      { error: "Password must be at least 8 characters" },
-      { status: 400 }
-    );
-  }
+  const email = normalizeEmail(rawEmail!);
 
   // Check for existing user
   const existing = await prisma.user.findUnique({
@@ -53,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   // Create user with hashed password
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password!, 12);
   const user = await prisma.user.create({
     data: {
       email,

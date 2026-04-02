@@ -11,15 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-/**
- * Renders a user account dropdown with avatar/name, a link to settings, and a sign-out action.
- *
- * The sign-out item starts a React transition when clicked and is disabled while that transition is pending.
- *
- * @param user - User data; `name` is used for display and `image` (if present) is shown as the avatar.
- * @param signOutAction - Async callback invoked to sign the user out when the "Sign out" item is selected.
- * @returns The account dropdown menu JSX element.
- */
 export function UserMenu({
   user,
   signOutAction,

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { readJsonOrError } from "@/lib/fetch";
+import { SearchHighlightedText } from "./search-highlighted-text";
+import type { SearchMatch } from "@/lib/chapter-search";
 
 type GlossaryVariant = {
   id: string;
@@ -18,15 +21,15 @@ type GlossaryEntry = {
 type GlossaryReaderProps = {
   novelId: string;
   paragraphs: string[];
+  /** When provided, glossary mode is controlled by the parent */
+  glossaryMode?: boolean;
+  /** Called when the glossary toggle button is clicked (controlled mode) */
+  onToggleGlossary?: () => void;
+  /** Search matches to highlight (optional, from chapter search) */
+  searchMatches?: SearchMatch[];
+  /** Index of the currently active search match */
+  activeSearchMatchIndex?: number;
 };
-
-async function readJsonOrError<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
-  }
-  return payload;
-}
 
 function GlossaryPopover({
   entry,
@@ -236,21 +239,42 @@ function GlossaryPopover({
 
 function HighlightedParagraph({
   text,
+  paragraphIndex,
   entries,
   glossaryMode,
   novelId,
   onUpdate,
+  searchMatches,
+  activeSearchMatchIndex,
 }: {
   text: string;
+  paragraphIndex: number;
   entries: GlossaryEntry[];
   glossaryMode: boolean;
   novelId: string;
   onUpdate: () => void;
+  searchMatches?: SearchMatch[];
+  activeSearchMatchIndex?: number;
 }) {
   const [activeEntry, setActiveEntry] = useState<GlossaryEntry | null>(null);
 
+  const hasSearch = searchMatches && searchMatches.length > 0;
+
+  // Helper to render text with optional search highlighting
+  function renderText(content: string) {
+    if (!hasSearch) return content;
+    return (
+      <SearchHighlightedText
+        text={content}
+        paragraphIndex={paragraphIndex}
+        matches={searchMatches}
+        activeMatchIndex={activeSearchMatchIndex ?? -1}
+      />
+    );
+  }
+
   if (!glossaryMode || entries.length === 0) {
-    return <p>{text}</p>;
+    return <p>{renderText(text)}</p>;
   }
 
   // Build a list of all terms to highlight (canonical + variants)
@@ -277,7 +301,7 @@ function HighlightedParagraph({
     <p className="relative">
       {parts.map((part, i) => {
         const entry = termMap.get(part);
-        if (!entry) return <span key={i}>{part}</span>;
+        if (!entry) return <span key={i}>{renderText(part)}</span>;
 
         return (
           <span key={i} className="relative inline">
@@ -306,8 +330,10 @@ function HighlightedParagraph({
   );
 }
 
-export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
-  const [glossaryMode, setGlossaryMode] = useState(false);
+export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMode, onToggleGlossary, searchMatches, activeSearchMatchIndex }: GlossaryReaderProps) {
+  const [internalMode, setInternalMode] = useState(false);
+  const glossaryMode = controlledMode ?? internalMode;
+  const handleToggle = onToggleGlossary ?? (() => setInternalMode((m) => !m));
   const [entries, setEntries] = useState<GlossaryEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -347,7 +373,7 @@ export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
       <div className="flex justify-end mb-2">
         <button
           type="button"
-          onClick={() => setGlossaryMode(!glossaryMode)}
+          onClick={() => handleToggle()}
           className={`h-8 rounded-md px-3 text-xs font-medium transition-colors ${
             glossaryMode
               ? "bg-yellow-100 text-yellow-900 border border-yellow-300 hover:bg-yellow-200"
@@ -363,10 +389,13 @@ export function GlossaryReader({ novelId, paragraphs }: GlossaryReaderProps) {
           <HighlightedParagraph
             key={paragraphIndex}
             text={paragraph}
+            paragraphIndex={paragraphIndex}
             entries={entries}
             glossaryMode={glossaryMode}
             novelId={novelId}
             onUpdate={() => void fetchEntries()}
+            searchMatches={searchMatches}
+            activeSearchMatchIndex={activeSearchMatchIndex}
           />
         ))}
       </article>

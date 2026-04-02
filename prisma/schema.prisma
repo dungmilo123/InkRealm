@@ -92,6 +92,7 @@ model Account {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -102,6 +103,8 @@ model Session {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
@@ -128,6 +131,8 @@ model Novel {
   glossaryEntries  NovelGlossaryEntry[]
   chapterCount     Int?
   readingProgress  ReadingProgress[]
+
+  @@index([userId, createdAt])
 }
 
 model TranslationProfile {
@@ -142,6 +147,9 @@ model TranslationProfile {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider, model, userId])
 }
 
 model NovelTranslation {
@@ -165,6 +173,7 @@ model NovelTranslation {
   chapters          NovelTranslationChapter[]
 
   @@index([novelId])
+  @@index([novelId, status])
 }
 
 model NovelTranslationChapter {
@@ -226,6 +235,7 @@ model ChapterVisit {
   id                String          @id @default(cuid())
   readingProgressId String
   chapterIndex      Int
+  scrollPosition    Float?
   visitedAt         DateTime        @default(now())
   readingProgress   ReadingProgress @relation(fields: [readingProgressId], references: [id], onDelete: Cascade)
 

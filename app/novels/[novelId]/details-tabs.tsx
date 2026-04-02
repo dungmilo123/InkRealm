@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
 import { useTranslationPolling } from "./use-translation-polling";
+import { useTranslationEta } from "./use-translation-eta";
+import { useTranslationNotification } from "./use-translation-notification";
+import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
+import { Bell, BellOff } from "lucide-react";
 import type {
   SerializedDefaultProfile,
   SerializedTranslationJob,
@@ -20,6 +24,7 @@ type ReadingProgressData = {
 
 type DetailsTabsProps = {
   novelId: string;
+  novelTitle: string;
   readerSummary: ReaderSummary;
   readingProgress: ReadingProgressData;
   isReadable: boolean;
@@ -39,7 +44,7 @@ const ChapterList = memo(function ChapterList({
   chapterStatuses,
 }: {
   novelId: string;
-  chapters: { index: number; title: string }[];
+  chapters: { index: number; title: string; wordCount: number }[];
   readingProgress: ReadingProgressData;
   chapterStatuses: ChapterTranslationStatus[];
 }) {
@@ -67,6 +72,7 @@ const ChapterList = memo(function ChapterList({
         }
 
         const translationStatus = statusMap.get(ch.index);
+        const readingMin = estimateReadingMinutes(ch.wordCount);
 
         return (
           <Link
@@ -83,13 +89,18 @@ const ChapterList = memo(function ChapterList({
             <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
               {ch.title}
             </span>
+            {ch.wordCount > 0 && (
+              <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
+                {formatReadingTime(readingMin)}
+              </span>
+            )}
             {translationStatus === "translated" && (
-              <Badge className="ml-auto shrink-0 bg-primary/10 text-primary border-0 text-xs">
+              <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
                 Translated
               </Badge>
             )}
             {translationStatus === "translating" && (
-              <Badge className="ml-auto shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
+              <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs animate-pulse">
                 Translating...
               </Badge>
             )}
@@ -100,23 +111,9 @@ const ChapterList = memo(function ChapterList({
   );
 });
 
-/**
- * Render a tabbed interface ("Chapters", "Translation", "Glossary") for a novel,
- * including a translation progress bar, live polling of translation job status,
- * and per-chapter translation/reading indicators.
- *
- * @param novelId - Identifier for the novel used to build links and panel props
- * @param readerSummary - Summary of the reader data, including chapter list and readability flag
- * @param readingProgress - User reading progress (may be null); used to mark visited/last chapters
- * @param isReadable - Whether the novel is readable by the current user
- * @param serializedDefaultProfile - Serialized default translation profile passed to the Translation panel
- * @param serializedLatestJob - Initial translation job state used to seed polling and progress display
- * @param chapterCount - Total number of chapters for progress calculations when job metadata is missing
- * @param initialChapterStatuses - Server-rendered chapter translation statuses used as a fallback until polling returns data
- * @returns The React element displaying the tabs, progress bar, and the active tab panel
- */
 export function DetailsTabs({
   novelId,
+  novelTitle,
   readerSummary,
   readingProgress,
   isReadable,
@@ -134,6 +131,16 @@ export function DetailsTabs({
   const { isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
     useTranslationPolling(job, handleJobUpdate);
 
+  // Browser notifications for background translation completion
+  const { canRequest, isGranted, isSupported, requestPermission } =
+    useTranslationNotification({
+      jobStatus: job?.status ?? null,
+      novelTitle,
+      totalChapters: job?.totalChapters,
+      completedChapters: job?.completedChapters,
+      jobId: job?.id,
+    });
+
   // Use polled statuses when available, fall back to initial SSR statuses
   const chapterStatuses = polledChapterStatuses.length > 0
     ? polledChapterStatuses
@@ -146,6 +153,10 @@ export function DetailsTabs({
     ? Math.round((translatedCount / totalChaptersForProgress) * 100)
     : 0;
   const isCompleted = job?.status === "COMPLETED";
+  const isTranslating = job?.status === "IN_PROGRESS" || job?.status === "PENDING";
+
+  // ETA calculation from chapter completion timestamps
+  const { etaLabel } = useTranslationEta(chapterStatuses, totalChaptersForProgress, job?.createdAt);
 
   return (
     <div>
@@ -171,6 +182,11 @@ export function DetailsTabs({
             {!isCompleted && (
               <span className="text-xs text-muted-foreground ml-2">
                 ({progressPercent}%)
+              </span>
+            )}
+            {isTranslating && etaLabel && (
+              <span className="text-xs text-muted-foreground/70 ml-1.5">
+                · {etaLabel} remaining
               </span>
             )}
           </p>
@@ -219,17 +235,48 @@ export function DetailsTabs({
         )}
 
         {activeTab === "Translation" && (
-          <TranslationPanel
-            novelId={novelId}
-            isReadable={isReadable}
-            defaultProfile={serializedDefaultProfile}
-            job={job}
-            onJobUpdate={setJob}
-            isHanging={isHanging}
-            hangingChapterIndex={hangingChapterIndex}
-            chapterCount={chapterCount}
-            chapterStatuses={chapterStatuses}
-          />
+          <>
+            <TranslationPanel
+              novelId={novelId}
+              isReadable={isReadable}
+              defaultProfile={serializedDefaultProfile}
+              job={job}
+              onJobUpdate={setJob}
+              isHanging={isHanging}
+              hangingChapterIndex={hangingChapterIndex}
+              chapterCount={chapterCount}
+              chapterStatuses={chapterStatuses}
+            />
+            {/* Notification opt-in: show when translating + permission not yet granted */}
+            {isTranslating && isSupported && canRequest && (
+              <div className="mt-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <BellOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-muted-foreground">
+                      Get notified when translation finishes — even in another tab.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void requestPermission()}
+                    className="shrink-0 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                  >
+                    Enable
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Confirmation when notifications are active during translation */}
+            {isTranslating && isGranted && (
+              <div className="mt-3 flex items-center gap-2 px-1">
+                <Bell className="h-3.5 w-3.5 text-muted-foreground/60" />
+                <p className="text-xs text-muted-foreground/60">
+                  You&apos;ll be notified when translation finishes
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === "Glossary" && <GlossaryPanel novelId={novelId} />}

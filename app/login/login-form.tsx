@@ -29,13 +29,6 @@ const GOOGLE_ICON = (
   </svg>
 );
 
-/**
- * Render a login form that supports email/password sign-in and Google OAuth.
- *
- * Reads optional URL query parameters to show a password-reset success banner or an OAuth account conflict message, displays validation and authentication errors, and provides controls for credential submission and Google sign-in.
- *
- * @returns A JSX element containing the complete login UI and its interactive handlers (credential submission, OAuth initiation, and post-sign-in navigation).
- */
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");

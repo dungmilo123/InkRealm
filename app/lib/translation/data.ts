@@ -561,6 +561,7 @@ export async function getTranslationJobWithOwnershipAndStatuses(
         select: {
           chapterIndex: true,
           status: true,
+          updatedAt: true,
         },
         orderBy: { chapterIndex: "asc" },
       },

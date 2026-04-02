@@ -4,10 +4,15 @@ import { auth } from "@/auth";
 import { readTranslatedExportFile } from "@/app/lib/translation/export";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import { handleTranslationRouteError } from "@/app/lib/translation/http";
-import { getDownloadableTranslationJob } from "@/app/lib/translation/service";
+import {
+  getDownloadableTranslationJob,
+  buildEpubExportForJob,
+} from "@/app/lib/translation/service";
+
+const VALID_FORMATS = new Set(["txt", "epub"]);
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ translationId: string }> }
 ) {
   try {
@@ -15,9 +20,35 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const { translationId } = await context.params;
+    const url = new URL(request.url);
+    const format = url.searchParams.get("format") ?? "txt";
+
+    if (!VALID_FORMATS.has(format)) {
+      return NextResponse.json(
+        { error: `Unsupported format: ${format}. Use "txt" or "epub".` },
+        { status: 400 }
+      );
+    }
+
     const job = await getDownloadableTranslationJob(translationId, session.user.id);
 
+    if (format === "epub") {
+      const { buffer, fileName } = await buildEpubExportForJob(
+        translationId,
+        job.novelId
+      );
+
+      return new NextResponse(new Uint8Array(buffer), {
+        headers: {
+          "Content-Type": "application/epub+zip",
+          "Content-Disposition": `attachment; filename="${fileName}"`,
+        },
+      });
+    }
+
+    // Default: TXT format (pre-generated file on disk)
     let fileBuffer: Buffer;
     try {
       fileBuffer = await readTranslatedExportFile(job.exportPath!);
@@ -29,7 +60,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Content-Disposition": `attachment; filename=\"${filename}\"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {

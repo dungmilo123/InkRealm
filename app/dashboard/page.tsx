@@ -1,19 +1,20 @@
+import type { Metadata } from "next";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
 import { getReadingProgressBatch } from "@/app/lib/reading-progress";
-import { NovelList } from "@/app/components/NovelList";
+import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
+import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
 import type { Novel } from "@/app/generated/prisma/client";
+import type { NovelProgressData } from "@/app/components/NovelList";
 
-/**
- * Render the dashboard UI for the authenticated user's library.
- *
- * Redirects to "/login" when the user is not authenticated. Loads the user's novels and reading progress, then renders a LibraryShelf containing an upload form, an error or empty-state message when appropriate, or a NovelList with per-novel progress data.
- *
- * @returns A React element representing the dashboard page.
- */
+export const metadata: Metadata = {
+  title: "Library",
+  description: "Your personal novel library — browse, search, and manage your collection",
+};
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -36,11 +37,12 @@ export default async function DashboardPage() {
     error = "Failed to load novels. Please ensure the database is configured.";
   }
 
-  const progressData: Record<string, { lastChapterIndex: number; totalChapters: number }> = {};
+  const progressData: Record<string, NovelProgressData> = {};
   for (const [novelId, prog] of progressMap) {
     progressData[novelId] = {
       lastChapterIndex: prog.lastChapterIndex,
       totalChapters: novels.find((n) => n.id === novelId)?.chapterCount ?? 0,
+      totalVisited: prog.totalVisited,
     };
   }
 
@@ -92,7 +94,13 @@ export default async function DashboardPage() {
             </p>
           </div>
         ) : (
-          <NovelList novels={novels} progressData={progressData} />
+          <>
+            <ReadingStatsBanner
+              totalNovels={novels.length}
+              progressData={progressData}
+            />
+            <NovelLibrary novels={novels} progressData={progressData} />
+          </>
         )}
       </section>
     </LibraryShelf>

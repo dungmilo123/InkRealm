@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { readJsonOrError } from "@/lib/fetch";
 import { toast } from "sonner";
+import { useTranslationEta } from "./use-translation-eta";
 import {
   Play,
   X,
-  Download,
   RotateCcw,
   AlertCircle,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
   Settings2,
+  FileText,
+  BookOpen,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +60,7 @@ type TranslationJob = {
 type ChapterStatus = {
   chapterIndex: number;
   status: "translated" | "translating" | "untranslated";
+  completedAt?: string;
 };
 
 type TranslationPanelProps = {
@@ -82,31 +86,6 @@ function getPanelState(job: TranslationJob | null): PanelState {
   return "idle";
 }
 
-async function readJsonOrError<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
-  }
-  return payload;
-}
-
-/**
- * UI panel for managing and observing a translation job for a novel.
- *
- * Renders controls to start, monitor, cancel, retry, and complete translation jobs,
- * displays progress and errors, and provides an optional chapter range picker.
- *
- * @param novelId - Identifier of the novel to translate
- * @param isReadable - Whether the novel is readable in-app; when false, translation controls are disabled
- * @param defaultProfile - The selected translation provider profile; when null, a setup prompt is shown
- * @param job - Current translation job state (may be `null`)
- * @param onJobUpdate - Callback invoked with an updated `TranslationJob` or `null` to replace the current job state
- * @param isHanging - Whether the current job appears to be stuck on a chapter
- * @param hangingChapterIndex - Index of the chapter suspected to be hanging (when `isHanging` is true)
- * @param chapterCount - Total number of chapters in the novel
- * @param chapterStatuses - Per-chapter statuses used to compute live progress while translating
- * @returns The translation panel React element
- */
 export function TranslationPanel({
   novelId,
   isReadable,
@@ -133,6 +112,9 @@ export function TranslationPanel({
   const liveProgressPercent = liveTotalChapters > 0
     ? Math.round((liveTranslatedCount / liveTotalChapters) * 100)
     : 0;
+
+  // ETA calculation from chapter completion timestamps
+  const { etaLabel } = useTranslationEta(chapterStatuses, liveTotalChapters, job?.createdAt);
 
   // Range validation
   const fromNum = chapterFrom ? Number.parseInt(chapterFrom, 10) : null;
@@ -398,6 +380,11 @@ export function TranslationPanel({
           <p className="text-sm text-muted-foreground">
             {liveTranslatedCount} of {liveTotalChapters} chapters translated (
             {liveProgressPercent}%)
+            {etaLabel && (
+              <span className="ml-1.5 text-xs text-muted-foreground/70">
+                · {etaLabel} remaining
+              </span>
+            )}
           </p>
 
           <div className="flex justify-end">
@@ -468,14 +455,32 @@ export function TranslationPanel({
           </div>
 
           {job.downloadUrl ? (
-            <a
-              href={job.downloadUrl}
-              download
-              className={buttonVariants({ className: "w-full h-10 px-6" })}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Translation
-            </a>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-card-foreground">Download as</p>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={job.downloadUrl}
+                  download
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "h-10 px-4 text-sm gap-2",
+                  })}
+                >
+                  <FileText className="h-4 w-4" />
+                  Plain Text
+                </a>
+                <a
+                  href={`${job.downloadUrl}?format=epub`}
+                  download
+                  className={buttonVariants({
+                    className: "h-10 px-4 text-sm gap-2",
+                  })}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  EPUB
+                </a>
+              </div>
+            </div>
           ) : null}
 
           <div className="flex justify-center mt-2">

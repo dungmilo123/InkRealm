@@ -1,13 +1,14 @@
 // app/register/page.tsx
+import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { RegisterForm } from "./register-form";
 
-/**
- * Render the registration page or redirect authenticated users to the dashboard.
- *
- * @returns The `RegisterForm` React element when no authenticated session exists; otherwise performs a redirect to `/dashboard`.
- */
+export const metadata: Metadata = {
+  title: "Create Account",
+  description: "Create your InkRealm account to start reading and translating novels",
+};
+
 export default async function RegisterPage() {
   const session = await auth();
   if (session?.user?.id) {

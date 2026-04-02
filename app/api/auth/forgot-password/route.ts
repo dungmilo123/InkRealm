@@ -2,13 +2,28 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { randomBytes } from "crypto";
 import { sendPasswordResetEmail } from "@/app/lib/email";
+import { normalizeEmail, validateEmail } from "@/app/lib/auth-validation";
+import {
+  authLimiter,
+  getClientIp,
+  rateLimitResponse,
+} from "@/app/lib/rate-limit";
 
 export async function POST(request: Request) {
-  const { email } = (await request.json()) as { email?: string };
-
-  if (!email) {
-    return NextResponse.json({ error: "Email is required" }, { status: 400 });
+  const ip = getClientIp(request);
+  const rl = authLimiter.check(ip);
+  if (!rl.allowed) {
+    return rateLimitResponse(rl);
   }
+
+  const { email: rawEmail } = (await request.json()) as { email?: string };
+
+  const emailError = validateEmail(rawEmail);
+  if (emailError) {
+    return NextResponse.json(emailError, { status: 400 });
+  }
+
+  const email = normalizeEmail(rawEmail!);
 
   // Always return the same message to prevent email enumeration
   const genericMessage = "If an account exists, a reset link has been sent.";

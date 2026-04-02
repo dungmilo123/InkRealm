@@ -5,6 +5,14 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { UserMenu } from "@/components/user-menu";
 import { GlossaryReader } from "./glossary-reader";
+import { useReaderKeyboardShortcuts } from "./use-reader-keyboard-shortcuts";
+import { KeyboardShortcutsHelp } from "./keyboard-shortcuts-help";
+import { useScrollPosition } from "./use-scroll-position";
+import { useChapterSearch } from "./use-chapter-search";
+import { SearchBar } from "./search-bar";
+import { ChapterDrawer } from "./chapter-drawer";
+import { List, Search } from "lucide-react";
+import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
 
 type ReaderClientProps = {
@@ -15,25 +23,16 @@ type ReaderClientProps = {
     title: string;
     paragraphs: string[];
   };
+  /** All chapter titles for the table of contents drawer */
+  chapters: { index: number; title: string }[];
   chapterCount: number;
+  wordCount: number;
   preferences: ReadingPreferences;
   user: { name?: string | null; image?: string | null };
   signOutAction: () => Promise<void>;
   translatedParagraphs: string[] | null;
 };
 
-/**
- * Render a popover dialog for adjusting reading preferences.
- *
- * Provides controls for font size, line height, content width, theme, and font family.
- * Each control updates values from `preferences` and invokes `onChange` with the updated
- * `ReadingPreferences`. The container is exposed as a dialog for accessibility (`role="dialog"`,
- * `aria-label="Reading settings"`).
- *
- * @param preferences - Current reading preferences used to populate control values
- * @param onChange - Callback invoked with the updated `ReadingPreferences` when any control changes
- * @returns The settings popover element
- */
 function SettingsPopover({
   preferences,
   onChange,
@@ -160,29 +159,13 @@ function SettingsPopover({
   );
 }
 
-/**
- * Client-side reader component that displays a chapter's content, reading controls, and chapter navigation.
- *
- * Renders the chapter title and metadata, a toggle between original and translated text (when translations are provided),
- * a settings popover for adjusting reading preferences, and previous/next chapter navigation.
- *
- * Preference changes are persisted via a debounced PUT to /api/reading/preferences (300ms).
- *
- * @param novelId - The novel's unique identifier (used for links and glossary lookups)
- * @param novelTitle - The novel's display title (shown in header)
- * @param chapter - The current chapter object (includes `index`, `title`, and `paragraphs`)
- * @param chapterCount - Total number of chapters in the novel
- * @param preferences - Initial reading preferences (font size, line height, max width, theme, font family)
- * @param user - Current authenticated user (passed to the user menu)
- * @param signOutAction - Callback invoked to sign the user out
- * @param translatedParagraphs - Optional translated paragraphs; when provided the component defaults to showing translations and exposes a toggle to switch to the original
- * @returns The component's rendered React element
- */
 export function ReaderClient({
   novelId,
   novelTitle,
   chapter,
+  chapters,
   chapterCount,
+  wordCount,
   preferences: initialPreferences,
   user,
   signOutAction,
@@ -199,8 +182,46 @@ export function ReaderClient({
 
   const [preferences, setPreferences] = useState(initialPreferences);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showChapterDrawer, setShowChapterDrawer] = useState(false);
+  const [glossaryMode, setGlossaryMode] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Scroll position persistence + reading progress tracking
+  const { progress: scrollProgress } = useScrollPosition({
+    novelId,
+    chapterIndex: chapter.index,
+  });
+
+  // In-chapter text search
+  const search = useChapterSearch({ paragraphs: displayParagraphs });
+
+  const previousChapterHref =
+    chapter.index > 1 ? `/novels/${novelId}/read/${chapter.index - 1}` : null;
+  const nextChapterHref =
+    chapter.index < chapterCount
+      ? `/novels/${novelId}/read/${chapter.index + 1}`
+      : null;
+
+  const toggleTranslation = useCallback(() => {
+    if (hasTranslation) setShowTranslated((v) => !v);
+  }, [hasTranslation]);
+  const toggleSettings = useCallback(() => setShowSettings((v) => !v), []);
+  const toggleGlossary = useCallback(() => setGlossaryMode((v) => !v), []);
+  const toggleChapterDrawer = useCallback(() => setShowChapterDrawer((v) => !v), []);
+  const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
+
+  useReaderKeyboardShortcuts({
+    previousChapterHref,
+    nextChapterHref,
+    toggleTranslation: hasTranslation ? toggleTranslation : undefined,
+    toggleSettings,
+    toggleGlossary,
+    toggleChapterDrawer,
+    toggleHelp,
+    toggleSearch: search.toggle,
+  });
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -245,15 +266,35 @@ export function ReaderClient({
 
   const fontFamilyClass = preferences.fontFamily === "SANS" ? "font-sans" : "font-serif";
 
-  const previousChapterHref =
-    chapter.index > 1 ? `/novels/${novelId}/read/${chapter.index - 1}` : null;
-  const nextChapterHref =
-    chapter.index < chapterCount
-      ? `/novels/${novelId}/read/${chapter.index + 1}`
-      : null;
-
   return (
     <div className="flex flex-col flex-1 bg-background">
+      {/* Reading progress indicator — fixed thin bar at top of viewport */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-muted/30"
+        role="progressbar"
+        aria-valuenow={Math.round(scrollProgress * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="Reading progress"
+      >
+        <div
+          className="h-full bg-primary/70 transition-[width] duration-150 ease-out"
+          style={{ width: `${scrollProgress * 100}%` }}
+        />
+      </div>
+
+      {search.isOpen && (
+        <SearchBar
+          query={search.query}
+          onQueryChange={search.setQuery}
+          totalMatches={search.matches.length}
+          activeMatchIndex={search.activeMatchIndex}
+          onNext={search.goToNext}
+          onPrev={search.goToPrev}
+          onClose={search.close}
+        />
+      )}
+
       <header className="w-full border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm mb-3">
@@ -265,6 +306,32 @@ export function ReaderClient({
               ]}
             />
             <div className="flex items-center gap-x-3">
+              <button
+                type="button"
+                onClick={toggleChapterDrawer}
+                className={`inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium transition-colors border ${
+                  showChapterDrawer
+                    ? "bg-muted border-border"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                }`}
+                aria-label="Table of contents"
+                title="Table of contents (C)"
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={search.toggle}
+                className={`inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium transition-colors border ${
+                  search.isOpen
+                    ? "bg-muted border-border"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                }`}
+                aria-label="Search in chapter"
+                title="Search in chapter (F)"
+              >
+                <Search className="h-4 w-4" />
+              </button>
               {hasTranslation && (
                 <div
                   className="flex rounded-md border border-border overflow-hidden"
@@ -327,6 +394,16 @@ export function ReaderClient({
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
             {novelTitle} · Chapter {chapter.index} of {chapterCount}
+            {wordCount > 0 && (
+              <span className="ml-1">
+                · {formatReadingTime(estimateReadingMinutes(wordCount))} read
+              </span>
+            )}
+            {scrollProgress > 0.01 && (
+              <span className="ml-1">
+                · {Math.round(scrollProgress * 100)}%
+              </span>
+            )}
           </p>
         </div>
       </header>
@@ -343,7 +420,14 @@ export function ReaderClient({
             lineHeight: preferences.lineHeight,
           }}
         >
-          <GlossaryReader novelId={novelId} paragraphs={displayParagraphs} />
+          <GlossaryReader
+            novelId={novelId}
+            paragraphs={displayParagraphs}
+            glossaryMode={glossaryMode}
+            onToggleGlossary={toggleGlossary}
+            searchMatches={search.matches}
+            activeSearchMatchIndex={search.activeMatchIndex}
+          />
         </div>
 
         <nav className="mt-6 flex items-center justify-between gap-4">
@@ -352,7 +436,7 @@ export function ReaderClient({
               href={previousChapterHref}
               className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
             >
-              Previous chapter
+              ← Previous chapter
             </Link>
           ) : (
             <span className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm text-muted-foreground">
@@ -360,12 +444,22 @@ export function ReaderClient({
             </span>
           )}
 
+          <button
+            type="button"
+            onClick={toggleHelp}
+            className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+          >
+            <kbd className="font-mono">?</kbd>
+          </button>
+
           {nextChapterHref ? (
             <Link
               href={nextChapterHref}
               className="inline-flex h-10 items-center rounded-full bg-foreground text-background px-5 text-sm font-medium hover:bg-foreground/90 transition-colors"
             >
-              Next chapter
+              Next chapter →
             </Link>
           ) : (
             <span className="inline-flex h-10 items-center rounded-full border border-border px-5 text-sm text-muted-foreground">
@@ -374,6 +468,23 @@ export function ReaderClient({
           )}
         </nav>
       </main>
+
+      {showChapterDrawer && (
+        <ChapterDrawer
+          novelId={novelId}
+          chapters={chapters}
+          currentChapterIndex={chapter.index}
+          onClose={toggleChapterDrawer}
+        />
+      )}
+
+      {showHelp && (
+        <KeyboardShortcutsHelp
+          onClose={toggleHelp}
+          hasTranslation={hasTranslation}
+          hasGlossary={true}
+        />
+      )}
     </div>
   );
 }

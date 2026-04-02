@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { readJsonOrError } from "@/lib/fetch";
 
 type GlossaryVariant = {
   id: string;
@@ -39,14 +40,6 @@ type FeedbackState = {
 };
 
 const ENTRY_TYPES = ["CHARACTER", "PLACE", "TECHNIQUE", "OTHER"] as const;
-
-async function readJsonOrError<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
-  }
-  return payload;
-}
 
 function typeBadgeClass(type: string) {
   switch (type) {

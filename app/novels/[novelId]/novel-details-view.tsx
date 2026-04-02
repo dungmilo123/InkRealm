@@ -4,13 +4,8 @@ import type { ReaderSummary } from "@/app/lib/reader";
 import { BookCover } from "@/components/book-cover";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LibraryShelf } from "@/components/library-shelf";
-import dynamic from "next/dynamic";
 import { DetailsTabs } from "./details-tabs";
-
-const DeleteNovelButton = dynamic(() =>
-  import("./delete-novel-button").then((m) => m.DeleteNovelButton),
-  { ssr: false }
-);
+import { DeleteNovelButtonClient } from "./delete-novel-button-client";
 import { formatFileSize } from "@/app/lib/format";
 import {
   estimateReadingMinutes,
@@ -116,7 +111,7 @@ export function NovelDetailsView({
                 <h1 className="text-2xl font-heading font-bold tracking-tight text-foreground">
                   {novel.title}
                 </h1>
-                <DeleteNovelButton novelId={novel.id} novelTitle={novel.title} />
+                <DeleteNovelButtonClient novelId={novel.id} novelTitle={novel.title} />
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Added {formatDate(novel.createdAt)}

@@ -636,7 +636,7 @@ function FeedbackBanner({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+    <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
       {text}
     </div>
   );

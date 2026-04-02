@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 
 const GOOGLE_ICON = (
-  <svg className="size-5" viewBox="0 0 24 24">
+  <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
     <path
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
       fill="#4285F4"
@@ -87,7 +87,7 @@ export function LoginForm() {
         </div>
 
         {resetSuccess && (
-          <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+          <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
             Your password has been reset. Sign in with your new password.
           </div>
         )}

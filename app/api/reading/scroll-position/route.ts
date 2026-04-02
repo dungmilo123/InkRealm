@@ -53,7 +53,7 @@ export async function PUT(request: Request) {
       chapterIndex,
       scrollPosition
     );
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to save scroll position:", error);
     return NextResponse.json(

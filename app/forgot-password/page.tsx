@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
 
         {submitted ? (
           <div className="space-y-4">
-            <div className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
+            <div role="status" className="rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm text-foreground">
               If an account exists, a reset link has been sent. Check your email.
             </div>
             <p className="text-center text-sm text-muted-foreground">

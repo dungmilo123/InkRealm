@@ -321,9 +321,10 @@ export function ReaderClient({
                     : "border-border text-muted-foreground hover:bg-muted"
                 }`}
                 aria-label="Table of contents"
+                aria-expanded={showChapterDrawer}
                 title="Table of contents (C)"
               >
-                <List className="h-4 w-4" />
+                <List className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -334,9 +335,10 @@ export function ReaderClient({
                     : "border-border text-muted-foreground hover:bg-muted"
                 }`}
                 aria-label="Search in chapter"
+                aria-expanded={search.isOpen}
                 title="Search in chapter (F)"
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-4 w-4" aria-hidden="true" />
               </button>
               {hasTranslation && (
                 <div
@@ -382,6 +384,7 @@ export function ReaderClient({
                       : "border-border text-muted-foreground hover:bg-muted"
                   }`}
                   aria-label="Reading settings"
+                  aria-expanded={showSettings}
                 >
                   Aa
                 </button>

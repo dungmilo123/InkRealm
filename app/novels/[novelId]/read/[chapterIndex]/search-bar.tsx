@@ -55,7 +55,7 @@ export function SearchBar({
     <div className="fixed top-2 right-4 z-[60] flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 shadow-lg animate-in slide-in-from-top-2 duration-200">
       <input
         ref={inputRef}
-        type="text"
+        type="search"
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -84,21 +84,21 @@ export function SearchBar({
           type="button"
           onClick={onPrev}
           disabled={totalMatches === 0}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
           aria-label="Previous match"
           title="Previous match (Shift+Enter)"
         >
-          <ChevronUp className="h-4 w-4" />
+          <ChevronUp className="h-4 w-4" aria-hidden="true" />
         </button>
         <button
           type="button"
           onClick={onNext}
           disabled={totalMatches === 0}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
           aria-label="Next match"
           title="Next match (Enter)"
         >
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 
@@ -109,7 +109,7 @@ export function SearchBar({
         aria-label="Close search"
         title="Close search (Escape)"
       >
-        <X className="h-4 w-4" />
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );

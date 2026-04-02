@@ -19,7 +19,7 @@
 export async function readJsonOrError<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as T & { error?: string };
   if (!response.ok) {
-    throw new Error(payload.error ?? "Request failed");
+    throw new Error(payload.error || "Request failed");
   }
   return payload;
 }

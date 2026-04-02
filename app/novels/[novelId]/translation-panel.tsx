@@ -203,7 +203,7 @@ export function TranslationPanel({
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Settings2 className="h-6 w-6 text-muted-foreground" />
+            <Settings2 className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
           </div>
           <p className="text-sm font-bold text-foreground">No provider configured</p>
           <p className="text-sm text-muted-foreground">
@@ -256,7 +256,7 @@ export function TranslationPanel({
       {providerNote}
 
       {error ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">
+        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">
           {error}
         </div>
       ) : null}
@@ -287,7 +287,7 @@ export function TranslationPanel({
             aria-busy={busy}
             onClick={() => void handleStartTranslation()}
           >
-            <Play className="h-4 w-4 mr-2" />
+            <Play className="h-4 w-4 mr-2" aria-hidden="true" />
             {allTranslated ? "Re-translate" : "Translate"}
           </Button>
 
@@ -300,12 +300,12 @@ export function TranslationPanel({
             >
               {showRange ? (
                 <>
-                  <ChevronUp className="h-3.5 w-3.5" />
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
                   Hide chapter range
                 </>
               ) : (
                 <>
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                   Advanced: Set chapter range
                 </>
               )}
@@ -393,7 +393,7 @@ export function TranslationPanel({
               className="h-9 px-4 text-sm"
               onClick={() => setCancelDialogOpen(true)}
             >
-              <X className="h-3.5 w-3.5 mr-2" />
+              <X className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
               Stop Translation
             </Button>
           </div>
@@ -404,7 +404,7 @@ export function TranslationPanel({
               className="rounded-lg border border-border bg-muted/50 px-4 py-3 mt-3"
             >
               <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" aria-hidden="true" />
                 <div>
                   <p className="text-sm text-muted-foreground">
                     Translation may be stuck — chapter {hangingChapterIndex} has
@@ -466,7 +466,7 @@ export function TranslationPanel({
                     className: "h-10 px-4 text-sm gap-2",
                   })}
                 >
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-4 w-4" aria-hidden="true" />
                   Plain Text
                 </a>
                 <a
@@ -476,7 +476,7 @@ export function TranslationPanel({
                     className: "h-10 px-4 text-sm gap-2",
                   })}
                 >
-                  <BookOpen className="h-4 w-4" />
+                  <BookOpen className="h-4 w-4" aria-hidden="true" />
                   EPUB
                 </a>
               </div>
@@ -507,7 +507,7 @@ export function TranslationPanel({
             className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3"
           >
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" aria-hidden="true" />
               <div>
                 <p className="text-sm text-destructive">
                   Failed at chapter {job.failedChapterIndex ?? "unknown"}:{" "}
@@ -526,7 +526,7 @@ export function TranslationPanel({
             onClick={() => void handleRetry()}
             disabled={busy}
           >
-            <RotateCcw className="h-4 w-4 mr-2" />
+            <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
             Retry from Chapter {job.failedChapterIndex ?? "unknown"}
           </Button>
 

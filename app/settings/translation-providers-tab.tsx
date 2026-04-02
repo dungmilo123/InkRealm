@@ -262,7 +262,7 @@ export function TranslationProvidersTab({
         )}
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Settings2 className="h-6 w-6 text-muted-foreground" />
+            <Settings2 className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
           </div>
           <p className="text-foreground font-bold">
             No translation providers
@@ -275,7 +275,7 @@ export function TranslationProvidersTab({
             className="border-dashed"
             onClick={() => setShowCreateForm(true)}
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add Provider
           </Button>
         </div>

@@ -167,6 +167,9 @@ export function NovelDetailsView({
               <Link
                 href={readHref}
                 className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                aria-label={readingProgress
+                  ? `Continue reading "${novel.title}" from chapter ${readingProgress.lastChapterIndex}`
+                  : `Start reading "${novel.title}"`}
               >
                 {readLabel}
               </Link>
@@ -186,7 +189,7 @@ export function NovelDetailsView({
         </div>
 
         {translationDataError ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {translationDataError}
           </div>
         ) : null}

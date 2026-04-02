@@ -22,12 +22,14 @@ export function LibraryShelf({ children, showBack, backHref = "/dashboard", acti
                 <Link
                   href={backHref}
                   className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Back to library"
                 >
                   <svg
                     className="mr-1.5 size-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <path
                       strokeLinecap="round"

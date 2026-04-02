@@ -36,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${cormorantGaramond.variable} ${crimsonPro.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${cormorantGaramond.variable} ${crimsonPro.variable}`} suppressHydrationWarning>
       <body className="min-h-full font-sans antialiased">
         <a
           href="#main"

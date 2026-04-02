@@ -19,7 +19,7 @@ export function ResetPasswordForm() {
 
   if (!token || !email) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <main id="main" className="flex min-h-screen items-center justify-center bg-background">
         <div className="w-full max-w-sm space-y-8 px-6 text-center">
           <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
             Invalid link
@@ -34,7 +34,7 @@ export function ResetPasswordForm() {
             Request a new reset link
           </Link>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -76,7 +76,7 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <main id="main" className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
@@ -136,6 +136,6 @@ export function ResetPasswordForm() {
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

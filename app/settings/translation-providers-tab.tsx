@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +98,12 @@ export function TranslationProvidersTab({
   const [createCustomPrompt, setCreateCustomPrompt] = useState("");
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
+    };
+  }, []);
 
   function setFeedbackWithDismiss(fb: { type: "success" | "error"; text: string }) {
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);

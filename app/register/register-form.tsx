@@ -46,7 +46,7 @@ export function RegisterForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error || "Registration failed. Please try again.");
         return;
       }
 
@@ -59,7 +59,7 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <main id="main" className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-8 px-6">
         <div className="text-center">
           <h1 className="text-3xl font-heading font-semibold tracking-tight text-foreground">
@@ -72,7 +72,7 @@ export function RegisterForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -139,6 +139,6 @@ export function RegisterForm() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

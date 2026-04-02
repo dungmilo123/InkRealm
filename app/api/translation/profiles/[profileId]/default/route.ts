@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import { setDefaultProfile } from "@/app/lib/translation/profiles";
 import { handleTranslationRouteError } from "@/app/lib/translation/http";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
@@ -13,10 +13,8 @@ export async function PUT(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { profileId } = await context.params;
     const profile = await setDefaultProfile(profileId, session.user.id);
     return NextResponse.json({ profile });

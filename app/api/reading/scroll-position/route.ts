@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   saveScrollPosition,
   getScrollPosition,
@@ -18,10 +18,8 @@ export async function PUT(request: Request) {
   const rl = apiFrequentLimiter.check(ip);
   if (!rl.allowed) return rateLimitResponse(rl);
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   let body: Record<string, unknown>;
   try {
@@ -72,10 +70,8 @@ export async function GET(request: Request) {
   const rl = apiFrequentLimiter.check(ip);
   if (!rl.allowed) return rateLimitResponse(rl);
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   const url = new URL(request.url);
   const novelId = url.searchParams.get("novelId");

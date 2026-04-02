@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   updateUserReadingPreferences,
   type ReadingPreferences,
@@ -20,10 +20,8 @@ export async function PUT(request: Request) {
   const rl = apiLimiter.check(ip);
   if (!rl.allowed) return rateLimitResponse(rl);
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   let body: Record<string, unknown>;
   try {

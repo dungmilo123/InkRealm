@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import { prisma } from "@/app/lib/prisma";
 import bcrypt from "bcrypt";
 import { validatePassword } from "@/app/lib/auth-validation";
@@ -16,10 +16,8 @@ export async function POST(request: Request) {
     return rateLimitResponse(rl);
   }
 
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { session, response } = await requireAuth();
+  if (response) return response;
 
   const { password } = (await request.json()) as { password?: string };
 

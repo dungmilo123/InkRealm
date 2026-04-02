@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   createTranslationJobFromNovelDetails,
   getLatestNovelTranslationJobView,
@@ -14,10 +14,8 @@ export async function GET(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { novelId } = await context.params;
     const job = await getLatestNovelTranslationJobView(novelId, session.user.id);
     return NextResponse.json({ job });
@@ -31,10 +29,8 @@ export async function POST(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const payload = await safeReadJson(request);
     const { novelId } = await context.params;
     const parsed = parseStartTranslationPayload(payload);

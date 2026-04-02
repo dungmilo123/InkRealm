@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   deleteTranslationProfile,
   updateTranslationProfile,
@@ -19,10 +19,8 @@ export async function DELETE(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { profileId } = await context.params;
     await deleteTranslationProfile(profileId, session.user.id);
     return NextResponse.json({ success: true });
@@ -40,10 +38,8 @@ export async function PATCH(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const payload = await safeReadJson(request);
     const { profileId } = await context.params;
     const profile = await updateTranslationProfile(profileId, payload, session.user.id);

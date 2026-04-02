@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   listGlossaryEntries,
   createGlossaryEntry,
@@ -17,10 +17,8 @@ export async function GET(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { novelId } = await context.params;
     const entries = await listGlossaryEntries(novelId, session.user.id);
     return NextResponse.json({ entries });
@@ -38,10 +36,8 @@ export async function POST(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { novelId } = await context.params;
     const body = await safeReadJson(request) as {
       canonical?: string;

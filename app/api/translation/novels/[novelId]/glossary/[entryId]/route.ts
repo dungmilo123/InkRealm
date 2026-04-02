@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/app/lib/require-auth";
 import {
   updateGlossaryEntry,
   deleteGlossaryEntry,
@@ -18,10 +18,8 @@ export async function PUT(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { entryId } = await context.params;
     const body = await safeReadJson(request) as {
       canonical?: string;
@@ -79,10 +77,8 @@ export async function DELETE(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { entryId } = await context.params;
     await deleteGlossaryEntry(entryId, session.user.id);
     return NextResponse.json({ success: true });
@@ -100,10 +96,8 @@ export async function PATCH(
     const rl = apiLimiter.check(ip);
     if (!rl.allowed) return rateLimitResponse(rl);
 
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { session, response } = await requireAuth();
+    if (response) return response;
     const { entryId } = await context.params;
     const body = await safeReadJson(request) as {
       status?: string;

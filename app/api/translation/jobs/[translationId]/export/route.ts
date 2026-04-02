@@ -8,6 +8,7 @@ import {
   getDownloadableTranslationJob,
   buildEpubExportForJob,
 } from "@/app/lib/translation/service";
+import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 const VALID_FORMATS = new Set(["txt", "epub"]);
 
@@ -16,6 +17,10 @@ export async function GET(
   context: { params: Promise<{ translationId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const { session, response } = await requireAuth();
     if (response) return response;
 

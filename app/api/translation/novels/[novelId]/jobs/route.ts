@@ -8,12 +8,17 @@ import {
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { parseStartTranslationPayload } from "@/app/lib/translation/validation";
+import { apiLimiter, apiFrequentLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiFrequentLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const { session, response } = await requireAuth();
     if (response) return response;
     const { novelId } = await context.params;
@@ -29,6 +34,10 @@ export async function POST(
   context: { params: Promise<{ novelId: string }> }
 ) {
   try {
+    const ip = getClientIp(request);
+    const rl = apiLimiter.check(ip);
+    if (!rl.allowed) return rateLimitResponse(rl);
+
     const { session, response } = await requireAuth();
     if (response) return response;
     const payload = await safeReadJson(request);

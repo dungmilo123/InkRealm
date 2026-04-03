@@ -3,10 +3,12 @@
 import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { X, Bookmark } from "lucide-react";
+import { estimateReadingMinutes } from "@/lib/reading-time";
 
 type ChapterInfo = {
   index: number;
   title: string;
+  wordCount: number;
 };
 
 type ChapterDrawerProps = {
@@ -102,6 +104,7 @@ export function ChapterDrawer({
           {chapters.map((ch) => {
             const isCurrent = ch.index === currentChapterIndex;
             const isBookmarked = bookmarkedChapterIndices.has(ch.index);
+            const readingMinutes = ch.wordCount > 0 ? estimateReadingMinutes(ch.wordCount) : 0;
             return (
               <Link
                 key={ch.index}
@@ -123,6 +126,16 @@ export function ChapterDrawer({
                   {ch.index}
                 </span>
                 <span className="truncate flex-1">{ch.title}</span>
+                {readingMinutes > 0 && (
+                  <span
+                    className={`text-[10px] tabular-nums whitespace-nowrap shrink-0 ${
+                      isCurrent ? "text-primary/60" : "text-muted-foreground/50"
+                    }`}
+                    title={`~${readingMinutes} min read`}
+                  >
+                    {readingMinutes}m
+                  </span>
+                )}
                 {isBookmarked && (
                   <Bookmark
                     className={`h-3.5 w-3.5 shrink-0 fill-current ${

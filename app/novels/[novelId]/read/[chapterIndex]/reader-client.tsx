@@ -25,8 +25,8 @@ type ReaderClientProps = {
     title: string;
     paragraphs: string[];
   };
-  /** All chapter titles for the table of contents drawer */
-  chapters: { index: number; title: string }[];
+  /** All chapter titles (with word counts) for the table of contents drawer */
+  chapters: { index: number; title: string; wordCount: number }[];
   chapterCount: number;
   wordCount: number;
   preferences: ReadingPreferences;

@@ -95,6 +95,7 @@ export default async function ReaderChapterPage({
   const chapterTitles = document.chapters.map((ch) => ({
     index: ch.index,
     title: ch.title,
+    wordCount: countWordsInParagraphs(ch.paragraphs),
   }));
 
   return (

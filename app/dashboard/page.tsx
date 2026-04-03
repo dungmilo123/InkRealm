@@ -6,12 +6,14 @@ import { getReadingProgressBatch, getRecentlyReadNovels } from "@/app/lib/readin
 import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
 import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
 import { computeReadingAnalytics, computeDailyActivity, type ReadingAnalytics, type DailyActivity } from "@/lib/reading-stats";
+import { computeReadingVelocity, type ReadingVelocity } from "@/lib/reading-velocity";
 import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
 import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
 import { ContinueReadingBanner, RecentlyReadList, type ContinueReadingData } from "@/app/components/ContinueReadingBanner";
 import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
+import { WeeklyVelocityChart } from "@/app/components/WeeklyVelocityChart";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { NovelProgressData } from "@/app/components/NovelList";
 
@@ -32,6 +34,8 @@ export default async function DashboardPage() {
   let bookmarkCountMap = new Map<string, number>();
   let analytics: ReadingAnalytics | null = null;
   let dailyActivity: DailyActivity[] = [];
+   
+  let velocity: ReadingVelocity | null = null;
   let continueReading: ContinueReadingData | null = null;
   const recentlyRead: ContinueReadingData[] = [];
 
@@ -50,6 +54,7 @@ export default async function DashboardPage() {
       if (chapterVisits.length > 0) {
         analytics = computeReadingAnalytics(chapterVisits);
         dailyActivity = computeDailyActivity(chapterVisits);
+        velocity = computeReadingVelocity(dailyActivity);
       }
       if (recentlyReadResult.length > 0) {
         // Backward compat: single-novel banner uses the first result
@@ -153,6 +158,7 @@ export default async function DashboardPage() {
               analytics={analytics}
             />
             <ActivityHeatmap dailyActivity={dailyActivity} />
+            {velocity && <WeeklyVelocityChart velocity={velocity} />}
             <NovelLibrary novels={novels} progressData={progressData} bookmarkCounts={bookmarkCounts} />
           </>
         )}

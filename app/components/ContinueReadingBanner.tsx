@@ -34,13 +34,14 @@ function formatRelativeTime(isoDate: string): string {
   });
 }
 
-export function ContinueReadingBanner({
-  continueReading,
+function ContinueReadingCard({
+  data,
+  isPrimary,
 }: {
-  continueReading: ContinueReadingData;
+  data: ContinueReadingData;
+  isPrimary: boolean;
 }) {
-  const { novel, lastChapterIndex, totalVisited, lastReadAt } =
-    continueReading;
+  const { novel, lastChapterIndex, totalVisited, lastReadAt } = data;
   const totalChapters = novel.chapterCount ?? 0;
   const progressPercent =
     totalChapters > 0
@@ -66,8 +67,8 @@ export function ContinueReadingBanner({
               title={novel.title}
               id={novel.id}
               fileType={novel.fileType}
-              width={48}
-              height={72}
+              width={isPrimary ? 48 : 40}
+              height={isPrimary ? 72 : 60}
               className="rounded shadow-sm"
             />
           </div>
@@ -87,7 +88,7 @@ export function ContinueReadingBanner({
               </span>
             </div>
 
-            <p className="text-sm font-medium text-foreground truncate">
+            <p className={`font-medium text-foreground truncate ${isPrimary ? "text-sm" : "text-[13px]"}`}>
               {novel.title}
             </p>
 
@@ -135,5 +136,36 @@ export function ContinueReadingBanner({
         </div>
       </div>
     </Link>
+  );
+}
+
+/**
+ * Renders a single ContinueReadingBanner (backward-compatible).
+ */
+export function ContinueReadingBanner({
+  continueReading,
+}: {
+  continueReading: ContinueReadingData;
+}) {
+  return <ContinueReadingCard data={continueReading} isPrimary />;
+}
+
+/**
+ * Renders multiple recently-read novels as a list of compact cards.
+ * The first novel (most recently read) gets a slightly larger cover.
+ */
+export function RecentlyReadList({
+  novels,
+}: {
+  novels: ContinueReadingData[];
+}) {
+  if (novels.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      {novels.map((data, i) => (
+        <ContinueReadingCard key={data.novel.id} data={data} isPrimary={i === 0} />
+      ))}
+    </div>
   );
 }

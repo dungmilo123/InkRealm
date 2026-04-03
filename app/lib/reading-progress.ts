@@ -212,3 +212,55 @@ export async function getContinueReadingNovel(
     lastReadAt: progress.updatedAt,
   };
 }
+
+/**
+ * Returns the user's most recently read novels (up to `limit`), ordered by
+ * most-recent first. Used by the dashboard "Recently Read" section to show
+ * multiple in-progress novels.
+ *
+ * Returns an empty array if the user has no reading history.
+ */
+export async function getRecentlyReadNovels(
+  userId: string,
+  limit: number = 3
+): Promise<
+  Array<{
+    novel: {
+      id: string;
+      title: string;
+      fileType: string;
+      chapterCount: number | null;
+    };
+    lastChapterIndex: number;
+    totalVisited: number;
+    lastReadAt: Date;
+  }>
+> {
+  const progressList = await prisma.readingProgress.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    take: limit,
+    select: {
+      lastChapterIndex: true,
+      updatedAt: true,
+      novel: {
+        select: {
+          id: true,
+          title: true,
+          fileType: true,
+          chapterCount: true,
+        },
+      },
+      _count: {
+        select: { chapterVisits: true },
+      },
+    },
+  });
+
+  return progressList.map((p) => ({
+    novel: p.novel,
+    lastChapterIndex: p.lastChapterIndex,
+    totalVisited: p._count.chapterVisits,
+    lastReadAt: p.updatedAt,
+  }));
+}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
-import { getReadingProgressBatch, getContinueReadingNovel } from "@/app/lib/reading-progress";
+import { getReadingProgressBatch, getRecentlyReadNovels } from "@/app/lib/reading-progress";
 import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
 import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
 import { computeReadingAnalytics, computeDailyActivity, type ReadingAnalytics, type DailyActivity } from "@/lib/reading-stats";
@@ -10,7 +10,7 @@ import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
 import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
-import { ContinueReadingBanner, type ContinueReadingData } from "@/app/components/ContinueReadingBanner";
+import { ContinueReadingBanner, RecentlyReadList, type ContinueReadingData } from "@/app/components/ContinueReadingBanner";
 import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { NovelProgressData } from "@/app/components/NovelList";
@@ -33,16 +33,17 @@ export default async function DashboardPage() {
   let analytics: ReadingAnalytics | null = null;
   let dailyActivity: DailyActivity[] = [];
   let continueReading: ContinueReadingData | null = null;
+  const recentlyRead: ContinueReadingData[] = [];
 
   try {
     novels = await listNovels(session.user.id);
     if (novels.length > 0) {
       const novelIds = novels.map((n) => n.id);
-      const [progress, bookmarks, chapterVisits, continueReadingResult] = await Promise.all([
+      const [progress, bookmarks, chapterVisits, recentlyReadResult] = await Promise.all([
         getReadingProgressBatch(session.user.id, novelIds),
         getBookmarkCountsBatch(session.user.id, novelIds),
         getChapterVisitsForAnalytics(session.user.id, novels),
-        getContinueReadingNovel(session.user.id),
+        getRecentlyReadNovels(session.user.id),
       ]);
       progressMap = progress;
       bookmarkCountMap = bookmarks;
@@ -50,11 +51,19 @@ export default async function DashboardPage() {
         analytics = computeReadingAnalytics(chapterVisits);
         dailyActivity = computeDailyActivity(chapterVisits);
       }
-      if (continueReadingResult) {
+      if (recentlyReadResult.length > 0) {
+        // Backward compat: single-novel banner uses the first result
         continueReading = {
-          ...continueReadingResult,
-          lastReadAt: continueReadingResult.lastReadAt.toISOString(),
+          ...recentlyReadResult[0],
+          lastReadAt: recentlyReadResult[0].lastReadAt.toISOString(),
         };
+        // Multi-novel list: serialize all Date → ISO string
+        recentlyRead.push(
+          ...recentlyReadResult.map((r) => ({
+            ...r,
+            lastReadAt: r.lastReadAt.toISOString(),
+          }))
+        );
       }
     }
   } catch {
@@ -98,7 +107,11 @@ export default async function DashboardPage() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
             Pick up where you left off
           </h2>
-          <ContinueReadingBanner continueReading={continueReading} />
+          {recentlyRead.length > 1 ? (
+            <RecentlyReadList novels={recentlyRead} />
+          ) : (
+            <ContinueReadingBanner continueReading={continueReading} />
+          )}
         </section>
       )}
       <section>

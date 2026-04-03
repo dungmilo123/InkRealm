@@ -20,11 +20,15 @@ export async function createNovel(data: NovelCreateInput): Promise<Novel> {
   return prisma.novel.create({ data });
 }
 
-/** Lists all novels owned by the given user, newest first. */
+/** Lists all novels owned by the given user, pinned first (by pinnedAt), then newest first. */
 export async function listNovels(userId: string): Promise<Novel[]> {
   return prisma.novel.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { isPinned: "desc" },
+      { pinnedAt: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
   });
 }
 
@@ -120,6 +124,40 @@ export async function deleteNovel(novelId: string, userId: string): Promise<Nove
   await Promise.allSettled(cleanupPromises);
 
   return deleted;
+}
+
+/**
+ * Toggles the pinned state of a novel.
+ * Sets `isPinned` to the opposite of its current value, and
+ * records `pinnedAt` (used for stable ordering among pinned novels).
+ *
+ * @returns `{ isPinned: boolean }` — the new pin state
+ * @throws {NovelNotFoundError} if the novel doesn't exist or doesn't belong to the user
+ */
+export async function toggleNovelPin(
+  novelId: string,
+  userId: string
+): Promise<{ isPinned: boolean }> {
+  const novel = await prisma.novel.findUnique({
+    where: { id: novelId },
+    select: { userId: true, isPinned: true },
+  });
+
+  if (!novel || novel.userId !== userId) {
+    throw new NovelNotFoundError(novelId);
+  }
+
+  const newPinned = !novel.isPinned;
+
+  await prisma.novel.update({
+    where: { id: novelId },
+    data: {
+      isPinned: newPinned,
+      pinnedAt: newPinned ? new Date() : null,
+    },
+  });
+
+  return { isPinned: newPinned };
 }
 
 export class NovelNotFoundError extends Error {

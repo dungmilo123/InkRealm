@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Novel } from "@/app/generated/prisma/client";
 import { NovelList } from "./NovelList";
 import type { NovelProgressData } from "./NovelList";
@@ -69,11 +69,62 @@ const STATUS_TABS: { value: ReadingStatus; label: string }[] = [
   { value: "not-started", label: "Not Started" },
 ];
 
-export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibraryProps) {
+export function NovelLibrary({ novels: initialNovels, progressData, bookmarkCounts }: NovelLibraryProps) {
   const [search, setSearch] = useState("");
   const [fileType, setFileType] = useState<FileTypeFilter>("all");
   const [sort, setSort] = useState<SortField>("date-desc");
   const [statusFilter, setStatusFilter] = useState<ReadingStatus>("all");
+
+  // Optimistic pin state: overrides for novels whose pin state was toggled client-side
+  const [pinOverrides, setPinOverrides] = useState<Record<string, boolean>>({});
+  const inflightRef = useRef<Set<string>>(new Set());
+
+  // Merge server-side novel data with client-side pin overrides
+  const novels = useMemo(() => {
+    if (Object.keys(pinOverrides).length === 0) return initialNovels;
+    return initialNovels.map((novel) => {
+      if (novel.id in pinOverrides) {
+        return {
+          ...novel,
+          isPinned: pinOverrides[novel.id],
+          pinnedAt: pinOverrides[novel.id] ? new Date() : null,
+        };
+      }
+      return novel;
+    });
+  }, [initialNovels, pinOverrides]);
+
+  const handleTogglePin = useCallback(async (novelId: string) => {
+    // Prevent concurrent toggles for the same novel
+    if (inflightRef.current.has(novelId)) return;
+    inflightRef.current.add(novelId);
+
+    const currentNovel = novels.find((n) => n.id === novelId);
+    if (!currentNovel) return;
+
+    const newPinned = !currentNovel.isPinned;
+
+    // Optimistic update
+    setPinOverrides((prev) => ({ ...prev, [novelId]: newPinned }));
+
+    try {
+      const res = await fetch(`/api/novels/${novelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "togglePin" }),
+      });
+
+      if (!res.ok) {
+        // Rollback on error
+        setPinOverrides((prev) => ({ ...prev, [novelId]: !newPinned }));
+      }
+    } catch {
+      // Rollback on network error
+      setPinOverrides((prev) => ({ ...prev, [novelId]: !newPinned }));
+    } finally {
+      inflightRef.current.delete(novelId);
+    }
+  }, [novels]);
 
   // Count novels per status for tab badges
   const statusCounts = useMemo(() => {
@@ -120,6 +171,14 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
 
     // Sort
     result = [...result].sort((a, b) => {
+      // Pinned novels always come first, ordered by pinnedAt (most recent pin first)
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+      if (a.isPinned && b.isPinned) {
+        const aPin = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+        const bPin = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+        if (aPin !== bPin) return bPin - aPin;
+      }
+
       switch (sort) {
         case "date-desc":
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -150,6 +209,7 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
   }, [novels, search, fileType, sort, statusFilter, progressData]);
 
   const hasActiveFilters = search !== "" || fileType !== "all" || statusFilter !== "all";
+  const pinnedCount = novels.filter((n) => n.isPinned).length;
 
   return (
     <div className="space-y-4">
@@ -222,6 +282,13 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
 
         {/* Filter + Sort controls */}
         <div className="flex items-center gap-2">
+          {/* Pinned count indicator */}
+          {pinnedCount > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {pinnedCount} pinned
+            </span>
+          )}
+
           {/* File type filter — only show if multiple types exist */}
           {availableFileTypes.length > 1 && (
             <Select value={fileType} onValueChange={(v) => setFileType(v as FileTypeFilter)}>
@@ -286,7 +353,7 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
 
       {/* Novel grid */}
       {filtered.length > 0 ? (
-        <NovelList novels={filtered} progressData={progressData} bookmarkCounts={bookmarkCounts} />
+        <NovelList novels={filtered} progressData={progressData} bookmarkCounts={bookmarkCounts} onTogglePin={handleTogglePin} />
       ) : !hasActiveFilters ? null : (
         <div className="py-12 text-center">
           <p className="text-muted-foreground mb-1">No novels found</p>

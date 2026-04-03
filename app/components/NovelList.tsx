@@ -3,7 +3,7 @@ import type { Novel } from "@/app/generated/prisma/client";
 import { BookCover } from "@/components/book-cover";
 import { Card } from "@/components/ui/card";
 import { formatFileSize } from "@/app/lib/format";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Pin } from "lucide-react";
 
 export interface NovelProgressData {
   lastChapterIndex: number;
@@ -17,9 +17,10 @@ interface NovelListProps {
   novels: Novel[];
   progressData?: Record<string, NovelProgressData>;
   bookmarkCounts?: Record<string, number>;
+  onTogglePin?: (novelId: string) => void;
 }
 
-export function NovelList({ novels, progressData, bookmarkCounts }: NovelListProps) {
+export function NovelList({ novels, progressData, bookmarkCounts, onTogglePin }: NovelListProps) {
   if (novels.length === 0) {
     return null;
   }
@@ -52,6 +53,26 @@ export function NovelList({ novels, progressData, bookmarkCounts }: NovelListPro
                   fileType={novel.fileType}
                   className="w-full transition-transform duration-200"
                 />
+                {/* Pin button — top-right of book cover */}
+                {onTogglePin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onTogglePin(novel.id);
+                    }}
+                    className={`absolute top-1.5 right-1.5 flex items-center justify-center rounded-full p-1 shadow-sm transition-all ${
+                      novel.isPinned
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-black/40 text-white/70 opacity-0 group-hover:opacity-100"
+                    }`}
+                    aria-label={novel.isPinned ? `Unpin ${novel.title}` : `Pin ${novel.title}`}
+                    title={novel.isPinned ? "Unpin from top" : "Pin to top"}
+                  >
+                    <Pin className={`size-3 ${novel.isPinned ? "fill-current" : ""}`} aria-hidden="true" />
+                  </button>
+                )}
                 {/* Bookmark count badge — top-left of book cover */}
                 {bookmarkCount > 0 && (
                   <span

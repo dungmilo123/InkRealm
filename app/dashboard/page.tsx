@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
-import { getReadingProgressBatch } from "@/app/lib/reading-progress";
+import { getReadingProgressBatch, getContinueReadingNovel } from "@/app/lib/reading-progress";
 import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
 import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
 import { computeReadingAnalytics, computeDailyActivity, type ReadingAnalytics, type DailyActivity } from "@/lib/reading-stats";
@@ -10,6 +10,7 @@ import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
 import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
+import { ContinueReadingBanner, type ContinueReadingData } from "@/app/components/ContinueReadingBanner";
 import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { NovelProgressData } from "@/app/components/NovelList";
@@ -31,21 +32,29 @@ export default async function DashboardPage() {
   let bookmarkCountMap = new Map<string, number>();
   let analytics: ReadingAnalytics | null = null;
   let dailyActivity: DailyActivity[] = [];
+  let continueReading: ContinueReadingData | null = null;
 
   try {
     novels = await listNovels(session.user.id);
     if (novels.length > 0) {
       const novelIds = novels.map((n) => n.id);
-      const [progress, bookmarks, chapterVisits] = await Promise.all([
+      const [progress, bookmarks, chapterVisits, continueReadingResult] = await Promise.all([
         getReadingProgressBatch(session.user.id, novelIds),
         getBookmarkCountsBatch(session.user.id, novelIds),
         getChapterVisitsForAnalytics(session.user.id, novels),
+        getContinueReadingNovel(session.user.id),
       ]);
       progressMap = progress;
       bookmarkCountMap = bookmarks;
       if (chapterVisits.length > 0) {
         analytics = computeReadingAnalytics(chapterVisits);
         dailyActivity = computeDailyActivity(chapterVisits);
+      }
+      if (continueReadingResult) {
+        continueReading = {
+          ...continueReadingResult,
+          lastReadAt: continueReadingResult.lastReadAt.toISOString(),
+        };
       }
     }
   } catch {
@@ -83,6 +92,14 @@ export default async function DashboardPage() {
           <UploadForm />
         </div>
       </section>
+      {continueReading && (
+        <section className="mb-10">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
+            Pick up where you left off
+          </h2>
+          <ContinueReadingBanner continueReading={continueReading} />
+        </section>
+      )}
       <section>
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
           Your collection

@@ -160,3 +160,53 @@ export async function getReadingProgressBatch(
 
   return map;
 }
+
+/**
+ * Returns the novel the user most recently read, along with the chapter
+ * they were on and how many chapters they've visited. Used by the dashboard
+ * "Continue Reading" banner.
+ *
+ * Returns `null` if the user has never opened any novel.
+ */
+export async function getContinueReadingNovel(
+  userId: string
+): Promise<{
+  novel: {
+    id: string;
+    title: string;
+    fileType: string;
+    chapterCount: number | null;
+  };
+  lastChapterIndex: number;
+  totalVisited: number;
+  lastReadAt: Date;
+} | null> {
+  const progress = await prisma.readingProgress.findFirst({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      lastChapterIndex: true,
+      updatedAt: true,
+      novel: {
+        select: {
+          id: true,
+          title: true,
+          fileType: true,
+          chapterCount: true,
+        },
+      },
+      _count: {
+        select: { chapterVisits: true },
+      },
+    },
+  });
+
+  if (!progress) return null;
+
+  return {
+    novel: progress.novel,
+    lastChapterIndex: progress.lastChapterIndex,
+    totalVisited: progress._count.chapterVisits,
+    lastReadAt: progress.updatedAt,
+  };
+}

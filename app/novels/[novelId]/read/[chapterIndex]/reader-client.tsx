@@ -14,6 +14,7 @@ import { SearchBar } from "./search-bar";
 import { ChapterDrawer } from "./chapter-drawer";
 import { BookmarkPanel } from "./bookmark-panel";
 import { GoToChapterDialog } from "./go-to-chapter-dialog";
+import { ChapterCompleteToast } from "./chapter-complete-toast";
 import { List, Search, Bookmark, BookmarkCheck, BookOpen } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
@@ -599,6 +600,14 @@ export function ReaderClient({
           onClose={toggleGoToChapter}
         />
       )}
+
+      <ChapterCompleteToast
+        scrollProgress={scrollProgress}
+        currentChapterIndex={chapter.index}
+        chapterCount={chapterCount}
+        novelId={novelId}
+        chapters={chapters}
+      />
     </div>
   );
 }

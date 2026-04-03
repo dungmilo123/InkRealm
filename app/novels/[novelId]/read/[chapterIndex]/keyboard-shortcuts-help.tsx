@@ -48,6 +48,8 @@ export function KeyboardShortcutsHelp({
     { keys: ["⇧F"], label: "Search across all chapters", available: true },
     { keys: ["B"], label: "Toggle chapter bookmark", available: true },
     { keys: ["⇧B"], label: "Open bookmarks panel", available: true },
+    { keys: ["["], label: "Previous bookmarked chapter", available: true },
+    { keys: ["]"], label: "Next bookmarked chapter", available: true },
     { keys: ["⇧G"], label: "Go to chapter", available: true },
     { keys: ["T"], label: "Toggle original / translated", available: hasTranslation },
     { keys: ["S"], label: "Toggle reading settings", available: true },

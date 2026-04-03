@@ -34,6 +34,10 @@ type ShortcutActions = {
   toggleZenMode: () => void;
   /** Toggle text alignment between left and justify */
   toggleTextAlign: () => void;
+  /** Navigate to the previous bookmarked chapter (or null if none) */
+  previousBookmarkHref: string | null;
+  /** Navigate to the next bookmarked chapter (or null if none) */
+  nextBookmarkHref: string | null;
 };
 
 /**
@@ -57,6 +61,8 @@ type ShortcutActions = {
  *   -     — Decrease font size
  *   z — Toggle zen (distraction-free) mode
  *   j — Toggle text alignment (left / justify)
+ *   [ — Previous bookmarked chapter
+ *   ] — Next bookmarked chapter
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -188,6 +194,20 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         case "j":
           e.preventDefault();
           actionsRef.current.toggleTextAlign();
+          break;
+
+        case "[":
+          if (actionsRef.current.previousBookmarkHref) {
+            e.preventDefault();
+            router.push(actionsRef.current.previousBookmarkHref);
+          }
+          break;
+
+        case "]":
+          if (actionsRef.current.nextBookmarkHref) {
+            e.preventDefault();
+            router.push(actionsRef.current.nextBookmarkHref);
+          }
           break;
       }
     },

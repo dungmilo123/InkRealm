@@ -370,6 +370,20 @@ export function ReaderClient({
     return set;
   }, [bookmarkedChapterIndices, bookmark.isBookmarked, chapter.index]);
 
+  // Compute prev/next bookmarked chapter hrefs for [ / ] keyboard navigation.
+  // Sorted ascending so we can find the nearest bookmark before/after current chapter.
+  const previousBookmarkHref = useMemo(() => {
+    const sorted = Array.from(bookmarkedSet).sort((a, b) => a - b);
+    const prev = sorted.findLast((idx) => idx < chapter.index);
+    return prev !== undefined ? `/novels/${novelId}/read/${prev}` : null;
+  }, [bookmarkedSet, chapter.index, novelId]);
+
+  const nextBookmarkHref = useMemo(() => {
+    const sorted = Array.from(bookmarkedSet).sort((a, b) => a - b);
+    const next = sorted.find((idx) => idx > chapter.index);
+    return next !== undefined ? `/novels/${novelId}/read/${next}` : null;
+  }, [bookmarkedSet, chapter.index, novelId]);
+
   // Build a set of visited (read) chapter indices for the TOC drawer.
   // The current chapter is always included since visiting the page records it.
   const visitedSet = useMemo(() => {
@@ -464,6 +478,8 @@ export function ReaderClient({
     decreaseFontSize,
     toggleZenMode,
     toggleTextAlign,
+    previousBookmarkHref,
+    nextBookmarkHref,
   });
 
   // Close popover on outside click or Escape key

@@ -12,6 +12,8 @@ import {
   formatReadingTime,
   formatWordCount,
 } from "@/lib/reading-time";
+import type { NovelReadingStats } from "@/lib/reading-stats";
+import { BookOpen, Clock, Type } from "lucide-react";
 
 export type SerializedDefaultProfile = {
   id: string;
@@ -55,6 +57,7 @@ type NovelDetailsViewProps = {
   novel: Novel;
   readerSummary: ReaderSummary;
   readingProgress: ReadingProgressData;
+  novelReadingStats: NovelReadingStats | null;
   translationDataError: string | null;
   serializedDefaultProfile: SerializedDefaultProfile;
   serializedLatestJob: SerializedTranslationJob | null;
@@ -74,6 +77,7 @@ export function NovelDetailsView({
   novel,
   readerSummary,
   readingProgress,
+  novelReadingStats,
   translationDataError,
   serializedDefaultProfile,
   serializedLatestJob,
@@ -155,6 +159,63 @@ export function NovelDetailsView({
             </dl>
           </div>
         </div>
+
+        {/* Per-novel reading stats — only shown when user has reading activity */}
+        {novelReadingStats && novelReadingStats.chaptersRead > 0 && (
+          <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-2">
+              Your Reading Progress
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                <span className="text-xs text-muted-foreground">Chapters read</span>
+                <span className="text-xs font-medium text-foreground tabular-nums">
+                  {novelReadingStats.chaptersRead} of {readerSummary.chapterCount}
+                </span>
+              </div>
+              {novelReadingStats.wordsRead > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Type className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                  <span className="text-xs text-muted-foreground">Words read</span>
+                  <span className="text-xs font-medium text-foreground tabular-nums">
+                    {formatWordCount(novelReadingStats.wordsRead)}
+                  </span>
+                </div>
+              )}
+              {novelReadingStats.estimatedMinutes > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Clock className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                  <span className="text-xs text-muted-foreground">Time spent</span>
+                  <span className="text-xs font-medium text-foreground tabular-nums">
+                    {novelReadingStats.estimatedTimeLabel}
+                  </span>
+                </div>
+              )}
+              {/* Completion percentage */}
+              {readerSummary.chapterCount > 0 && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <div
+                    className="w-20 h-1.5 rounded-full bg-muted overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`Reading progress: ${Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+                    {Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-border pt-6">
           {readerSummary.isReadable ? (

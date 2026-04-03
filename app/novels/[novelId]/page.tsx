@@ -6,6 +6,8 @@ import { getReaderSummary } from "@/app/lib/reader";
 import { getDefaultProfile } from "@/app/lib/translation/profiles";
 import { getLatestNovelTranslationJobView, getInitialChapterStatuses } from "@/app/lib/translation/service";
 import { getReadingProgress } from "@/app/lib/reading-progress";
+import { getNovelChapterVisitsForStats } from "@/app/lib/reading-stats-data";
+import { computeNovelReadingStats } from "@/lib/reading-stats";
 import {
   NovelDetailsView,
   type SerializedTranslationJob,
@@ -42,10 +44,15 @@ export default async function NovelDetailsPage({
 
   const { novelId } = await params;
   const novel = await getNovelByIdOrNotFound(novelId, session.user.id);
-  const [readerSummary, readingProgress] = await Promise.all([
+  const [readerSummary, readingProgress, chapterVisits] = await Promise.all([
     getReaderSummary(novel),
     getReadingProgress(session.user.id, novel.id),
+    getNovelChapterVisitsForStats(session.user.id, novel),
   ]);
+
+  const novelReadingStats = chapterVisits.length > 0
+    ? computeNovelReadingStats(chapterVisits)
+    : null;
 
   let defaultProfile: Awaited<ReturnType<typeof getDefaultProfile>> = null;
   let latestJob: Awaited<ReturnType<typeof getLatestNovelTranslationJobView>> = null;
@@ -88,6 +95,7 @@ export default async function NovelDetailsPage({
       novel={novel}
       readerSummary={readerSummary}
       readingProgress={readingProgress}
+      novelReadingStats={novelReadingStats}
       translationDataError={translationDataError}
       serializedDefaultProfile={serializedDefaultProfile}
       serializedLatestJob={serializedLatestJob}

@@ -15,6 +15,7 @@ import { ChapterDrawer } from "./chapter-drawer";
 import { BookmarkPanel } from "./bookmark-panel";
 import { GoToChapterDialog } from "./go-to-chapter-dialog";
 import { ChapterCompleteToast } from "./chapter-complete-toast";
+import { NovelSearchDialog } from "./novel-search-dialog";
 import { List, Search, Bookmark, BookmarkCheck, BookOpen } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
@@ -205,6 +206,7 @@ export function ReaderClient({
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
   const [showBookmarkPanel, setShowBookmarkPanel] = useState(false);
   const [showGoToChapter, setShowGoToChapter] = useState(false);
+  const [showNovelSearch, setShowNovelSearch] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,6 +262,7 @@ export function ReaderClient({
   const toggleChapterDrawer = useCallback(() => setShowChapterDrawer((v) => !v), []);
   const toggleBookmarkPanel = useCallback(() => setShowBookmarkPanel((v) => !v), []);
   const toggleGoToChapter = useCallback(() => setShowGoToChapter((v) => !v), []);
+  const toggleNovelSearch = useCallback(() => setShowNovelSearch((v) => !v), []);
   const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
 
   useReaderKeyboardShortcuts({
@@ -274,6 +277,7 @@ export function ReaderClient({
     toggleBookmark: bookmark.toggle,
     toggleBookmarkPanel,
     toggleGoToChapter,
+    toggleNovelSearch,
   });
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
@@ -598,6 +602,15 @@ export function ReaderClient({
           currentChapterIndex={chapter.index}
           chapterCount={chapterCount}
           onClose={toggleGoToChapter}
+        />
+      )}
+
+      {showNovelSearch && (
+        <NovelSearchDialog
+          novelId={novelId}
+          currentChapterIndex={chapter.index}
+          chapterCount={chapterCount}
+          onClose={toggleNovelSearch}
         />
       )}
 

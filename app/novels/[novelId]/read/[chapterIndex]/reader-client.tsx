@@ -9,9 +9,10 @@ import { useReaderKeyboardShortcuts } from "./use-reader-keyboard-shortcuts";
 import { KeyboardShortcutsHelp } from "./keyboard-shortcuts-help";
 import { useScrollPosition } from "./use-scroll-position";
 import { useChapterSearch } from "./use-chapter-search";
+import { useBookmark } from "./use-bookmark";
 import { SearchBar } from "./search-bar";
 import { ChapterDrawer } from "./chapter-drawer";
-import { List, Search } from "lucide-react";
+import { List, Search, Bookmark, BookmarkCheck } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
 
@@ -31,6 +32,8 @@ type ReaderClientProps = {
   user: { name?: string | null; image?: string | null };
   signOutAction: () => Promise<void>;
   translatedParagraphs: string[] | null;
+  /** Server-fetched initial bookmark state for this chapter */
+  initialBookmarked: boolean;
 };
 
 function SettingsPopover({
@@ -176,6 +179,7 @@ export function ReaderClient({
   user,
   signOutAction,
   translatedParagraphs,
+  initialBookmarked,
 }: ReaderClientProps) {
   const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
   // D-07: Default to translated when available
@@ -203,6 +207,13 @@ export function ReaderClient({
   // In-chapter text search
   const search = useChapterSearch({ paragraphs: displayParagraphs });
 
+  // Bookmark state with optimistic toggle
+  const bookmark = useBookmark({
+    novelId,
+    chapterIndex: chapter.index,
+    initialBookmarked,
+  });
+
   const previousChapterHref =
     chapter.index > 1 ? `/novels/${novelId}/read/${chapter.index - 1}` : null;
   const nextChapterHref =
@@ -227,6 +238,7 @@ export function ReaderClient({
     toggleChapterDrawer,
     toggleHelp,
     toggleSearch: search.toggle,
+    toggleBookmark: bookmark.toggle,
   });
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
@@ -312,6 +324,25 @@ export function ReaderClient({
               ]}
             />
             <div className="flex items-center gap-x-3">
+              <button
+                type="button"
+                onClick={bookmark.toggle}
+                disabled={bookmark.isPending}
+                className={`inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium transition-colors border ${
+                  bookmark.isBookmarked
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                } ${bookmark.isPending ? "opacity-60" : ""}`}
+                aria-label={bookmark.isBookmarked ? "Remove bookmark" : "Bookmark this chapter"}
+                aria-pressed={bookmark.isBookmarked}
+                title={bookmark.isBookmarked ? "Remove bookmark (B)" : "Bookmark this chapter (B)"}
+              >
+                {bookmark.isBookmarked ? (
+                  <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Bookmark className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={toggleChapterDrawer}

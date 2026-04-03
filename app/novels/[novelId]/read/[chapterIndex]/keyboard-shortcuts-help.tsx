@@ -45,6 +45,7 @@ export function KeyboardShortcutsHelp({
     { keys: ["→", "N"], label: "Next chapter", available: true },
     { keys: ["C"], label: "Chapter table of contents", available: true },
     { keys: ["F"], label: "Search in chapter", available: true },
+    { keys: ["B"], label: "Toggle chapter bookmark", available: true },
     { keys: ["T"], label: "Toggle original / translated", available: hasTranslation },
     { keys: ["S"], label: "Toggle reading settings", available: true },
     { keys: ["G"], label: "Toggle glossary highlights", available: hasGlossary },

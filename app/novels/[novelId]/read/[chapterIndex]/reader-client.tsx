@@ -43,6 +43,8 @@ type ReaderClientProps = {
   bookmarkedChapterIndices: number[];
   /** Chapter indices the user has already visited/read in this novel */
   visitedChapterIndices: number[];
+  /** Server-fetched scroll position (0–1) for cross-device resume; null if no prior visit */
+  initialScrollPosition: number | null;
 };
 
 function SettingsPopover({
@@ -242,6 +244,7 @@ export function ReaderClient({
   initialBookmarked,
   bookmarkedChapterIndices,
   visitedChapterIndices,
+  initialScrollPosition,
 }: ReaderClientProps) {
   const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
   // D-07: Default to translated when available
@@ -270,6 +273,7 @@ export function ReaderClient({
   const { progress: scrollProgress } = useScrollPosition({
     novelId,
     chapterIndex: chapter.index,
+    serverScrollPosition: initialScrollPosition,
   });
 
   // In-chapter text search

@@ -11,6 +11,7 @@ import {
 import {
   recordChapterVisit,
   getReadingProgress,
+  getScrollPosition,
 } from "@/app/lib/reading-progress";
 import { getUserReadingPreferences } from "@/app/lib/reading-preferences";
 import { getTranslatedChapterForReader } from "@/app/lib/translation/service";
@@ -86,13 +87,14 @@ export default async function ReaderChapterPage({
     console.error("Failed to record chapter visit:", err)
   );
 
-  const [preferences, translatedChapter, bookmarked, bookmarkedIndices, readingProgress] =
+  const [preferences, translatedChapter, bookmarked, bookmarkedIndices, readingProgress, serverScrollPosition] =
     await Promise.all([
       getUserReadingPreferences(session.user.id),
       getTranslatedChapterForReader(novel.id, chapterIndex, session.user.id),
       isChapterBookmarked(session.user.id, novel.id, chapterIndex),
       getBookmarkedChapterIndices(session.user.id, novel.id),
       getReadingProgress(session.user.id, novel.id),
+      getScrollPosition(session.user.id, novel.id, chapterIndex),
     ]);
   const { document, chapter } = chapterData;
   const wordCount = countWordsInParagraphs(chapter.paragraphs);
@@ -124,6 +126,7 @@ export default async function ReaderChapterPage({
       initialBookmarked={bookmarked}
       bookmarkedChapterIndices={[...bookmarkedIndices]}
       visitedChapterIndices={readingProgress?.visitedChapterIndices ?? []}
+      initialScrollPosition={serverScrollPosition}
     />
   );
 }

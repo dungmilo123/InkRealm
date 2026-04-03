@@ -7,6 +7,9 @@ type ScrollPositionOptions = {
   chapterIndex: number;
   /** Debounce interval for saving scroll position (ms). Default: 500 */
   saveInterval?: number;
+  /** Server-fetched scroll position (0–1) for cross-device resume.
+   *  Used as fallback when localStorage has no saved position. */
+  serverScrollPosition?: number | null;
 };
 
 type ScrollState = {
@@ -51,6 +54,7 @@ export function useScrollPosition({
   novelId,
   chapterIndex,
   saveInterval = 500,
+  serverScrollPosition,
 }: ScrollPositionOptions): ScrollState {
   const [progress, setProgress] = useState(0);
   const [restored, setRestored] = useState(false);
@@ -74,34 +78,51 @@ export function useScrollPosition({
   );
 
   // Restore scroll position on mount
+  // Priority: localStorage (instant, same-device) > server DB (cross-device fallback)
   useEffect(() => {
     const key = storageKey(novelId, chapterIndex);
     const saved = localStorage.getItem(key);
 
-    if (saved !== null) {
-      const position = parseFloat(saved);
-      if (Number.isFinite(position) && position > 0.01) {
-        // Delay restore to ensure content has rendered
-        requestAnimationFrame(() => {
-          const docHeight = document.documentElement.scrollHeight;
-          const viewHeight = window.innerHeight;
-          const scrollable = docHeight - viewHeight;
+    // Determine the position to restore: prefer localStorage, fall back to server
+    let position: number | null = null;
 
-          if (scrollable > 0) {
-            window.scrollTo({ top: position * scrollable, behavior: "instant" });
-            setProgress(position);
-          }
-          setRestored(true);
-        });
-        return;
+    if (saved !== null) {
+      const parsed = parseFloat(saved);
+      if (Number.isFinite(parsed) && parsed > 0.01) {
+        position = parsed;
       }
+    }
+
+    // Fall back to server-stored scroll position (cross-device resume)
+    if (position === null && serverScrollPosition != null &&
+        Number.isFinite(serverScrollPosition) && serverScrollPosition > 0.01) {
+      position = serverScrollPosition;
+    }
+
+    if (position !== null) {
+      const restorePosition = position;
+      // Delay restore to ensure content has rendered
+      requestAnimationFrame(() => {
+        const docHeight = document.documentElement.scrollHeight;
+        const viewHeight = window.innerHeight;
+        const scrollable = docHeight - viewHeight;
+
+        if (scrollable > 0) {
+          window.scrollTo({ top: restorePosition * scrollable, behavior: "instant" });
+          setProgress(restorePosition);
+          // Persist the server position to localStorage for future same-device restores
+          localStorage.setItem(key, restorePosition.toFixed(4));
+        }
+        setRestored(true);
+      });
+      return;
     }
 
     // No saved position — mark restored via rAF to satisfy react-hooks/set-state-in-effect
     requestAnimationFrame(() => {
       setRestored(true);
     });
-  }, [novelId, chapterIndex]);
+  }, [novelId, chapterIndex]); // eslint-disable-line react-hooks/exhaustive-deps -- serverScrollPosition is a static prop
 
   // Track scroll position
   useEffect(() => {

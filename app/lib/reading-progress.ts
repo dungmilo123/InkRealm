@@ -127,12 +127,12 @@ export async function getReadingProgress(
 /**
  * Batch-loads reading progress for multiple novels in a single query.
  * Used by the dashboard to show per-novel progress badges without N+1.
- * Returns a Map keyed by novelId with `lastChapterIndex` and `totalVisited`.
+ * Returns a Map keyed by novelId with `lastChapterIndex`, `totalVisited`, and `updatedAt`.
  */
 export async function getReadingProgressBatch(
   userId: string,
   novelIds: string[]
-): Promise<Map<string, { lastChapterIndex: number; totalVisited: number }>> {
+): Promise<Map<string, { lastChapterIndex: number; totalVisited: number; updatedAt: Date }>> {
   if (novelIds.length === 0) return new Map();
 
   const progressList = await prisma.readingProgress.findMany({
@@ -140,6 +140,7 @@ export async function getReadingProgressBatch(
     select: {
       novelId: true,
       lastChapterIndex: true,
+      updatedAt: true,
       _count: {
         select: { chapterVisits: true },
       },
@@ -148,13 +149,14 @@ export async function getReadingProgressBatch(
 
   const map = new Map<
     string,
-    { lastChapterIndex: number; totalVisited: number }
+    { lastChapterIndex: number; totalVisited: number; updatedAt: Date }
   >();
 
   for (const p of progressList) {
     map.set(p.novelId, {
       lastChapterIndex: p.lastChapterIndex,
       totalVisited: p._count.chapterVisits,
+      updatedAt: p.updatedAt,
     });
   }
 

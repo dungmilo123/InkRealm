@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 
   let novels: Novel[] = [];
   let error: string | null = null;
-  let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
+  let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number; updatedAt: Date }>();
   let bookmarkCountMap = new Map<string, number>();
   let analytics: ReadingAnalytics | null = null;
   let dailyActivity: DailyActivity[] = [];
@@ -67,6 +67,7 @@ export default async function DashboardPage() {
       lastChapterIndex: prog.lastChapterIndex,
       totalChapters: novels.find((n) => n.id === novelId)?.chapterCount ?? 0,
       totalVisited: prog.totalVisited,
+      lastReadAt: prog.updatedAt.toISOString(),
     };
   }
 

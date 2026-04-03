@@ -9,6 +9,8 @@ export interface NovelProgressData {
   lastChapterIndex: number;
   totalChapters: number;
   totalVisited: number;
+  /** ISO 8601 timestamp of the last reading activity for this novel */
+  lastReadAt?: string;
 }
 
 interface NovelListProps {

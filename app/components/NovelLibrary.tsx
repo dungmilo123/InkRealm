@@ -22,7 +22,9 @@ type SortField =
   | "size-desc"
   | "size-asc"
   | "progress-desc"
-  | "progress-asc";
+  | "progress-asc"
+  | "last-read-desc"
+  | "last-read-asc";
 type FileTypeFilter = "all" | "txt" | "epub";
 type ReadingStatus = "all" | "reading" | "completed" | "not-started";
 
@@ -44,6 +46,14 @@ function getProgressPercent(
   const progress = progressData?.[novelId];
   if (!progress || progress.totalChapters === 0) return 0;
   return Math.round((progress.totalVisited / progress.totalChapters) * 100);
+}
+
+function getLastReadTimestamp(
+  novelId: string,
+  progressData?: Record<string, NovelProgressData>,
+): number {
+  const lastReadAt = progressData?.[novelId]?.lastReadAt;
+  return lastReadAt ? new Date(lastReadAt).getTime() : 0;
 }
 
 interface NovelLibraryProps {
@@ -127,6 +137,10 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
           return getProgressPercent(b.id, progressData) - getProgressPercent(a.id, progressData);
         case "progress-asc":
           return getProgressPercent(a.id, progressData) - getProgressPercent(b.id, progressData);
+        case "last-read-desc":
+          return getLastReadTimestamp(b.id, progressData) - getLastReadTimestamp(a.id, progressData);
+        case "last-read-asc":
+          return getLastReadTimestamp(a.id, progressData) - getLastReadTimestamp(b.id, progressData);
         default:
           return 0;
       }
@@ -233,6 +247,8 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
             <SelectContent>
               <SelectItem value="date-desc">Newest first</SelectItem>
               <SelectItem value="date-asc">Oldest first</SelectItem>
+              <SelectItem value="last-read-desc">Recently read</SelectItem>
+              <SelectItem value="last-read-asc">Least recently read</SelectItem>
               <SelectItem value="title-asc">Title A–Z</SelectItem>
               <SelectItem value="title-desc">Title Z–A</SelectItem>
               <SelectItem value="progress-desc">Most progress</SelectItem>

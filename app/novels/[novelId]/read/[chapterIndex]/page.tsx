@@ -8,7 +8,10 @@ import {
   InvalidChapterIndexError,
   ReaderUnavailableError,
 } from "@/app/lib/reader";
-import { recordChapterVisit } from "@/app/lib/reading-progress";
+import {
+  recordChapterVisit,
+  getReadingProgress,
+} from "@/app/lib/reading-progress";
 import { getUserReadingPreferences } from "@/app/lib/reading-preferences";
 import { getTranslatedChapterForReader } from "@/app/lib/translation/service";
 import {
@@ -83,12 +86,13 @@ export default async function ReaderChapterPage({
     console.error("Failed to record chapter visit:", err)
   );
 
-  const [preferences, translatedChapter, bookmarked, bookmarkedIndices] =
+  const [preferences, translatedChapter, bookmarked, bookmarkedIndices, readingProgress] =
     await Promise.all([
       getUserReadingPreferences(session.user.id),
       getTranslatedChapterForReader(novel.id, chapterIndex, session.user.id),
       isChapterBookmarked(session.user.id, novel.id, chapterIndex),
       getBookmarkedChapterIndices(session.user.id, novel.id),
+      getReadingProgress(session.user.id, novel.id),
     ]);
   const { document, chapter } = chapterData;
   const wordCount = countWordsInParagraphs(chapter.paragraphs);
@@ -119,6 +123,7 @@ export default async function ReaderChapterPage({
       translatedParagraphs={translatedChapter?.translatedParagraphs ?? null}
       initialBookmarked={bookmarked}
       bookmarkedChapterIndices={[...bookmarkedIndices]}
+      visitedChapterIndices={readingProgress?.visitedChapterIndices ?? []}
     />
   );
 }

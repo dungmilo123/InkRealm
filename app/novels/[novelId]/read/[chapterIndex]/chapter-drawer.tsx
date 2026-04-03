@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Bookmark } from "lucide-react";
+import { X, Bookmark, Check } from "lucide-react";
 import { estimateReadingMinutes } from "@/lib/reading-time";
 
 type ChapterInfo = {
@@ -17,6 +17,8 @@ type ChapterDrawerProps = {
   currentChapterIndex: number;
   /** Set of chapter indices the user has bookmarked */
   bookmarkedChapterIndices: Set<number>;
+  /** Set of chapter indices the user has visited/read */
+  visitedChapterIndices: Set<number>;
   onClose: () => void;
 };
 
@@ -30,6 +32,7 @@ export function ChapterDrawer({
   chapters,
   currentChapterIndex,
   bookmarkedChapterIndices,
+  visitedChapterIndices,
   onClose,
 }: ChapterDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -104,6 +107,7 @@ export function ChapterDrawer({
           {chapters.map((ch) => {
             const isCurrent = ch.index === currentChapterIndex;
             const isBookmarked = bookmarkedChapterIndices.has(ch.index);
+            const isVisited = visitedChapterIndices.has(ch.index);
             const readingMinutes = ch.wordCount > 0 ? estimateReadingMinutes(ch.wordCount) : 0;
             return (
               <Link
@@ -118,6 +122,28 @@ export function ChapterDrawer({
                 }`}
                 aria-current={isCurrent ? "page" : undefined}
               >
+                {/* Read status indicator: ◉ current, ✓ visited, ○ unread */}
+                {isCurrent ? (
+                  <span
+                    className="text-primary w-5 text-center shrink-0"
+                    aria-label="Current chapter"
+                  >
+                    ◉
+                  </span>
+                ) : isVisited ? (
+                  <Check
+                    className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0 ml-[3px]"
+                    aria-label="Read"
+                    strokeWidth={2.5}
+                  />
+                ) : (
+                  <span
+                    className="text-muted-foreground/40 w-5 text-center shrink-0"
+                    aria-label="Unread"
+                  >
+                    ○
+                  </span>
+                )}
                 <span
                   className={`tabular-nums w-7 text-right shrink-0 ${
                     isCurrent ? "text-primary" : "text-muted-foreground"
@@ -149,8 +175,28 @@ export function ChapterDrawer({
           })}
         </nav>
 
-        {/* Footer hint */}
-        <div className="px-4 py-2.5 border-t border-border shrink-0">
+        {/* Footer: reading progress + keyboard hint */}
+        <div className="px-4 py-2.5 border-t border-border shrink-0 space-y-1.5">
+          {visitedChapterIndices.size > 0 && (
+            <div className="flex items-center gap-2">
+              <div
+                className="flex-1 h-1 rounded-full bg-muted overflow-hidden"
+                role="progressbar"
+                aria-valuenow={Math.round((visitedChapterIndices.size / chapters.length) * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Reading progress: ${visitedChapterIndices.size} of ${chapters.length} chapters`}
+              >
+                <div
+                  className="h-full rounded-full bg-green-600 dark:bg-green-400 transition-all duration-300"
+                  style={{ width: `${Math.round((visitedChapterIndices.size / chapters.length) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground tabular-nums whitespace-nowrap">
+                {visitedChapterIndices.size}/{chapters.length}
+              </span>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground text-center">
             Press{" "}
             <kbd className="rounded border border-border bg-muted px-1 text-xs font-mono">

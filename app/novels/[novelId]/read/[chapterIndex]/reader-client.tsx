@@ -37,6 +37,8 @@ type ReaderClientProps = {
   initialBookmarked: boolean;
   /** Chapter indices that the user has bookmarked in this novel */
   bookmarkedChapterIndices: number[];
+  /** Chapter indices the user has already visited/read in this novel */
+  visitedChapterIndices: number[];
 };
 
 function SettingsPopover({
@@ -184,6 +186,7 @@ export function ReaderClient({
   translatedParagraphs,
   initialBookmarked,
   bookmarkedChapterIndices,
+  visitedChapterIndices,
 }: ReaderClientProps) {
   const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
   // D-07: Default to translated when available
@@ -230,6 +233,14 @@ export function ReaderClient({
     }
     return set;
   }, [bookmarkedChapterIndices, bookmark.isBookmarked, chapter.index]);
+
+  // Build a set of visited (read) chapter indices for the TOC drawer.
+  // The current chapter is always included since visiting the page records it.
+  const visitedSet = useMemo(() => {
+    const set = new Set(visitedChapterIndices);
+    set.add(chapter.index);
+    return set;
+  }, [visitedChapterIndices, chapter.index]);
 
   const previousChapterHref =
     chapter.index > 1 ? `/novels/${novelId}/read/${chapter.index - 1}` : null;
@@ -548,6 +559,7 @@ export function ReaderClient({
           chapters={chapters}
           currentChapterIndex={chapter.index}
           bookmarkedChapterIndices={bookmarkedSet}
+          visitedChapterIndices={visitedSet}
           onClose={toggleChapterDrawer}
         />
       )}

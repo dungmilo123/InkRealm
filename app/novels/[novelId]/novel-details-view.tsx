@@ -46,6 +46,8 @@ export type ChapterTranslationStatus = {
   status: "translated" | "translating" | "untranslated";
   /** ISO timestamp when chapter finished translating (only for translated chapters) */
   completedAt?: string;
+  /** AI-generated chapter summary (~100-200 words). Only present for translated chapters. */
+  summary?: string | null;
 };
 
 type ReadingProgressData = {

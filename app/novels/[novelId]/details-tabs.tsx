@@ -10,7 +10,7 @@ import { useTranslationPolling } from "./use-translation-polling";
 import { useTranslationEta } from "./use-translation-eta";
 import { useTranslationNotification } from "./use-translation-notification";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
-import { Bell, BellOff, Search, X } from "lucide-react";
+import { Bell, BellOff, Search, X, ChevronDown } from "lucide-react";
 import type {
   SerializedDefaultProfile,
   SerializedTranslationJob,
@@ -59,6 +59,7 @@ const ChapterList = memo(function ChapterList({
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ChapterStatusFilter>("all");
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<number>>(new Set());
 
   const visitedSet = useMemo(
     () => new Set(readingProgress?.visitedChapterIndices ?? []),
@@ -69,6 +70,25 @@ const ChapterList = memo(function ChapterList({
     () => new Map(chapterStatuses.map((s) => [s.chapterIndex, s.status])),
     [chapterStatuses]
   );
+  const summaryMap = useMemo(
+    () => new Map(
+      chapterStatuses
+        .filter((s) => s.summary)
+        .map((s) => [s.chapterIndex, s.summary as string])
+    ),
+    [chapterStatuses]
+  );
+
+  const toggleSummary = useCallback((chapterIndex: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedSummaries((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterIndex)) next.delete(chapterIndex);
+      else next.add(chapterIndex);
+      return next;
+    });
+  }, []);
 
   // Count chapters per status for filter badges
   const statusCounts = useMemo(() => {
@@ -198,38 +218,62 @@ const ChapterList = memo(function ChapterList({
 
             const translationStatus = statusMap.get(ch.index);
             const readingMin = estimateReadingMinutes(ch.wordCount);
+            const summary = summaryMap.get(ch.index);
+            const isExpanded = expandedSummaries.has(ch.index);
 
             return (
-              <Link
-                key={ch.index}
-                href={`/novels/${novelId}/read/${ch.index}`}
-                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors group"
-              >
-                <span className={`text-sm w-5 text-center ${indicatorClass}`}>
-                  {indicator}
-                </span>
-                <span className="text-sm text-muted-foreground tabular-nums w-8">
-                  {ch.index}
-                </span>
-                <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                  {ch.title}
-                </span>
-                {ch.wordCount > 0 && (
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
-                    {formatReadingTime(readingMin)}
+              <div key={ch.index}>
+                <Link
+                  href={`/novels/${novelId}/read/${ch.index}`}
+                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors group"
+                >
+                  <span className={`text-sm w-5 text-center ${indicatorClass}`}>
+                    {indicator}
                   </span>
+                  <span className="text-sm text-muted-foreground tabular-nums w-8">
+                    {ch.index}
+                  </span>
+                  <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                    {ch.title}
+                  </span>
+                  {summary && (
+                    <button
+                      type="button"
+                      onClick={(e) => toggleSummary(ch.index, e)}
+                      className="shrink-0 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? "Hide chapter summary" : "Show chapter summary"}
+                      title={isExpanded ? "Hide summary" : "Show AI summary"}
+                    >
+                      <ChevronDown className={`size-3.5 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                  )}
+                  {ch.wordCount > 0 && (
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
+                      {formatReadingTime(readingMin)}
+                    </span>
+                  )}
+                  {translationStatus === "translated" && (
+                    <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
+                      Translated
+                    </Badge>
+                  )}
+                  {translationStatus === "translating" && (
+                    <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs motion-safe:animate-pulse">
+                      Translating...
+                    </Badge>
+                  )}
+                </Link>
+                {summary && isExpanded && (
+                  <div className="px-3 pb-3 pl-[4.25rem]">
+                    <p className="text-xs text-muted-foreground leading-relaxed bg-muted/30 rounded-md px-3 py-2 border border-border/50">
+                      <span className="font-medium text-muted-foreground/80">AI Summary</span>
+                      <span className="mx-1.5 text-border">·</span>
+                      {summary}
+                    </p>
+                  </div>
                 )}
-                {translationStatus === "translated" && (
-                  <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
-                    Translated
-                  </Badge>
-                )}
-                {translationStatus === "translating" && (
-                  <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs motion-safe:animate-pulse">
-                    Translating...
-                  </Badge>
-                )}
-              </Link>
+              </div>
             );
           })
         )}

@@ -580,6 +580,7 @@ export async function getChapterTranslationStatuses(translationId: string) {
     select: {
       chapterIndex: true,
       status: true,
+      summary: true,
     },
   });
 }

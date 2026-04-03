@@ -62,6 +62,8 @@ export type ChapterStatusItem = {
   status: "translated" | "translating" | "untranslated";
   /** ISO timestamp when this chapter finished translating (only present for translated chapters) */
   completedAt?: string;
+  /** AI-generated chapter summary (~100-200 words). Only present for translated chapters. */
+  summary?: string | null;
 };
 
 function mapChapterStatus(prismaStatus: PrismaChapterTranslationStatus): "translated" | "translating" | "untranslated" {
@@ -686,6 +688,7 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
   return rawStatuses.map((ch) => ({
     chapterIndex: ch.chapterIndex,
     status: mapChapterStatus(ch.status),
+    ...(ch.summary ? { summary: ch.summary } : {}),
   }));
 }
 

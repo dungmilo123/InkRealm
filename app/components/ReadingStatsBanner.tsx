@@ -1,16 +1,19 @@
-import { BookOpen, BookCheck, BarChart3, Bookmark } from "lucide-react";
+import { BookOpen, BookCheck, BarChart3, Bookmark, Clock, Flame, TrendingUp } from "lucide-react";
 import type { NovelProgressData } from "./NovelList";
+import type { ReadingAnalytics } from "@/lib/reading-stats";
 
 interface ReadingStatsBannerProps {
   totalNovels: number;
   progressData: Record<string, NovelProgressData>;
   bookmarkCounts?: Record<string, number>;
+  analytics?: ReadingAnalytics | null;
 }
 
 export function ReadingStatsBanner({
   totalNovels,
   progressData,
   bookmarkCounts,
+  analytics,
 }: ReadingStatsBannerProps) {
   const entries = Object.values(progressData);
 
@@ -50,6 +53,34 @@ export function ReadingStatsBanner({
             icon: Bookmark,
             label: "Bookmarks",
             value: String(totalBookmarks),
+          },
+        ]
+      : []),
+    // Analytics-derived stats (reading time, streak, velocity)
+    ...(analytics && analytics.totalMinutes > 0
+      ? [
+          {
+            icon: Clock,
+            label: "Reading time",
+            value: analytics.totalTimeLabel,
+          },
+        ]
+      : []),
+    ...(analytics && analytics.streak.currentStreak > 0
+      ? [
+          {
+            icon: Flame,
+            label: "Streak",
+            value: `${analytics.streak.currentStreak}d`,
+          },
+        ]
+      : []),
+    ...(analytics && analytics.avgChaptersPerDay > 0
+      ? [
+          {
+            icon: TrendingUp,
+            label: "Daily pace",
+            value: `${analytics.avgChaptersPerDay} ch/day`,
           },
         ]
       : []),

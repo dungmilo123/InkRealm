@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
 import { getReadingProgressBatch } from "@/app/lib/reading-progress";
 import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
+import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
+import { computeReadingAnalytics, type ReadingAnalytics } from "@/lib/reading-stats";
 import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
@@ -26,15 +28,22 @@ export default async function DashboardPage() {
   let error: string | null = null;
   let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
   let bookmarkCountMap = new Map<string, number>();
+  let analytics: ReadingAnalytics | null = null;
 
   try {
     novels = await listNovels(session.user.id);
     if (novels.length > 0) {
       const novelIds = novels.map((n) => n.id);
-      [progressMap, bookmarkCountMap] = await Promise.all([
+      const [progress, bookmarks, chapterVisits] = await Promise.all([
         getReadingProgressBatch(session.user.id, novelIds),
         getBookmarkCountsBatch(session.user.id, novelIds),
+        getChapterVisitsForAnalytics(session.user.id, novels),
       ]);
+      progressMap = progress;
+      bookmarkCountMap = bookmarks;
+      analytics = chapterVisits.length > 0
+        ? computeReadingAnalytics(chapterVisits)
+        : null;
     }
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";
@@ -107,6 +116,7 @@ export default async function DashboardPage() {
               totalNovels={novels.length}
               progressData={progressData}
               bookmarkCounts={bookmarkCounts}
+              analytics={analytics}
             />
             <NovelLibrary novels={novels} progressData={progressData} bookmarkCounts={bookmarkCounts} />
           </>

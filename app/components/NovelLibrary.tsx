@@ -14,8 +14,37 @@ import {
 } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 
-type SortField = "date-desc" | "date-asc" | "title-asc" | "title-desc" | "size-desc" | "size-asc";
+type SortField =
+  | "date-desc"
+  | "date-asc"
+  | "title-asc"
+  | "title-desc"
+  | "size-desc"
+  | "size-asc"
+  | "progress-desc"
+  | "progress-asc";
 type FileTypeFilter = "all" | "txt" | "epub";
+type ReadingStatus = "all" | "reading" | "completed" | "not-started";
+
+function getReadingStatus(
+  novelId: string,
+  progressData?: Record<string, NovelProgressData>,
+): ReadingStatus {
+  const progress = progressData?.[novelId];
+  if (!progress || progress.totalVisited === 0) return "not-started";
+  if (progress.totalChapters > 0 && progress.totalVisited >= progress.totalChapters)
+    return "completed";
+  return "reading";
+}
+
+function getProgressPercent(
+  novelId: string,
+  progressData?: Record<string, NovelProgressData>,
+): number {
+  const progress = progressData?.[novelId];
+  if (!progress || progress.totalChapters === 0) return 0;
+  return Math.round((progress.totalVisited / progress.totalChapters) * 100);
+}
 
 interface NovelLibraryProps {
   novels: Novel[];
@@ -23,10 +52,33 @@ interface NovelLibraryProps {
   bookmarkCounts?: Record<string, number>;
 }
 
+const STATUS_TABS: { value: ReadingStatus; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "reading", label: "Reading" },
+  { value: "completed", label: "Completed" },
+  { value: "not-started", label: "Not Started" },
+];
+
 export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibraryProps) {
   const [search, setSearch] = useState("");
   const [fileType, setFileType] = useState<FileTypeFilter>("all");
   const [sort, setSort] = useState<SortField>("date-desc");
+  const [statusFilter, setStatusFilter] = useState<ReadingStatus>("all");
+
+  // Count novels per status for tab badges
+  const statusCounts = useMemo(() => {
+    const counts: Record<ReadingStatus, number> = {
+      all: novels.length,
+      reading: 0,
+      completed: 0,
+      "not-started": 0,
+    };
+    for (const novel of novels) {
+      const status = getReadingStatus(novel.id, progressData);
+      counts[status]++;
+    }
+    return counts;
+  }, [novels, progressData]);
 
   // Derive unique file types present in the collection
   const availableFileTypes = useMemo(() => {
@@ -38,6 +90,13 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
     const query = search.toLowerCase().trim();
 
     let result = novels;
+
+    // Filter by reading status
+    if (statusFilter !== "all") {
+      result = result.filter(
+        (n) => getReadingStatus(n.id, progressData) === statusFilter,
+      );
+    }
 
     // Filter by search query (title match)
     if (query) {
@@ -64,18 +123,63 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
           return b.sizeBytes - a.sizeBytes;
         case "size-asc":
           return a.sizeBytes - b.sizeBytes;
+        case "progress-desc":
+          return getProgressPercent(b.id, progressData) - getProgressPercent(a.id, progressData);
+        case "progress-asc":
+          return getProgressPercent(a.id, progressData) - getProgressPercent(b.id, progressData);
         default:
           return 0;
       }
     });
 
     return result;
-  }, [novels, search, fileType, sort]);
+  }, [novels, search, fileType, sort, statusFilter, progressData]);
 
-  const hasActiveFilters = search !== "" || fileType !== "all";
+  const hasActiveFilters = search !== "" || fileType !== "all" || statusFilter !== "all";
 
   return (
     <div className="space-y-4">
+      {/* Reading status filter tabs */}
+      <div className="flex items-center gap-1 border-b border-border" role="tablist" aria-label="Filter by reading status">
+        {STATUS_TABS.map((tab) => {
+          const count = statusCounts[tab.value];
+          const isActive = statusFilter === tab.value;
+          // Hide tabs with 0 items (except "All" which always shows)
+          if (tab.value !== "all" && count === 0) return null;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`relative px-3 py-2 text-sm font-medium transition-colors ${
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground/80"
+              }`}
+            >
+              {tab.label}
+              {tab.value !== "all" && (
+                <span
+                  className={`ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none ${
+                    isActive
+                      ? "bg-primary/15 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+              {/* Active indicator bar */}
+              {isActive && (
+                <span className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full bg-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Toolbar: search + filters + sort */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search input */}
@@ -131,6 +235,8 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
               <SelectItem value="date-asc">Oldest first</SelectItem>
               <SelectItem value="title-asc">Title A–Z</SelectItem>
               <SelectItem value="title-desc">Title Z–A</SelectItem>
+              <SelectItem value="progress-desc">Most progress</SelectItem>
+              <SelectItem value="progress-asc">Least progress</SelectItem>
               <SelectItem value="size-desc">Largest first</SelectItem>
               <SelectItem value="size-asc">Smallest first</SelectItem>
             </SelectContent>
@@ -152,6 +258,7 @@ export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibr
               onClick={() => {
                 setSearch("");
                 setFileType("all");
+                setStatusFilter("all");
               }}
               className="ml-2 text-primary hover:underline"
             >

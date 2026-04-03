@@ -12,7 +12,8 @@ import { useChapterSearch } from "./use-chapter-search";
 import { useBookmark } from "./use-bookmark";
 import { SearchBar } from "./search-bar";
 import { ChapterDrawer } from "./chapter-drawer";
-import { List, Search, Bookmark, BookmarkCheck } from "lucide-react";
+import { BookmarkPanel } from "./bookmark-panel";
+import { List, Search, Bookmark, BookmarkCheck, BookOpen } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
 
@@ -194,6 +195,7 @@ export function ReaderClient({
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
+  const [showBookmarkPanel, setShowBookmarkPanel] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,6 +229,7 @@ export function ReaderClient({
   const toggleSettings = useCallback(() => setShowSettings((v) => !v), []);
   const toggleGlossary = useCallback(() => setGlossaryMode((v) => !v), []);
   const toggleChapterDrawer = useCallback(() => setShowChapterDrawer((v) => !v), []);
+  const toggleBookmarkPanel = useCallback(() => setShowBookmarkPanel((v) => !v), []);
   const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
 
   useReaderKeyboardShortcuts({
@@ -239,6 +242,7 @@ export function ReaderClient({
     toggleHelp,
     toggleSearch: search.toggle,
     toggleBookmark: bookmark.toggle,
+    toggleBookmarkPanel,
   });
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
@@ -342,6 +346,20 @@ export function ReaderClient({
                 ) : (
                   <Bookmark className="h-4 w-4" aria-hidden="true" />
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={toggleBookmarkPanel}
+                className={`inline-flex h-8 items-center rounded-md px-2.5 text-xs font-medium transition-colors border ${
+                  showBookmarkPanel
+                    ? "bg-muted border-border"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                }`}
+                aria-label="Bookmarks panel"
+                aria-expanded={showBookmarkPanel}
+                title="Bookmarks panel (Shift+B)"
+              >
+                <BookOpen className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -515,6 +533,15 @@ export function ReaderClient({
           chapters={chapters}
           currentChapterIndex={chapter.index}
           onClose={toggleChapterDrawer}
+        />
+      )}
+
+      {showBookmarkPanel && (
+        <BookmarkPanel
+          novelId={novelId}
+          currentChapterIndex={chapter.index}
+          chapters={chapters}
+          onClose={toggleBookmarkPanel}
         />
       )}
 

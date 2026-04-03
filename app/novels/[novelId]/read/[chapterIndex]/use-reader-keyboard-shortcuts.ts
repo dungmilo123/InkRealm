@@ -20,6 +20,8 @@ type ShortcutActions = {
   toggleSearch: () => void;
   /** Toggle the chapter bookmark */
   toggleBookmark: () => void;
+  /** Toggle the bookmark panel/drawer */
+  toggleBookmarkPanel: () => void;
 };
 
 /**
@@ -36,6 +38,7 @@ type ShortcutActions = {
  *   c — Open chapter table of contents
  *   f — Open in-chapter text search (also Ctrl/⌘+F)
  *   b — Toggle chapter bookmark
+ *   B (Shift+B) — Open bookmarks panel
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -126,6 +129,11 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         case "b":
           e.preventDefault();
           actionsRef.current.toggleBookmark();
+          break;
+
+        case "B":
+          e.preventDefault();
+          actionsRef.current.toggleBookmarkPanel();
           break;
 
         case "?":

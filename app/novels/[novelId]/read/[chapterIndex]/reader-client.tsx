@@ -800,6 +800,7 @@ export function ReaderClient({
       {showBookmarkPanel && (
         <BookmarkPanel
           novelId={novelId}
+          novelTitle={novelTitle}
           currentChapterIndex={chapter.index}
           chapters={chapters}
           onClose={toggleBookmarkPanel}

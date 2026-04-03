@@ -2,11 +2,16 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import Link from "next/link";
-import { X, BookmarkCheck, MessageSquare, Pencil, Check } from "lucide-react";
+import { X, BookmarkCheck, MessageSquare, Pencil, Check, Download } from "lucide-react";
 import { useBookmarkPanel } from "./use-bookmark-panel";
+import {
+  formatBookmarksAsMarkdown,
+  generateExportFilename,
+} from "@/lib/bookmark-export";
 
 type BookmarkPanelProps = {
   novelId: string;
+  novelTitle: string;
   currentChapterIndex: number;
   /** Chapter titles for display — same array as ChapterDrawer */
   chapters: { index: number; title: string }[];
@@ -24,6 +29,7 @@ type BookmarkPanelProps = {
  */
 export function BookmarkPanel({
   novelId,
+  novelTitle,
   currentChapterIndex,
   chapters,
   onClose,
@@ -84,6 +90,27 @@ export function BookmarkPanel({
     };
   }, [handleKeyDown, handleClickOutside]);
 
+  // ── Export bookmarks as markdown ──────────────────────────────────
+  const handleExport = useCallback(() => {
+    if (bookmarks.length === 0) return;
+
+    const markdown = formatBookmarksAsMarkdown({
+      novelTitle,
+      bookmarks,
+      chapterTitles: chapterTitleMap,
+    });
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = generateExportFilename(novelTitle);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [bookmarks, novelTitle, chapterTitleMap]);
+
   return (
     <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm">
       <div
@@ -103,14 +130,27 @@ export function BookmarkPanel({
               </span>
             )}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Close bookmarks"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1">
+            {!isLoading && bookmarks.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExport}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Export bookmarks as markdown"
+                title="Export bookmarks (.md)"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Close bookmarks"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

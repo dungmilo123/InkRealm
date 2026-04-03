@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import type { ReaderTheme, ReaderFontFamily } from "@/app/generated/prisma/client";
+import type { ReaderTheme, ReaderFontFamily, ReaderTextAlign, ReaderParagraphSpacing } from "@/app/generated/prisma/client";
 
 export type ReadingPreferences = {
   fontSize: number;
@@ -7,6 +7,8 @@ export type ReadingPreferences = {
   theme: ReaderTheme;
   fontFamily: ReaderFontFamily;
   maxWidth: number;
+  textAlign: ReaderTextAlign;
+  paragraphSpacing: ReaderParagraphSpacing;
 };
 
 export const DEFAULT_READING_PREFERENCES: ReadingPreferences = {
@@ -15,6 +17,8 @@ export const DEFAULT_READING_PREFERENCES: ReadingPreferences = {
   theme: "LIGHT",
   fontFamily: "SERIF",
   maxWidth: 720,
+  textAlign: "LEFT",
+  paragraphSpacing: "NORMAL",
 };
 
 /**
@@ -36,6 +40,8 @@ export async function getUserReadingPreferences(
     theme: prefs.theme,
     fontFamily: prefs.fontFamily,
     maxWidth: prefs.maxWidth,
+    textAlign: prefs.textAlign,
+    paragraphSpacing: prefs.paragraphSpacing,
   };
 }
 
@@ -80,6 +86,22 @@ export async function updateUserReadingPreferences(
     validated.fontFamily = partial.fontFamily;
   }
 
+  if (partial.textAlign !== undefined) {
+    if (partial.textAlign !== "LEFT" && partial.textAlign !== "JUSTIFY")
+      throw new Error("textAlign must be LEFT or JUSTIFY");
+    validated.textAlign = partial.textAlign;
+  }
+
+  if (partial.paragraphSpacing !== undefined) {
+    if (
+      partial.paragraphSpacing !== "COMPACT" &&
+      partial.paragraphSpacing !== "NORMAL" &&
+      partial.paragraphSpacing !== "RELAXED"
+    )
+      throw new Error("paragraphSpacing must be COMPACT, NORMAL, or RELAXED");
+    validated.paragraphSpacing = partial.paragraphSpacing;
+  }
+
   const result = await prisma.userReadingPreferences.upsert({
     where: { userId },
     create: { userId, ...DEFAULT_READING_PREFERENCES, ...validated },
@@ -92,5 +114,7 @@ export async function updateUserReadingPreferences(
     theme: result.theme,
     fontFamily: result.fontFamily,
     maxWidth: result.maxWidth,
+    textAlign: result.textAlign,
+    paragraphSpacing: result.paragraphSpacing,
   };
 }

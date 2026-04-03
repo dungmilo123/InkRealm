@@ -32,6 +32,8 @@ type ShortcutActions = {
   decreaseFontSize: () => void;
   /** Toggle zen (distraction-free) reading mode */
   toggleZenMode: () => void;
+  /** Toggle text alignment between left and justify */
+  toggleTextAlign: () => void;
 };
 
 /**
@@ -54,6 +56,7 @@ type ShortcutActions = {
  *   + / = — Increase font size
  *   -     — Decrease font size
  *   z — Toggle zen (distraction-free) mode
+ *   j — Toggle text alignment (left / justify)
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -180,6 +183,11 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         case "z":
           e.preventDefault();
           actionsRef.current.toggleZenMode();
+          break;
+
+        case "j":
+          e.preventDefault();
+          actionsRef.current.toggleTextAlign();
           break;
       }
     },

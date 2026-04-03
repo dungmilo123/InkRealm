@@ -29,6 +29,10 @@ type GlossaryReaderProps = {
   searchMatches?: SearchMatch[];
   /** Index of the currently active search match */
   activeSearchMatchIndex?: number;
+  /** Text alignment for the reading content */
+  textAlign?: "LEFT" | "JUSTIFY";
+  /** Paragraph spacing preset */
+  paragraphSpacing?: "COMPACT" | "NORMAL" | "RELAXED";
 };
 
 function GlossaryPopover({
@@ -343,7 +347,7 @@ function HighlightedParagraph({
   );
 }
 
-export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMode, onToggleGlossary, searchMatches, activeSearchMatchIndex }: GlossaryReaderProps) {
+export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMode, onToggleGlossary, searchMatches, activeSearchMatchIndex, textAlign, paragraphSpacing }: GlossaryReaderProps) {
   const [internalMode, setInternalMode] = useState(false);
   const glossaryMode = controlledMode ?? internalMode;
   const handleToggle = onToggleGlossary ?? (() => setInternalMode((m) => !m));
@@ -399,7 +403,11 @@ export function GlossaryReader({ novelId, paragraphs, glossaryMode: controlledMo
         </button>
       </div>
 
-      <article className="p-6 md:p-8 bg-card rounded-lg border border-border space-y-6 leading-8 text-foreground">
+      <article className={`p-6 md:p-8 bg-card rounded-lg border border-border leading-8 text-foreground ${
+        textAlign === "JUSTIFY" ? "text-justify" : "text-left"
+      } ${
+        paragraphSpacing === "COMPACT" ? "space-y-3" : paragraphSpacing === "RELAXED" ? "space-y-10" : "space-y-6"
+      }`}>
         {paragraphs.map((paragraph, paragraphIndex) => (
           <HighlightedParagraph
             key={paragraphIndex}

@@ -186,6 +186,78 @@ function SettingsPopover({
             </button>
           </div>
         </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Alignment</span>
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Text alignment">
+            <button
+              type="button"
+              aria-pressed={preferences.textAlign === "LEFT"}
+              onClick={() => onChange({ ...preferences, textAlign: "LEFT" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.textAlign === "LEFT"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Left
+            </button>
+            <button
+              type="button"
+              aria-pressed={preferences.textAlign === "JUSTIFY"}
+              onClick={() => onChange({ ...preferences, textAlign: "JUSTIFY" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.textAlign === "JUSTIFY"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Justify
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Spacing</span>
+          <div className="flex rounded-md border border-border overflow-hidden" role="group" aria-label="Paragraph spacing">
+            <button
+              type="button"
+              aria-pressed={preferences.paragraphSpacing === "COMPACT"}
+              onClick={() => onChange({ ...preferences, paragraphSpacing: "COMPACT" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.paragraphSpacing === "COMPACT"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Compact
+            </button>
+            <button
+              type="button"
+              aria-pressed={preferences.paragraphSpacing === "NORMAL"}
+              onClick={() => onChange({ ...preferences, paragraphSpacing: "NORMAL" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.paragraphSpacing === "NORMAL"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Normal
+            </button>
+            <button
+              type="button"
+              aria-pressed={preferences.paragraphSpacing === "RELAXED"}
+              onClick={() => onChange({ ...preferences, paragraphSpacing: "RELAXED" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.paragraphSpacing === "RELAXED"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Relaxed
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -367,6 +439,14 @@ export function ReaderClient({
     });
   }, [savePreferences]);
 
+  const toggleTextAlign = useCallback(() => {
+    setPreferences((prev) => {
+      const updated = { ...prev, textAlign: prev.textAlign === "LEFT" ? "JUSTIFY" as const : "LEFT" as const };
+      savePreferences(updated);
+      return updated;
+    });
+  }, [savePreferences]);
+
   useReaderKeyboardShortcuts({
     previousChapterHref,
     nextChapterHref,
@@ -383,6 +463,7 @@ export function ReaderClient({
     increaseFontSize,
     decreaseFontSize,
     toggleZenMode,
+    toggleTextAlign,
   });
 
   // Close popover on outside click or Escape key
@@ -657,6 +738,8 @@ export function ReaderClient({
             onToggleGlossary={toggleGlossary}
             searchMatches={search.matches}
             activeSearchMatchIndex={search.activeMatchIndex}
+            textAlign={preferences.textAlign}
+            paragraphSpacing={preferences.paragraphSpacing}
           />
         </div>
 

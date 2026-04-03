@@ -58,6 +58,17 @@ enum ReaderFontFamily {
   SERIF
 }
 
+enum ReaderTextAlign {
+  LEFT
+  JUSTIFY
+}
+
+enum ReaderParagraphSpacing {
+  COMPACT
+  NORMAL
+  RELAXED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -261,13 +272,15 @@ model Bookmark {
 }
 
 model UserReadingPreferences {
-  id         String           @id @default(cuid())
-  userId     String           @unique
-  fontSize   Int              @default(18)
-  lineHeight Float            @default(1.75)
-  theme      ReaderTheme      @default(LIGHT)
-  fontFamily ReaderFontFamily @default(SERIF)
-  maxWidth   Int              @default(720)
-  updatedAt  DateTime         @updatedAt
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String                @id @default(cuid())
+  userId           String                @unique
+  fontSize         Int                   @default(18)
+  lineHeight       Float                 @default(1.75)
+  theme            ReaderTheme           @default(LIGHT)
+  fontFamily       ReaderFontFamily      @default(SERIF)
+  maxWidth         Int                   @default(720)
+  textAlign        ReaderTextAlign       @default(LEFT)
+  paragraphSpacing ReaderParagraphSpacing @default(NORMAL)
+  updatedAt        DateTime              @updatedAt
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

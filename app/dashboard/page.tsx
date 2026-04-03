@@ -5,11 +5,12 @@ import { listNovels } from "@/app/lib/novels";
 import { getReadingProgressBatch } from "@/app/lib/reading-progress";
 import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
 import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
-import { computeReadingAnalytics, type ReadingAnalytics } from "@/lib/reading-stats";
+import { computeReadingAnalytics, computeDailyActivity, type ReadingAnalytics, type DailyActivity } from "@/lib/reading-stats";
 import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
 import { ReadingStatsBanner } from "@/app/components/ReadingStatsBanner";
+import { ActivityHeatmap } from "@/app/components/ActivityHeatmap";
 import type { Novel } from "@/app/generated/prisma/client";
 import type { NovelProgressData } from "@/app/components/NovelList";
 
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
   let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
   let bookmarkCountMap = new Map<string, number>();
   let analytics: ReadingAnalytics | null = null;
+  let dailyActivity: DailyActivity[] = [];
 
   try {
     novels = await listNovels(session.user.id);
@@ -41,9 +43,10 @@ export default async function DashboardPage() {
       ]);
       progressMap = progress;
       bookmarkCountMap = bookmarks;
-      analytics = chapterVisits.length > 0
-        ? computeReadingAnalytics(chapterVisits)
-        : null;
+      if (chapterVisits.length > 0) {
+        analytics = computeReadingAnalytics(chapterVisits);
+        dailyActivity = computeDailyActivity(chapterVisits);
+      }
     }
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";
@@ -118,6 +121,7 @@ export default async function DashboardPage() {
               bookmarkCounts={bookmarkCounts}
               analytics={analytics}
             />
+            <ActivityHeatmap dailyActivity={dailyActivity} />
             <NovelLibrary novels={novels} progressData={progressData} bookmarkCounts={bookmarkCounts} />
           </>
         )}

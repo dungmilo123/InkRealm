@@ -54,6 +54,7 @@ export function KeyboardShortcutsHelp({
     { keys: ["+", "="], label: "Increase font size", available: true },
     { keys: ["−"], label: "Decrease font size", available: true },
     { keys: ["G"], label: "Toggle glossary highlights", available: hasGlossary },
+    { keys: ["Z"], label: "Zen mode (distraction-free)", available: true },
     { keys: ["?"], label: "Show / hide this help", available: true },
   ];
 

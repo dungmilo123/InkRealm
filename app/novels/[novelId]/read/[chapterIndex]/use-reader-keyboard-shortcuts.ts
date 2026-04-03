@@ -30,6 +30,8 @@ type ShortcutActions = {
   increaseFontSize: () => void;
   /** Decrease reader font size by one step */
   decreaseFontSize: () => void;
+  /** Toggle zen (distraction-free) reading mode */
+  toggleZenMode: () => void;
 };
 
 /**
@@ -51,6 +53,7 @@ type ShortcutActions = {
  *   F (Shift+F) — Search across all chapters (novel-wide search)
  *   + / = — Increase font size
  *   -     — Decrease font size
+ *   z — Toggle zen (distraction-free) mode
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -172,6 +175,11 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         case "-":
           e.preventDefault();
           actionsRef.current.decreaseFontSize();
+          break;
+
+        case "z":
+          e.preventDefault();
+          actionsRef.current.toggleZenMode();
           break;
       }
     },

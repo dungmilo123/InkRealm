@@ -193,6 +193,41 @@ const FONT_SIZE_STEP = 2;
 const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 32;
 
+/**
+ * Transient notification shown when Zen mode is activated.
+ * Fades in, stays for 2s, then fades out. Always mounted for smooth CSS transitions.
+ */
+function ZenModeIndicator({ isZenMode }: { isZenMode: boolean }) {
+  const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isZenMode) {
+      queueMicrotask(() => setVisible(true));
+      timerRef.current = setTimeout(() => setVisible(false), 2000);
+    } else {
+      queueMicrotask(() => setVisible(false));
+      if (timerRef.current) clearTimeout(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [isZenMode]);
+
+  return (
+    <div
+      className={`fixed top-6 left-1/2 -translate-x-1/2 z-[60] pointer-events-none transition-all duration-500 ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+      }`}
+      aria-live="polite"
+    >
+      <div className="rounded-full bg-foreground/90 text-background px-4 py-1.5 text-sm font-medium shadow-lg backdrop-blur-sm">
+        Zen mode · press <kbd className="font-mono mx-0.5">Z</kbd> to exit
+      </div>
+    </div>
+  );
+}
+
 export function ReaderClient({
   novelId,
   novelTitle,
@@ -225,6 +260,9 @@ export function ReaderClient({
   const [showGoToChapter, setShowGoToChapter] = useState(false);
   const [showNovelSearch, setShowNovelSearch] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [zenHeaderPeek, setZenHeaderPeek] = useState(false);
+  const zenPeekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -281,6 +319,10 @@ export function ReaderClient({
   const toggleGoToChapter = useCallback(() => setShowGoToChapter((v) => !v), []);
   const toggleNovelSearch = useCallback(() => setShowNovelSearch((v) => !v), []);
   const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
+  const toggleZenMode = useCallback(() => {
+    setIsZenMode((v) => !v);
+    setZenHeaderPeek(false);
+  }, []);
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -336,6 +378,7 @@ export function ReaderClient({
     toggleNovelSearch,
     increaseFontSize,
     decreaseFontSize,
+    toggleZenMode,
   });
 
   // Close popover on outside click or Escape key
@@ -360,6 +403,41 @@ export function ReaderClient({
     }
   }, [showSettings]);
 
+  // Zen mode: auto-peek header when mouse is near the top of the viewport
+  useEffect(() => {
+    if (!isZenMode) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      if (e.clientY <= 60) {
+        // Mouse near top — show header
+        setZenHeaderPeek(true);
+        if (zenPeekTimerRef.current) clearTimeout(zenPeekTimerRef.current);
+      } else if (e.clientY > 200) {
+        // Mouse moved away — hide header after a short delay
+        if (zenPeekTimerRef.current) clearTimeout(zenPeekTimerRef.current);
+        zenPeekTimerRef.current = setTimeout(() => {
+          setZenHeaderPeek(false);
+        }, 800);
+      }
+    }
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      if (zenPeekTimerRef.current) clearTimeout(zenPeekTimerRef.current);
+    };
+  }, [isZenMode]);
+
+  // Exit Zen mode when any overlay opens (they need the toolbar)
+  useEffect(() => {
+    if (isZenMode && (showChapterDrawer || showBookmarkPanel || showHelp || showGoToChapter || showNovelSearch || showSettings)) {
+      queueMicrotask(() => {
+        setIsZenMode(false);
+        setZenHeaderPeek(false);
+      });
+    }
+  }, [isZenMode, showChapterDrawer, showBookmarkPanel, showHelp, showGoToChapter, showNovelSearch, showSettings]);
+
   const fontFamilyClass = preferences.fontFamily === "SANS" ? "font-sans" : "font-serif";
 
   return (
@@ -369,7 +447,9 @@ export function ReaderClient({
     >
       {/* Reading progress indicator — fixed thin bar at top of viewport */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-muted/30"
+        className={`fixed top-0 left-0 right-0 z-50 h-0.5 bg-muted/30 transition-opacity duration-300 ${
+          isZenMode && !zenHeaderPeek ? "opacity-0" : "opacity-100"
+        }`}
         role="progressbar"
         aria-valuenow={Math.round(scrollProgress * 100)}
         aria-valuemin={0}
@@ -394,7 +474,13 @@ export function ReaderClient({
         />
       )}
 
-      <header className="w-full border-b border-border bg-card">
+      <header
+        className={`w-full border-b border-border bg-card transition-all duration-300 ease-in-out ${
+          isZenMode && !zenHeaderPeek
+            ? "-translate-y-full opacity-0 absolute"
+            : "translate-y-0 opacity-100 relative"
+        }`}
+      >
         <div className="max-w-4xl mx-auto px-8 py-6">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm mb-3">
             <Breadcrumbs
@@ -570,7 +656,11 @@ export function ReaderClient({
           />
         </div>
 
-        <nav className="mt-6 flex items-center justify-between gap-4">
+        <nav
+          className={`mt-6 flex items-center justify-between gap-4 transition-all duration-300 ${
+            isZenMode ? "opacity-0 translate-y-4 pointer-events-none" : "opacity-100 translate-y-0"
+          }`}
+        >
           {previousChapterHref ? (
             <Link
               href={previousChapterHref}
@@ -669,6 +759,9 @@ export function ReaderClient({
         min={FONT_SIZE_MIN}
         max={FONT_SIZE_MAX}
       />
+
+      {/* Zen mode entry hint — fades in briefly then disappears */}
+      <ZenModeIndicator isZenMode={isZenMode} />
     </div>
   );
 }

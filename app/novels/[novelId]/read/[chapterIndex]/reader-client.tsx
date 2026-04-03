@@ -488,6 +488,11 @@ export function ReaderClient({
                 · {Math.round(scrollProgress * 100)}%
               </span>
             )}
+            {wordCount > 0 && scrollProgress >= 0.05 && scrollProgress <= 0.95 && (
+              <span className="ml-1">
+                · ~{formatReadingTime(estimateReadingMinutes(Math.round(wordCount * (1 - scrollProgress))))} left
+              </span>
+            )}
           </p>
         </div>
       </header>

@@ -3,6 +3,7 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { listNovels } from "@/app/lib/novels";
 import { getReadingProgressBatch } from "@/app/lib/reading-progress";
+import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
 import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
@@ -24,14 +25,16 @@ export default async function DashboardPage() {
   let novels: Novel[] = [];
   let error: string | null = null;
   let progressMap = new Map<string, { lastChapterIndex: number; totalVisited: number }>();
+  let bookmarkCountMap = new Map<string, number>();
 
   try {
     novels = await listNovels(session.user.id);
     if (novels.length > 0) {
-      progressMap = await getReadingProgressBatch(
-        session.user.id,
-        novels.map((n) => n.id)
-      );
+      const novelIds = novels.map((n) => n.id);
+      [progressMap, bookmarkCountMap] = await Promise.all([
+        getReadingProgressBatch(session.user.id, novelIds),
+        getBookmarkCountsBatch(session.user.id, novelIds),
+      ]);
     }
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";
@@ -44,6 +47,11 @@ export default async function DashboardPage() {
       totalChapters: novels.find((n) => n.id === novelId)?.chapterCount ?? 0,
       totalVisited: prog.totalVisited,
     };
+  }
+
+  const bookmarkCounts: Record<string, number> = {};
+  for (const [novelId, count] of bookmarkCountMap) {
+    bookmarkCounts[novelId] = count;
   }
 
   return (
@@ -98,8 +106,9 @@ export default async function DashboardPage() {
             <ReadingStatsBanner
               totalNovels={novels.length}
               progressData={progressData}
+              bookmarkCounts={bookmarkCounts}
             />
-            <NovelLibrary novels={novels} progressData={progressData} />
+            <NovelLibrary novels={novels} progressData={progressData} bookmarkCounts={bookmarkCounts} />
           </>
         )}
       </section>

@@ -20,9 +20,10 @@ type FileTypeFilter = "all" | "txt" | "epub";
 interface NovelLibraryProps {
   novels: Novel[];
   progressData?: Record<string, NovelProgressData>;
+  bookmarkCounts?: Record<string, number>;
 }
 
-export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
+export function NovelLibrary({ novels, progressData, bookmarkCounts }: NovelLibraryProps) {
   const [search, setSearch] = useState("");
   const [fileType, setFileType] = useState<FileTypeFilter>("all");
   const [sort, setSort] = useState<SortField>("date-desc");
@@ -162,7 +163,7 @@ export function NovelLibrary({ novels, progressData }: NovelLibraryProps) {
 
       {/* Novel grid */}
       {filtered.length > 0 ? (
-        <NovelList novels={filtered} progressData={progressData} />
+        <NovelList novels={filtered} progressData={progressData} bookmarkCounts={bookmarkCounts} />
       ) : !hasActiveFilters ? null : (
         <div className="py-12 text-center">
           <p className="text-muted-foreground mb-1">No novels found</p>

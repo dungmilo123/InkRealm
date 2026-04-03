@@ -3,6 +3,7 @@ import type { Novel } from "@/app/generated/prisma/client";
 import { BookCover } from "@/components/book-cover";
 import { Card } from "@/components/ui/card";
 import { formatFileSize } from "@/app/lib/format";
+import { Bookmark } from "lucide-react";
 
 export interface NovelProgressData {
   lastChapterIndex: number;
@@ -13,9 +14,10 @@ export interface NovelProgressData {
 interface NovelListProps {
   novels: Novel[];
   progressData?: Record<string, NovelProgressData>;
+  bookmarkCounts?: Record<string, number>;
 }
 
-export function NovelList({ novels, progressData }: NovelListProps) {
+export function NovelList({ novels, progressData, bookmarkCounts }: NovelListProps) {
   if (novels.length === 0) {
     return null;
   }
@@ -24,6 +26,7 @@ export function NovelList({ novels, progressData }: NovelListProps) {
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
       {novels.map((novel) => {
         const progress = progressData?.[novel.id];
+        const bookmarkCount = bookmarkCounts?.[novel.id] ?? 0;
         const progressPercent =
           progress && progress.totalChapters > 0
             ? Math.round(
@@ -47,6 +50,16 @@ export function NovelList({ novels, progressData }: NovelListProps) {
                   fileType={novel.fileType}
                   className="w-full transition-transform duration-200"
                 />
+                {/* Bookmark count badge — top-left of book cover */}
+                {bookmarkCount > 0 && (
+                  <span
+                    className="absolute top-1.5 left-1.5 flex items-center gap-0.5 rounded-full bg-amber-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm"
+                    aria-label={`${bookmarkCount} bookmark${bookmarkCount !== 1 ? "s" : ""}`}
+                  >
+                    <Bookmark className="size-2.5 fill-current" aria-hidden="true" />
+                    {bookmarkCount}
+                  </span>
+                )}
                 {progress && progress.totalChapters > 0 && (
                   <>
                     {/* Progress bar along bottom edge of book cover */}

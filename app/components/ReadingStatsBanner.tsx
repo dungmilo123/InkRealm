@@ -1,14 +1,16 @@
-import { BookOpen, BookCheck, BarChart3 } from "lucide-react";
+import { BookOpen, BookCheck, BarChart3, Bookmark } from "lucide-react";
 import type { NovelProgressData } from "./NovelList";
 
 interface ReadingStatsBannerProps {
   totalNovels: number;
   progressData: Record<string, NovelProgressData>;
+  bookmarkCounts?: Record<string, number>;
 }
 
 export function ReadingStatsBanner({
   totalNovels,
   progressData,
+  bookmarkCounts,
 }: ReadingStatsBannerProps) {
   const entries = Object.values(progressData);
 
@@ -20,6 +22,9 @@ export function ReadingStatsBanner({
     (p) => p.totalChapters > 0 && p.totalVisited >= p.totalChapters
   ).length;
   const totalChaptersRead = entries.reduce((sum, p) => sum + p.totalVisited, 0);
+  const totalBookmarks = bookmarkCounts
+    ? Object.values(bookmarkCounts).reduce((sum, c) => sum + c, 0)
+    : 0;
   const overallProgress =
     totalNovels > 0 ? Math.round((novelsStarted / totalNovels) * 100) : 0;
 
@@ -39,6 +44,15 @@ export function ReadingStatsBanner({
       label: "Chapters read",
       value: String(totalChaptersRead),
     },
+    ...(totalBookmarks > 0
+      ? [
+          {
+            icon: Bookmark,
+            label: "Bookmarks",
+            value: String(totalBookmarks),
+          },
+        ]
+      : []),
   ];
 
   return (

@@ -13,7 +13,7 @@ import {
   formatWordCount,
 } from "@/lib/reading-time";
 import type { NovelReadingStats } from "@/lib/reading-stats";
-import { BookOpen, Clock, Type } from "lucide-react";
+import { BookOpen, Clock, Hourglass, Type } from "lucide-react";
 
 export type SerializedDefaultProfile = {
   id: string;
@@ -161,61 +161,104 @@ export function NovelDetailsView({
         </div>
 
         {/* Per-novel reading stats — only shown when user has reading activity */}
-        {novelReadingStats && novelReadingStats.chaptersRead > 0 && (
-          <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-2">
-              Your Reading Progress
-            </p>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
-                <span className="text-xs text-muted-foreground">Chapters read</span>
-                <span className="text-xs font-medium text-foreground tabular-nums">
-                  {novelReadingStats.chaptersRead} of {readerSummary.chapterCount}
-                </span>
-              </div>
-              {novelReadingStats.wordsRead > 0 && (
+        {novelReadingStats && novelReadingStats.chaptersRead > 0 && (() => {
+          const progressPercent = readerSummary.chapterCount > 0
+            ? Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)
+            : 0;
+          const isComplete = novelReadingStats.chaptersRead >= readerSummary.chapterCount;
+          const chaptersRemaining = Math.max(0, readerSummary.chapterCount - novelReadingStats.chaptersRead);
+          const wordsRemaining = Math.max(0, readerSummary.totalWordCount - novelReadingStats.wordsRead);
+          const minutesRemaining = estimateReadingMinutes(wordsRemaining);
+          const timeRemainingLabel = formatReadingTime(minutesRemaining);
+
+          return (
+            <div className="rounded-lg border border-border bg-card/50 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-2">
+                Your Reading Progress
+              </p>
+              {/* Read stats row */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <div className="flex items-center gap-1.5">
-                  <Type className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
-                  <span className="text-xs text-muted-foreground">Words read</span>
+                  <BookOpen className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                  <span className="text-xs text-muted-foreground">Chapters read</span>
                   <span className="text-xs font-medium text-foreground tabular-nums">
-                    {formatWordCount(novelReadingStats.wordsRead)}
+                    {novelReadingStats.chaptersRead} of {readerSummary.chapterCount}
                   </span>
                 </div>
-              )}
-              {novelReadingStats.estimatedMinutes > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
-                  <span className="text-xs text-muted-foreground">Time spent</span>
-                  <span className="text-xs font-medium text-foreground tabular-nums">
-                    {novelReadingStats.estimatedTimeLabel}
-                  </span>
-                </div>
-              )}
-              {/* Completion percentage */}
-              {readerSummary.chapterCount > 0 && (
-                <div className="flex items-center gap-2 ml-auto">
-                  <div
-                    className="w-20 h-1.5 rounded-full bg-muted overflow-hidden"
-                    role="progressbar"
-                    aria-valuenow={Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`Reading progress: ${Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%`}
-                  >
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
-                      style={{ width: `${Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%` }}
-                    />
+                {novelReadingStats.wordsRead > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Type className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                    <span className="text-xs text-muted-foreground">Words read</span>
+                    <span className="text-xs font-medium text-foreground tabular-nums">
+                      {formatWordCount(novelReadingStats.wordsRead)}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-medium text-muted-foreground tabular-nums whitespace-nowrap">
-                    {Math.round((novelReadingStats.chaptersRead / readerSummary.chapterCount) * 100)}%
-                  </span>
-                </div>
+                )}
+                {novelReadingStats.estimatedMinutes > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                    <span className="text-xs text-muted-foreground">Time spent</span>
+                    <span className="text-xs font-medium text-foreground tabular-nums">
+                      {novelReadingStats.estimatedTimeLabel}
+                    </span>
+                  </div>
+                )}
+                {/* Completion percentage */}
+                {readerSummary.chapterCount > 0 && (
+                  <div className="flex items-center gap-2 ml-auto">
+                    <div
+                      className="w-20 h-1.5 rounded-full bg-muted overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={progressPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Reading progress: ${progressPercent}%`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+                      {progressPercent}%
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Remaining stats row — only shown when novel is not fully read */}
+              {!isComplete && wordsRemaining > 0 && (
+                <>
+                  <div className="border-t border-border/50 my-2" />
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <BookOpen className="size-3.5 text-muted-foreground/50" aria-hidden="true" />
+                      <span className="text-xs text-muted-foreground/70">Chapters left</span>
+                      <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                        {chaptersRemaining}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Type className="size-3.5 text-muted-foreground/50" aria-hidden="true" />
+                      <span className="text-xs text-muted-foreground/70">Words left</span>
+                      <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                        {formatWordCount(wordsRemaining)}
+                      </span>
+                    </div>
+                    {minutesRemaining > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Hourglass className="size-3.5 text-muted-foreground/50" aria-hidden="true" />
+                        <span className="text-xs text-muted-foreground/70">Time to finish</span>
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                          {timeRemainingLabel}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="border-t border-border pt-6">
           {readerSummary.isReadable ? (

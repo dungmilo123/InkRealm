@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { UserMenu } from "@/components/user-menu";
@@ -35,6 +35,8 @@ type ReaderClientProps = {
   translatedParagraphs: string[] | null;
   /** Server-fetched initial bookmark state for this chapter */
   initialBookmarked: boolean;
+  /** Chapter indices that the user has bookmarked in this novel */
+  bookmarkedChapterIndices: number[];
 };
 
 function SettingsPopover({
@@ -181,6 +183,7 @@ export function ReaderClient({
   signOutAction,
   translatedParagraphs,
   initialBookmarked,
+  bookmarkedChapterIndices,
 }: ReaderClientProps) {
   const hasTranslation = translatedParagraphs !== null && translatedParagraphs.length > 0;
   // D-07: Default to translated when available
@@ -215,6 +218,18 @@ export function ReaderClient({
     chapterIndex: chapter.index,
     initialBookmarked,
   });
+
+  // Build a set of bookmarked chapter indices for the TOC drawer,
+  // kept in sync with the current chapter's optimistic bookmark state
+  const bookmarkedSet = useMemo(() => {
+    const set = new Set(bookmarkedChapterIndices);
+    if (bookmark.isBookmarked) {
+      set.add(chapter.index);
+    } else {
+      set.delete(chapter.index);
+    }
+    return set;
+  }, [bookmarkedChapterIndices, bookmark.isBookmarked, chapter.index]);
 
   const previousChapterHref =
     chapter.index > 1 ? `/novels/${novelId}/read/${chapter.index - 1}` : null;
@@ -532,6 +547,7 @@ export function ReaderClient({
           novelId={novelId}
           chapters={chapters}
           currentChapterIndex={chapter.index}
+          bookmarkedChapterIndices={bookmarkedSet}
           onClose={toggleChapterDrawer}
         />
       )}

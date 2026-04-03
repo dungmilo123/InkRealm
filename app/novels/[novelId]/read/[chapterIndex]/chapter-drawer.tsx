@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { X, Bookmark } from "lucide-react";
 
 type ChapterInfo = {
   index: number;
@@ -13,6 +13,8 @@ type ChapterDrawerProps = {
   novelId: string;
   chapters: ChapterInfo[];
   currentChapterIndex: number;
+  /** Set of chapter indices the user has bookmarked */
+  bookmarkedChapterIndices: Set<number>;
   onClose: () => void;
 };
 
@@ -25,6 +27,7 @@ export function ChapterDrawer({
   novelId,
   chapters,
   currentChapterIndex,
+  bookmarkedChapterIndices,
   onClose,
 }: ChapterDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -98,6 +101,7 @@ export function ChapterDrawer({
         <nav className="flex-1 overflow-y-auto overscroll-contain py-1">
           {chapters.map((ch) => {
             const isCurrent = ch.index === currentChapterIndex;
+            const isBookmarked = bookmarkedChapterIndices.has(ch.index);
             return (
               <Link
                 key={ch.index}
@@ -118,7 +122,15 @@ export function ChapterDrawer({
                 >
                   {ch.index}
                 </span>
-                <span className="truncate">{ch.title}</span>
+                <span className="truncate flex-1">{ch.title}</span>
+                {isBookmarked && (
+                  <Bookmark
+                    className={`h-3.5 w-3.5 shrink-0 fill-current ${
+                      isCurrent ? "text-primary" : "text-muted-foreground/60"
+                    }`}
+                    aria-label="Bookmarked"
+                  />
+                )}
               </Link>
             );
           })}

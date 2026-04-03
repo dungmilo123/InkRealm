@@ -13,6 +13,7 @@ import { useBookmark } from "./use-bookmark";
 import { SearchBar } from "./search-bar";
 import { ChapterDrawer } from "./chapter-drawer";
 import { BookmarkPanel } from "./bookmark-panel";
+import { GoToChapterDialog } from "./go-to-chapter-dialog";
 import { List, Search, Bookmark, BookmarkCheck, BookOpen } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
@@ -202,6 +203,7 @@ export function ReaderClient({
   const [showHelp, setShowHelp] = useState(false);
   const [showChapterDrawer, setShowChapterDrawer] = useState(false);
   const [showBookmarkPanel, setShowBookmarkPanel] = useState(false);
+  const [showGoToChapter, setShowGoToChapter] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -256,6 +258,7 @@ export function ReaderClient({
   const toggleGlossary = useCallback(() => setGlossaryMode((v) => !v), []);
   const toggleChapterDrawer = useCallback(() => setShowChapterDrawer((v) => !v), []);
   const toggleBookmarkPanel = useCallback(() => setShowBookmarkPanel((v) => !v), []);
+  const toggleGoToChapter = useCallback(() => setShowGoToChapter((v) => !v), []);
   const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
 
   useReaderKeyboardShortcuts({
@@ -269,6 +272,7 @@ export function ReaderClient({
     toggleSearch: search.toggle,
     toggleBookmark: bookmark.toggle,
     toggleBookmarkPanel,
+    toggleGoToChapter,
   });
 
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
@@ -583,6 +587,16 @@ export function ReaderClient({
           onClose={toggleHelp}
           hasTranslation={hasTranslation}
           hasGlossary={true}
+        />
+      )}
+
+      {showGoToChapter && (
+        <GoToChapterDialog
+          novelId={novelId}
+          chapters={chapters}
+          currentChapterIndex={chapter.index}
+          chapterCount={chapterCount}
+          onClose={toggleGoToChapter}
         />
       )}
     </div>

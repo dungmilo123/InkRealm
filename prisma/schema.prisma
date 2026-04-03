@@ -50,6 +50,7 @@ enum GlossaryEntryStatus {
 enum ReaderTheme {
   LIGHT
   DARK
+  SEPIA
 }
 
 enum ReaderFontFamily {

@@ -130,6 +130,18 @@ function SettingsPopover({
             </button>
             <button
               type="button"
+              aria-pressed={preferences.theme === "SEPIA"}
+              onClick={() => onChange({ ...preferences, theme: "SEPIA" })}
+              className={`px-3 py-1 text-xs font-medium transition-colors ${
+                preferences.theme === "SEPIA"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Sepia
+            </button>
+            <button
+              type="button"
               aria-pressed={preferences.theme === "DARK"}
               onClick={() => onChange({ ...preferences, theme: "DARK" })}
               className={`px-3 py-1 text-xs font-medium transition-colors ${
@@ -351,7 +363,10 @@ export function ReaderClient({
   const fontFamilyClass = preferences.fontFamily === "SANS" ? "font-sans" : "font-serif";
 
   return (
-    <div className="flex flex-col flex-1 bg-background">
+    <div
+      className="flex flex-col flex-1 bg-background text-foreground transition-colors duration-200"
+      data-reader-theme={preferences.theme.toLowerCase()}
+    >
       {/* Reading progress indicator — fixed thin bar at top of viewport */}
       <div
         className="fixed top-0 left-0 right-0 z-50 h-0.5 bg-muted/30"

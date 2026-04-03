@@ -69,8 +69,8 @@ export async function updateUserReadingPreferences(
   }
 
   if (partial.theme !== undefined) {
-    if (partial.theme !== "LIGHT" && partial.theme !== "DARK")
-      throw new Error("theme must be LIGHT or DARK");
+    if (partial.theme !== "LIGHT" && partial.theme !== "DARK" && partial.theme !== "SEPIA")
+      throw new Error("theme must be LIGHT, DARK, or SEPIA");
     validated.theme = partial.theme;
   }
 

@@ -51,6 +51,8 @@ export function KeyboardShortcutsHelp({
     { keys: ["⇧G"], label: "Go to chapter", available: true },
     { keys: ["T"], label: "Toggle original / translated", available: hasTranslation },
     { keys: ["S"], label: "Toggle reading settings", available: true },
+    { keys: ["+", "="], label: "Increase font size", available: true },
+    { keys: ["−"], label: "Decrease font size", available: true },
     { keys: ["G"], label: "Toggle glossary highlights", available: hasGlossary },
     { keys: ["?"], label: "Show / hide this help", available: true },
   ];

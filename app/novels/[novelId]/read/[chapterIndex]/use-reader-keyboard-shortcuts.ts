@@ -26,6 +26,10 @@ type ShortcutActions = {
   toggleGoToChapter: () => void;
   /** Toggle the cross-chapter novel search dialog */
   toggleNovelSearch: () => void;
+  /** Increase reader font size by one step */
+  increaseFontSize: () => void;
+  /** Decrease reader font size by one step */
+  decreaseFontSize: () => void;
 };
 
 /**
@@ -45,6 +49,8 @@ type ShortcutActions = {
  *   B (Shift+B) — Open bookmarks panel
  *   G (Shift+G) — Go to chapter (quick jump)
  *   F (Shift+F) — Search across all chapters (novel-wide search)
+ *   + / = — Increase font size
+ *   -     — Decrease font size
  *   ? — Show keyboard shortcuts help
  *
  * All shortcuts are suppressed when the user is typing in an input,
@@ -155,6 +161,17 @@ export function useReaderKeyboardShortcuts(actions: ShortcutActions) {
         case "?":
           e.preventDefault();
           actionsRef.current.toggleHelp();
+          break;
+
+        case "+":
+        case "=":
+          e.preventDefault();
+          actionsRef.current.increaseFontSize();
+          break;
+
+        case "-":
+          e.preventDefault();
+          actionsRef.current.decreaseFontSize();
           break;
       }
     },

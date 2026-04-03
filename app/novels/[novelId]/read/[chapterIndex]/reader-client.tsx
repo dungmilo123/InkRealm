@@ -16,6 +16,7 @@ import { BookmarkPanel } from "./bookmark-panel";
 import { GoToChapterDialog } from "./go-to-chapter-dialog";
 import { ChapterCompleteToast } from "./chapter-complete-toast";
 import { NovelSearchDialog } from "./novel-search-dialog";
+import { FontSizeIndicator } from "./font-size-indicator";
 import { List, Search, Bookmark, BookmarkCheck, BookOpen } from "lucide-react";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import type { ReadingPreferences } from "@/app/lib/reading-preferences";
@@ -176,6 +177,10 @@ function SettingsPopover({
   );
 }
 
+const FONT_SIZE_STEP = 2;
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 32;
+
 export function ReaderClient({
   novelId,
   novelTitle,
@@ -265,21 +270,6 @@ export function ReaderClient({
   const toggleNovelSearch = useCallback(() => setShowNovelSearch((v) => !v), []);
   const toggleHelp = useCallback(() => setShowHelp((v) => !v), []);
 
-  useReaderKeyboardShortcuts({
-    previousChapterHref,
-    nextChapterHref,
-    toggleTranslation: hasTranslation ? toggleTranslation : undefined,
-    toggleSettings,
-    toggleGlossary,
-    toggleChapterDrawer,
-    toggleHelp,
-    toggleSearch: search.toggle,
-    toggleBookmark: bookmark.toggle,
-    toggleBookmarkPanel,
-    toggleGoToChapter,
-    toggleNovelSearch,
-  });
-
   const savePreferences = useCallback((prefs: ReadingPreferences) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -298,6 +288,43 @@ export function ReaderClient({
     },
     [savePreferences]
   );
+
+  const increaseFontSize = useCallback(() => {
+    setPreferences((prev) => {
+      const next = Math.min(prev.fontSize + FONT_SIZE_STEP, FONT_SIZE_MAX);
+      if (next === prev.fontSize) return prev;
+      const updated = { ...prev, fontSize: next };
+      savePreferences(updated);
+      return updated;
+    });
+  }, [savePreferences]);
+
+  const decreaseFontSize = useCallback(() => {
+    setPreferences((prev) => {
+      const next = Math.max(prev.fontSize - FONT_SIZE_STEP, FONT_SIZE_MIN);
+      if (next === prev.fontSize) return prev;
+      const updated = { ...prev, fontSize: next };
+      savePreferences(updated);
+      return updated;
+    });
+  }, [savePreferences]);
+
+  useReaderKeyboardShortcuts({
+    previousChapterHref,
+    nextChapterHref,
+    toggleTranslation: hasTranslation ? toggleTranslation : undefined,
+    toggleSettings,
+    toggleGlossary,
+    toggleChapterDrawer,
+    toggleHelp,
+    toggleSearch: search.toggle,
+    toggleBookmark: bookmark.toggle,
+    toggleBookmarkPanel,
+    toggleGoToChapter,
+    toggleNovelSearch,
+    increaseFontSize,
+    decreaseFontSize,
+  });
 
   // Close popover on outside click or Escape key
   useEffect(() => {
@@ -620,6 +647,12 @@ export function ReaderClient({
         chapterCount={chapterCount}
         novelId={novelId}
         chapters={chapters}
+      />
+
+      <FontSizeIndicator
+        fontSize={preferences.fontSize}
+        min={FONT_SIZE_MIN}
+        max={FONT_SIZE_MAX}
       />
     </div>
   );

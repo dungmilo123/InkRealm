@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "tsx --test app/lib/translation/crypto.test.ts app/lib/translation/validation.test.ts app/lib/translation/quality-preset.test.ts app/lib/translation/glossary-prompts.test.ts app/lib/reader/cache.test.ts",
-    "test:integration": "tsx --test app/lib/translation/lifecycle.test.ts app/lib/translation/profiles.test.ts app/lib/translation/state.test.ts app/lib/translation/export.test.ts app/lib/translation/export-route.test.ts app/lib/translation/novel-details-view.test.ts"
+    "test:integration": "tsx --test app/lib/translation/lifecycle.test.ts app/lib/translation/profiles.test.ts app/lib/translation/state.test.ts app/lib/translation/export.test.ts app/lib/translation/export-route.test.ts app/lib/translation/novel-details-view.test.ts app/lib/bookmarks.test.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

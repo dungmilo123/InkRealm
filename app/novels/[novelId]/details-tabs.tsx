@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, memo } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import Link from "next/link";
 import type { ReaderSummary } from "@/app/lib/reader";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { useTranslationPolling } from "./use-translation-polling";
 import { useTranslationEta } from "./use-translation-eta";
 import { useTranslationNotification } from "./use-translation-notification";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Search, X } from "lucide-react";
 import type {
   SerializedDefaultProfile,
   SerializedTranslationJob,
@@ -37,6 +37,15 @@ type DetailsTabsProps = {
 const TABS = ["Chapters", "Translation", "Glossary"] as const;
 type Tab = (typeof TABS)[number];
 
+type ChapterStatusFilter = "all" | "read" | "unread" | "translated";
+
+const STATUS_FILTER_LABELS: { value: ChapterStatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "read", label: "Read" },
+  { value: "unread", label: "Unread" },
+  { value: "translated", label: "Translated" },
+];
+
 const ChapterList = memo(function ChapterList({
   novelId,
   chapters,
@@ -48,65 +57,199 @@ const ChapterList = memo(function ChapterList({
   readingProgress: ReadingProgressData;
   chapterStatuses: ChapterTranslationStatus[];
 }) {
-  const visitedSet = new Set(readingProgress?.visitedChapterIndices ?? []);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ChapterStatusFilter>("all");
+
+  const visitedSet = useMemo(
+    () => new Set(readingProgress?.visitedChapterIndices ?? []),
+    [readingProgress?.visitedChapterIndices]
+  );
   const lastChapter = readingProgress?.lastChapterIndex ?? null;
-  const statusMap = new Map(chapterStatuses.map((s) => [s.chapterIndex, s.status]));
+  const statusMap = useMemo(
+    () => new Map(chapterStatuses.map((s) => [s.chapterIndex, s.status])),
+    [chapterStatuses]
+  );
+
+  // Count chapters per status for filter badges
+  const statusCounts = useMemo(() => {
+    let read = 0;
+    let unread = 0;
+    let translated = 0;
+    for (const ch of chapters) {
+      if (visitedSet.has(ch.index)) read++;
+      else unread++;
+      if (statusMap.get(ch.index) === "translated") translated++;
+    }
+    return { all: chapters.length, read, unread, translated };
+  }, [chapters, visitedSet, statusMap]);
+
+  // Filter chapters by search + status
+  const filteredChapters = useMemo(() => {
+    const query = search.toLowerCase().trim();
+    return chapters.filter((ch) => {
+      // Search filter: match title or chapter number
+      if (query) {
+        const matchesTitle = ch.title.toLowerCase().includes(query);
+        const matchesIndex = String(ch.index) === query;
+        if (!matchesTitle && !matchesIndex) return false;
+      }
+      // Status filter
+      if (statusFilter === "read") return visitedSet.has(ch.index);
+      if (statusFilter === "unread") return !visitedSet.has(ch.index);
+      if (statusFilter === "translated") return statusMap.get(ch.index) === "translated";
+      return true;
+    });
+  }, [chapters, search, statusFilter, visitedSet, statusMap]);
+
+  const hasActiveFilters = search.length > 0 || statusFilter !== "all";
 
   return (
-    <div className="divide-y divide-border">
-      {chapters.map((ch) => {
-        const isLast = ch.index === lastChapter;
-        const isVisited = visitedSet.has(ch.index);
+    <div>
+      {/* Search + filters toolbar */}
+      <div className="space-y-3 pb-3">
+        {/* Search input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search chapters by title or number..."
+            className="w-full pl-9 pr-8 py-2 text-sm bg-muted/30 border border-border rounded-lg text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+            aria-label="Search chapters"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
 
-        let indicator: string;
-        let indicatorClass: string;
-        if (isLast) {
-          indicator = "\u25C9"; // ◉
-          indicatorClass = "text-primary";
-        } else if (isVisited) {
-          indicator = "\u2713"; // ✓
-          indicatorClass = "text-green-600 dark:text-green-400";
-        } else {
-          indicator = "\u25CB"; // ○
-          indicatorClass = "text-muted-foreground/50";
-        }
+        {/* Status filter tabs */}
+        <div className="flex gap-1.5 flex-wrap">
+          {STATUS_FILTER_LABELS.map(({ value, label }) => {
+            const count = statusCounts[value];
+            // Hide empty tabs (except "All")
+            if (value !== "all" && count === 0) return null;
+            const isActive = statusFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  isActive
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                }`}
+                aria-pressed={isActive}
+              >
+                {label}
+                <span className={`tabular-nums ${isActive ? "text-primary/70" : "text-muted-foreground/50"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        const translationStatus = statusMap.get(ch.index);
-        const readingMin = estimateReadingMinutes(ch.wordCount);
+      {/* Chapter list */}
+      <div className="divide-y divide-border">
+        {filteredChapters.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {hasActiveFilters
+                ? "No chapters match your filters."
+                : "No chapters available."}
+            </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => { setSearch(""); setStatusFilter("all"); }}
+                className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredChapters.map((ch) => {
+            const isLast = ch.index === lastChapter;
+            const isVisited = visitedSet.has(ch.index);
 
-        return (
-          <Link
-            key={ch.index}
-            href={`/novels/${novelId}/read/${ch.index}`}
-            className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors group"
+            let indicator: string;
+            let indicatorClass: string;
+            if (isLast) {
+              indicator = "\u25C9"; // ◉
+              indicatorClass = "text-primary";
+            } else if (isVisited) {
+              indicator = "\u2713"; // ✓
+              indicatorClass = "text-green-600 dark:text-green-400";
+            } else {
+              indicator = "\u25CB"; // ○
+              indicatorClass = "text-muted-foreground/50";
+            }
+
+            const translationStatus = statusMap.get(ch.index);
+            const readingMin = estimateReadingMinutes(ch.wordCount);
+
+            return (
+              <Link
+                key={ch.index}
+                href={`/novels/${novelId}/read/${ch.index}`}
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors group"
+              >
+                <span className={`text-sm w-5 text-center ${indicatorClass}`}>
+                  {indicator}
+                </span>
+                <span className="text-sm text-muted-foreground tabular-nums w-8">
+                  {ch.index}
+                </span>
+                <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                  {ch.title}
+                </span>
+                {ch.wordCount > 0 && (
+                  <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
+                    {formatReadingTime(readingMin)}
+                  </span>
+                )}
+                {translationStatus === "translated" && (
+                  <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
+                    Translated
+                  </Badge>
+                )}
+                {translationStatus === "translating" && (
+                  <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs motion-safe:animate-pulse">
+                    Translating...
+                  </Badge>
+                )}
+              </Link>
+            );
+          })
+        )}
+      </div>
+
+      {/* Result count when filtering */}
+      {hasActiveFilters && filteredChapters.length > 0 && (
+        <div className="pt-2 pb-1 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Showing {filteredChapters.length} of {chapters.length} chapters
+          </p>
+          <button
+            type="button"
+            onClick={() => { setSearch(""); setStatusFilter("all"); }}
+            className="text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer"
           >
-            <span className={`text-sm w-5 text-center ${indicatorClass}`}>
-              {indicator}
-            </span>
-            <span className="text-sm text-muted-foreground tabular-nums w-8">
-              {ch.index}
-            </span>
-            <span className="text-sm text-foreground group-hover:text-primary transition-colors truncate">
-              {ch.title}
-            </span>
-            {ch.wordCount > 0 && (
-              <span className="ml-auto shrink-0 text-xs text-muted-foreground/60 tabular-nums">
-                {formatReadingTime(readingMin)}
-              </span>
-            )}
-            {translationStatus === "translated" && (
-              <Badge className="shrink-0 bg-primary/10 text-primary border-0 text-xs">
-                Translated
-              </Badge>
-            )}
-            {translationStatus === "translating" && (
-              <Badge className="shrink-0 bg-muted text-muted-foreground border-0 text-xs motion-safe:animate-pulse">
-                Translating...
-              </Badge>
-            )}
-          </Link>
-        );
-      })}
+            Clear filters
+          </button>
+        </div>
+      )}
     </div>
   );
 });

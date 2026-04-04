@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
-    proxyClientMaxBodySize: "20mb",
+    proxyClientMaxBodySize: "50mb",
     optimizePackageImports: ["lucide-react"],
   },
 };

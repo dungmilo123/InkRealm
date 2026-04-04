@@ -1,8 +1,26 @@
-import { mkdir, readFile, writeFile, unlink } from "fs/promises";
-import { join } from "path";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { TranslationStatus } from "@/app/generated/prisma/client";
 
-const TRANSLATION_EXPORT_DIR = join(process.cwd(), "storage", "translations");
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME ?? "inkrealm-novel-storage";
+
+function getR2Client(): S3Client {
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  });
+}
 
 export type ExportChapter = {
   chapterIndex: number;
@@ -36,10 +54,6 @@ export function buildTranslatedExportText(input: {
   return lines.join("\n").trim() + "\n";
 }
 
-async function ensureTranslationExportDir() {
-  await mkdir(TRANSLATION_EXPORT_DIR, { recursive: true });
-}
-
 function sanitizeFileName(value: string) {
   return value
     .replace(/[^a-zA-Z0-9\-\s_]/g, "")
@@ -54,23 +68,31 @@ export async function writeTranslatedExportFile(input: {
   targetLanguage: string;
   chapters: ExportChapter[];
 }) {
-  await ensureTranslationExportDir();
+  const client = getR2Client();
 
   const safeNovelName = sanitizeFileName(input.novelTitle) || "novel";
   const safeLanguage = sanitizeFileName(input.targetLanguage) || "translated";
   const fileName = `${safeNovelName}-${safeLanguage}-${input.translationId}.txt`;
-  const filePath = join(TRANSLATION_EXPORT_DIR, fileName);
+  const storageKey = `translations/${fileName}`;
+
   const content = buildTranslatedExportText({
     novelTitle: input.novelTitle,
     targetLanguage: input.targetLanguage,
     chapters: input.chapters,
   });
 
-  await writeFile(filePath, content, "utf8");
+  await client.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+      Body: content,
+      ContentType: "text/plain; charset=utf-8",
+    })
+  );
 
   return {
     fileName,
-    filePath,
+    filePath: storageKey, // Now returns R2 key instead of local path
   };
 }
 
@@ -81,21 +103,38 @@ export function canDownloadTranslationExport(input: {
   return input.status === TranslationStatus.COMPLETED && Boolean(input.exportPath);
 }
 
-export async function readTranslatedExportFile(exportPath: string): Promise<Buffer> {
-  return readFile(exportPath);
+export async function readTranslatedExportFile(storageKey: string): Promise<Buffer> {
+  const client = getR2Client();
+
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+    })
+  );
+
+  if (!response.Body) {
+    throw new Error(`Empty response body for key: ${storageKey}`);
+  }
+
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 /**
- * Deletes a translated export file from local storage.
- * Silently ignores ENOENT (file already removed / never written).
+ * Deletes a translated export file from R2 storage.
+ * Silently succeeds if the object doesn't exist.
  */
-export async function deleteTranslatedExportFile(filePath: string): Promise<void> {
-  try {
-    await unlink(filePath);
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      return;
-    }
-    throw err;
-  }
+export async function deleteTranslatedExportFile(storageKey: string): Promise<void> {
+  const client = getR2Client();
+
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+    })
+  );
 }

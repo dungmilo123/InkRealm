@@ -1,17 +1,31 @@
-import { writeFile, readFile, mkdir, unlink } from "fs/promises";
-import { join } from "path";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
-const STORAGE_DIR = join(process.cwd(), "storage", "novels");
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID!;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID!;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY!;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME ?? "inkrealm-novel-storage";
 
-async function ensureStorageDir(): Promise<void> {
-  await mkdir(STORAGE_DIR, { recursive: true });
+function getR2Client(): S3Client {
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  });
 }
 
 /** Generates a UUID-based storage key preserving the original file extension. */
 export function generateStorageKey(originalFileName: string): string {
   const ext = getExtension(originalFileName);
-  return `${randomUUID()}${ext ? `.${ext}` : ""}`;
+  return `novels/${randomUUID()}${ext ? `.${ext}` : ""}`;
 }
 
 function getExtension(filename: string): string {
@@ -23,38 +37,63 @@ function getExtension(filename: string): string {
 }
 
 /**
- * Writes a novel file buffer to `storage/novels/`, creating the directory
- * if it doesn't exist. Returns the absolute file path written.
+ * Writes a novel file buffer to R2 storage.
+ * Returns the storage key (not a local path).
  */
 export async function writeNovelFile(
   storageKey: string,
   buffer: Buffer
 ): Promise<string> {
-  await ensureStorageDir();
-  const filePath = join(STORAGE_DIR, storageKey);
-  await writeFile(filePath, buffer);
-  return filePath;
+  const client = getR2Client();
+
+  await client.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+      Body: buffer,
+    })
+  );
+
+  return storageKey;
 }
 
 /**
- * Reads a novel file from local storage by its absolute path.
+ * Reads a novel file from R2 storage by its storage key.
  * Returns a Buffer for compatibility with the reader/parser pipeline.
  */
-export async function readNovelFile(filePath: string): Promise<Buffer> {
-  return readFile(filePath);
+export async function readNovelFile(storageKey: string): Promise<Buffer> {
+  const client = getR2Client();
+
+  const response = await client.send(
+    new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+    })
+  );
+
+  if (!response.Body) {
+    throw new Error(`Empty response body for key: ${storageKey}`);
+  }
+
+  // Convert readable stream to buffer
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 /**
- * Deletes a novel file from local storage.
- * Silently ignores ENOENT (file already removed / never written).
+ * Deletes a novel file from R2 storage.
+ * Silently succeeds if the object doesn't exist.
  */
-export async function deleteNovelFile(filePath: string): Promise<void> {
-  try {
-    await unlink(filePath);
-  } catch (err: unknown) {
-    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      return;
-    }
-    throw err;
-  }
+export async function deleteNovelFile(storageKey: string): Promise<void> {
+  const client = getR2Client();
+
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: storageKey,
+    })
+  );
 }

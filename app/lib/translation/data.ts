@@ -283,6 +283,29 @@ export async function getTranslationJobForRunner(translationId: string) {
   });
 }
 
+/**
+ * Resets chapters stuck in TRANSLATING status back to PENDING.
+ * This recovers from interrupted function invocations where a chapter was
+ * claimed but the function died before completing the translation.
+ */
+export async function resetStalledTranslatingChapters(
+  translationId: string,
+  stalledMinutes: number = 5
+) {
+  const stalledBefore = new Date(Date.now() - stalledMinutes * 60 * 1000);
+  return prisma.novelTranslationChapter.updateMany({
+    where: {
+      translationId,
+      status: ChapterTranslationStatus.TRANSLATING,
+      updatedAt: { lt: stalledBefore },
+    },
+    data: {
+      status: ChapterTranslationStatus.PENDING,
+      errorMessage: null,
+    },
+  });
+}
+
 /** Returns the next `limit` PENDING chapters for a translation job, ordered by chapter index. */
 export async function listPendingChaptersForRun(
   translationId: string,

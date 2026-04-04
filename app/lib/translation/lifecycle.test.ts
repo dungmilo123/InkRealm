@@ -196,6 +196,8 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
+    assert.notEqual(txtJob, "continue", "Expected completed job, not continuation");
+    if (txtJob === "continue") throw new Error("unreachable");
     assert.equal(txtJob.status, "COMPLETED");
     assert.ok(txtJob.exportPath);
     assert.ok(txtJob.downloadUrl);
@@ -228,6 +230,8 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
+    assert.notEqual(failedJob, "continue", "Expected failed job, not continuation");
+    if (failedJob === "continue") throw new Error("unreachable");
     assert.equal(failedJob.status, "FAILED");
     assert.equal(failedJob.failedChapterIndex, 1);
     assert.ok(failedJob.failureReason);
@@ -244,6 +248,8 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
+    assert.notEqual(recoveredJob, "continue", "Expected completed job, not continuation");
+    if (recoveredJob === "continue") throw new Error("unreachable");
     assert.equal(recoveredJob.status, "COMPLETED");
     assert.ok(recoveredJob.exportPath);
     assert.ok(recoveredJob.downloadUrl);

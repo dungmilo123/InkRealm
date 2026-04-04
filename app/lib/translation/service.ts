@@ -24,6 +24,7 @@ import {
   markChapterTranslated,
   markChapterTranslating,
   prepareTranslationRetry,
+  resetStalledTranslatingChapters,
   setTranslationCancelled,
   setTranslationCompleted,
   setTranslationFailed,
@@ -282,21 +283,68 @@ export async function createTranslationJobFromNovelDetails(input: {
 }
 
 /**
- * Sequentially translates all pending chapters in a translation job.
- * Runs in a while-loop, processing one chapter at a time: claim → translate
- * via the AI adapter → persist result. Checks for cancellation between
- * chapters. On failure, marks the job as FAILED and returns immediately.
- * On success of all chapters, finalizes the job (export file + COMPLETED).
+ * Maximum wall-clock time (ms) the batch loop will run before triggering
+ * a continuation via internal fetch. Leaves headroom below Vercel's
+ * default 300 s function timeout so the continuation request can be fired.
+ */
+const BATCH_TIME_BUDGET_MS = 240_000; // 4 minutes
+
+/**
+ * Builds the base URL for internal API calls.
+ * Uses VERCEL_URL on deployed environments, falls back to localhost for dev.
+ */
+function getInternalBaseUrl() {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return `http://localhost:${process.env.PORT || 3000}`;
+}
+
+/**
+ * Fires an internal fetch to the continuation endpoint so the next
+ * function invocation picks up where this one left off.
+ */
+export async function triggerTranslationContinuation(input: {
+  translationId: string;
+  userId: string;
+}) {
+  const url = `${getInternalBaseUrl()}/api/translation/jobs/${input.translationId}/continue`;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-token": process.env.AUTH_SECRET ?? "",
+      },
+      body: JSON.stringify({ userId: input.userId }),
+    });
+  } catch (error) {
+    console.error("Failed to trigger translation continuation", {
+      translationId: input.translationId,
+      error,
+    });
+  }
+}
+
+/**
+ * Sequentially translates pending chapters in a translation job.
  *
- * @param input.allowFailedState - When true, allows running a FAILED job
- *   (used after retry preparation resets failed chapters to PENDING).
+ * Runs in a while-loop, processing one chapter at a time. Checks a
+ * time budget after each chapter — when approaching the function timeout,
+ * it returns `"continue"` so the caller can trigger a continuation via
+ * an internal fetch to a fresh function invocation.
+ *
+ * @returns `"completed"` when all chapters are done, `"continue"` when
+ *   the time budget is exhausted and more chapters remain, or the
+ *   finalized job view on failure/cancellation.
  */
 export async function runTranslationJobBatch(input: {
   translationId: string;
   profileId?: string;
   allowFailedState?: boolean;
   userId: string;
-}) {
+}): Promise<TranslationJobView | "continue"> {
+  const batchStart = Date.now();
   const runnerState = await getTranslationJobForRunner(input.translationId);
   if (!runnerState) {
     throw new TranslationHttpError(404, "Translation job not found.");
@@ -376,7 +424,10 @@ export async function runTranslationJobBatch(input: {
 
   const adapter = getTranslationAdapter(runnerState.providerSnapshot);
 
-  // Auto-continue loop: process chapters one at a time until all done or cancelled
+  // Recover any chapters left in TRANSLATING from a prior interrupted invocation
+  await resetStalledTranslatingChapters(input.translationId);
+
+  // Auto-continue loop: process chapters one at a time until all done, cancelled, or time budget exhausted
   while (true) {
     // Check for cancellation before each chapter
     const currentJob = await getTranslationJobById(input.translationId);
@@ -387,6 +438,11 @@ export async function runTranslationJobBatch(input: {
     const pending = await listPendingChaptersForRun(input.translationId, 1);
     if (pending.length === 0) {
       break; // All chapters processed
+    }
+
+    // Check time budget — if running low, yield to a fresh invocation
+    if (Date.now() - batchStart > BATCH_TIME_BUDGET_MS) {
+      return "continue";
     }
 
     const chapterState = pending[0];
@@ -416,33 +472,33 @@ export async function runTranslationJobBatch(input: {
       return toTranslationJobView(failed);
     }
 
-    // Assemble context from previous chapters
-    let previousContext: ChapterContext[] | undefined;
-    if (hasContext && chapterState.chapterIndex > 1) {
-      const maxContextNeeded = Math.max(
-        runnerState.contextChapters,
-        runnerState.contextSummaries
-      );
-      const prevChapters = await listPreviousTranslatedChapters(
-        input.translationId,
-        chapterState.chapterIndex,
-        maxContextNeeded
-      );
-
-      // prevChapters is ordered desc by chapterIndex — reverse to chronological
-      const sorted = prevChapters.reverse();
-
-      previousContext = sorted.map((ch, idx) => {
-        const isFullContext = idx >= sorted.length - runnerState.contextChapters;
-        return {
-          chapterIndex: ch.chapterIndex,
-          translatedContent: isFullContext ? (ch.translatedContent ?? "") : "",
-          summary: idx < runnerState.contextSummaries ? ch.summary : null,
-        };
-      }).filter((c) => c.translatedContent || c.summary);
-    }
-
     try {
+      // Assemble context from previous chapters (inside try/catch to prevent silent crashes)
+      let previousContext: ChapterContext[] | undefined;
+      if (hasContext && chapterState.chapterIndex > 1) {
+        const maxContextNeeded = Math.max(
+          runnerState.contextChapters,
+          runnerState.contextSummaries
+        );
+        const prevChapters = await listPreviousTranslatedChapters(
+          input.translationId,
+          chapterState.chapterIndex,
+          maxContextNeeded
+        );
+
+        // prevChapters is ordered desc by chapterIndex — reverse to chronological
+        const sorted = prevChapters.reverse();
+
+        previousContext = sorted.map((ch, idx) => {
+          const isFullContext = idx >= sorted.length - runnerState.contextChapters;
+          return {
+            chapterIndex: ch.chapterIndex,
+            translatedContent: isFullContext ? (ch.translatedContent ?? "") : "",
+            summary: idx < runnerState.contextSummaries ? ch.summary : null,
+          };
+        }).filter((c) => c.translatedContent || c.summary);
+      }
+
       const translated = await adapter.translateChapter(
         {
           provider: runnerState.providerSnapshot,

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { validateUpload } from "@/app/lib/validation";
-import { generateStorageKey, writeNovelFile } from "@/app/lib/storage";
+import { generateStorageKey, writeNovelFile, deleteNovelFile } from "@/app/lib/storage";
 import { createNovel } from "@/app/lib/novels";
-import { unlink } from "fs/promises";
 import { requireAuth } from "@/app/lib/require-auth";
 import {
   uploadLimiter,
@@ -109,7 +108,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, novel }, { status: 201 });
     } catch (dbError) {
       try {
-        await unlink(storagePath);
+        await deleteNovelFile(storagePath);
       } catch (cleanupError) {
         console.error("Failed to clean up uploaded file after DB error", {
           storagePath,

@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         setError(data.error || "Something went wrong");
         return;
       }

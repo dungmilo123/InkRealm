@@ -136,9 +136,9 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: newPassword }),
       });
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error ?? "Something went wrong");
       } else {
         setSuccess("Password set successfully");
         setNewPassword("");
@@ -168,9 +168,9 @@ function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error ?? "Something went wrong");
       } else {
         setSuccess("Password changed successfully");
         setCurrentPassword("");
@@ -295,7 +295,7 @@ function LinkedAccountsSection({
       const res = await fetch("/api/auth/unlink-google", {
         method: "POST",
       });
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
       if (!res.ok) {
         toast.error(data.error || "Failed to unlink Google account");
       } else {

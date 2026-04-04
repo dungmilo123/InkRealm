@@ -60,7 +60,7 @@ export function TranslationReaderClient({
     try {
       const response = await fetch(`/api/translation/novel?novelId=${novelId}`);
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as TranslationData;
         setTranslationInfo(data);
       }
     } catch (error) {
@@ -81,13 +81,17 @@ export function TranslationReaderClient({
             `/api/translation/chapter?novelId=${novelId}&chapterIndex=${currentChapter}`
           );
           if (response.ok) {
-            const data = await response.json();
+            const data = await response.json() as {
+              translatedContent?: string;
+              translatedTitle?: string;
+              originalTitle?: string;
+            };
             if (data.translatedContent) {
               const paragraphs = data.translatedContent
                 .split("\n\n")
                 .filter((p: string) => p.trim());
               setTranslatedChapter({
-                title: data.translatedTitle || data.originalTitle,
+                title: data.translatedTitle ?? data.originalTitle ?? "",
                 paragraphs,
               });
             } else {

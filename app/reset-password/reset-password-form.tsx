@@ -66,10 +66,10 @@ export function ResetPasswordForm() {
         body: JSON.stringify({ email, token, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
 
       if (!res.ok) {
-        setError(data.error);
+        setError(data.error ?? "Something went wrong");
         return;
       }
 

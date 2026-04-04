@@ -1,4 +1,3 @@
-import { basename } from "path";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/require-auth";
 import { readTranslatedExportFile } from "@/app/lib/translation/export";
@@ -59,7 +58,7 @@ export async function GET(
       throw new TranslationHttpError(404, "Translation export file was not found.");
     }
 
-    const filename = basename(job.exportPath!);
+    const filename = job.exportPath!.split("/").pop() ?? "translation.txt";
     return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

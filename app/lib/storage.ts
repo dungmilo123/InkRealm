@@ -1,4 +1,4 @@
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, readFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import { randomUUID } from "crypto";
 
@@ -36,21 +36,24 @@ export async function writeNovelFile(
   return filePath;
 }
 
-/** Resolves a storage key to its absolute path under `storage/novels/`. */
-export function getStoragePath(storageKey: string): string {
-  return join(STORAGE_DIR, storageKey);
+/**
+ * Reads a novel file from local storage by its absolute path.
+ * Returns a Buffer for compatibility with the reader/parser pipeline.
+ */
+export async function readNovelFile(filePath: string): Promise<Buffer> {
+  return readFile(filePath);
 }
 
 /**
  * Deletes a novel file from local storage.
  * Silently ignores ENOENT (file already removed / never written).
  */
-export async function deleteNovelFile(storageKey: string): Promise<void> {
+export async function deleteNovelFile(filePath: string): Promise<void> {
   try {
-    await unlink(join(STORAGE_DIR, storageKey));
+    await unlink(filePath);
   } catch (err: unknown) {
     if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      return; // file already gone — not an error
+      return;
     }
     throw err;
   }

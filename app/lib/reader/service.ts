@@ -1,6 +1,6 @@
-import { readFile } from "fs/promises";
 import { extname } from "path";
 import type { Novel } from "@/app/generated/prisma/client";
+import { readNovelFile } from "@/app/lib/storage";
 import { extractEpubChapters } from "./epub";
 import { extractTxtChapters } from "./text";
 import {
@@ -70,8 +70,8 @@ async function parseNovelChapters(novel: Novel): Promise<ParsedReaderChapter[]> 
 
   if (format === "txt") {
     try {
-      const text = await readFile(novel.storagePath, "utf-8");
-      return extractTxtChapters(text);
+      const buffer = await readNovelFile(novel.storagePath);
+      return extractTxtChapters(buffer.toString("utf-8"));
     } catch {
       throw new ReaderUnavailableError(
         "Could not read this text file from storage."
@@ -80,7 +80,7 @@ async function parseNovelChapters(novel: Novel): Promise<ParsedReaderChapter[]> 
   }
 
   try {
-    const epubBuffer = await readFile(novel.storagePath);
+    const epubBuffer = await readNovelFile(novel.storagePath);
     return extractEpubChapters(epubBuffer);
   } catch {
     throw new ReaderUnavailableError(

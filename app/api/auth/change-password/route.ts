@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/require-auth";
 import { prisma } from "@/app/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { validatePassword } from "@/app/lib/auth-validation";
 import {
   authActionLimiter,

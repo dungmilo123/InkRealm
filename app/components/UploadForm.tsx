@@ -102,7 +102,7 @@ export function UploadForm() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await res.json() as { error?: string };
 
       if (!res.ok) {
         setMessage({ type: "error", text: data.error || "Upload failed" });

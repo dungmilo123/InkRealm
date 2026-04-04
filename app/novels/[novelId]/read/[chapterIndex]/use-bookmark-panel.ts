@@ -66,9 +66,9 @@ export function useBookmarkPanel({
     fetch(`/api/reading/bookmarks?novelId=${encodeURIComponent(novelId)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+        return res.json() as Promise<{ bookmarks: BookmarkEntry[] }>;
       })
-      .then((data: { bookmarks: BookmarkEntry[] }) => {
+      .then((data) => {
         if (!cancelled) {
           setState({ bookmarks: data.bookmarks, isLoading: false, error: null });
         }

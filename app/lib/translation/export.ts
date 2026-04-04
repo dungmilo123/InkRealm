@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { TranslationStatus } from "@/app/generated/prisma/client";
 
@@ -81,6 +81,21 @@ export function canDownloadTranslationExport(input: {
   return input.status === TranslationStatus.COMPLETED && Boolean(input.exportPath);
 }
 
-export async function readTranslatedExportFile(exportPath: string) {
+export async function readTranslatedExportFile(exportPath: string): Promise<Buffer> {
   return readFile(exportPath);
+}
+
+/**
+ * Deletes a translated export file from local storage.
+ * Silently ignores ENOENT (file already removed / never written).
+ */
+export async function deleteTranslatedExportFile(filePath: string): Promise<void> {
+  try {
+    await unlink(filePath);
+  } catch (err: unknown) {
+    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
+    throw err;
+  }
 }

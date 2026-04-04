@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import type { Novel } from "../generated/prisma/client";
 import { notFound } from "next/navigation";
 import { deleteNovelFile } from "./storage";
-import { unlink } from "fs/promises";
+import { deleteTranslatedExportFile } from "./translation/export";
 
 export type NovelCreateInput = {
   title: string;
@@ -112,10 +112,7 @@ export async function deleteNovel(novelId: string, userId: string): Promise<Nove
 
   for (const exportPath of exportPaths) {
     cleanupPromises.push(
-      unlink(exportPath).catch((err: unknown) => {
-        if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-          return; // already gone
-        }
+      deleteTranslatedExportFile(exportPath).catch((err: unknown) => {
         console.error(`Failed to clean up export file: ${exportPath}`, err);
       })
     );

@@ -14,7 +14,7 @@ export type ReadingPreferences = {
 export const DEFAULT_READING_PREFERENCES: ReadingPreferences = {
   fontSize: 18,
   lineHeight: 1.75,
-  theme: "LIGHT",
+  theme: "DARK",
   fontFamily: "SERIF",
   maxWidth: 720,
   textAlign: "LEFT",

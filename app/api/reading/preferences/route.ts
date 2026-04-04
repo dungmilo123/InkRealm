@@ -13,6 +13,8 @@ const ALLOWED_KEYS = new Set<keyof ReadingPreferences>([
   "theme",
   "fontFamily",
   "maxWidth",
+  "textAlign",
+  "paragraphSpacing",
 ]);
 
 export async function PUT(request: Request) {

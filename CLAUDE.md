@@ -89,7 +89,7 @@ InkRealm is a personal novel management app where users upload .txt/.epub files,
 - TypeScript 5.x - All application code (`app/`, `components/`, config files)
 - CSS - Tailwind CSS v4 with CSS-first configuration in `app/globals.css`
 ## Runtime
-- Node.js 20 (specified in `.github/workflows/ci.yml`)
+- Node.js 22 (specified in `.github/workflows/ci.yml`)
 - npm
 - Lockfile: `package-lock.json` present
 ## Frameworks
@@ -128,7 +128,7 @@ InkRealm is a personal novel management app where users upload .txt/.epub files,
 - `eslint.config.mjs` - ESLint with `eslint-config-next` core-web-vitals + TypeScript rules
 - `prisma.config.ts` - Prisma config with schema path and migration path
 ## Platform Requirements
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL database running locally
 - `DATABASE_URL` env var set
 - `TRANSLATION_ENCRYPTION_SECRET` for translation feature

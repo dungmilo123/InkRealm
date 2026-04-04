@@ -50,7 +50,7 @@ function buildCspHeader(nonce: string): string {
     `style-src 'self' 'unsafe-inline'`,
     "img-src 'self' https: data:",
     "font-src 'self'",
-    `connect-src 'self'${isDev ? " ws:" : ""}`,
+    `connect-src 'self' https://*.r2.cloudflarestorage.com${isDev ? " ws:" : ""}`,
     "frame-src 'self' https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'self'",

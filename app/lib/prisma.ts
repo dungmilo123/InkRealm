@@ -1,8 +1,10 @@
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  pgPool: Pool | undefined;
 };
 
 function createPrismaClient() {
@@ -10,7 +12,24 @@ function createPrismaClient() {
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is not set");
   }
-  const adapter = new PrismaPg({ connectionString });
+
+  // Reuse pg Pool across requests for connection efficiency.
+  // With Neon's pooler endpoint (-pooler in hostname), this reduces
+  // connection overhead significantly.
+  const pool =
+    globalForPrisma.pgPool ??
+    new Pool({
+      connectionString,
+      max: 10, // Max connections in local pool (Neon pooler handles the rest)
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.pgPool = pool;
+  }
+
+  const adapter = new PrismaPg(pool);
   const base = new PrismaClient({ adapter });
 
   if (process.env.PRISMA_QUERY_LOG === "true") {

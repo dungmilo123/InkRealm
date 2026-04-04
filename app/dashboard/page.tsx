@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-import { listNovels } from "@/app/lib/novels";
-import { getReadingProgressBatch, getRecentlyReadNovels } from "@/app/lib/reading-progress";
-import { getBookmarkCountsBatch } from "@/app/lib/bookmarks";
-import { getChapterVisitsForAnalytics } from "@/app/lib/reading-stats-data";
-import { computeReadingAnalytics, computeDailyActivity, type ReadingAnalytics, type DailyActivity } from "@/lib/reading-stats";
-import { computeReadingVelocity, type ReadingVelocity } from "@/lib/reading-velocity";
+import { loadDashboardData } from "@/app/lib/dashboard-cache";
+import type { ReadingAnalytics, DailyActivity } from "@/lib/reading-stats";
+import type { ReadingVelocity } from "@/lib/reading-velocity";
 import { NovelLibrary } from "@/app/components/NovelLibrary";
 import { UploadForm } from "@/app/components/UploadForm";
 import { LibraryShelf } from "@/components/library-shelf";
@@ -34,42 +31,32 @@ export default async function DashboardPage() {
   let bookmarkCountMap = new Map<string, number>();
   let analytics: ReadingAnalytics | null = null;
   let dailyActivity: DailyActivity[] = [];
-   
   let velocity: ReadingVelocity | null = null;
   let continueReading: ContinueReadingData | null = null;
   const recentlyRead: ContinueReadingData[] = [];
 
   try {
-    novels = await listNovels(session.user.id);
-    if (novels.length > 0) {
-      const novelIds = novels.map((n) => n.id);
-      const [progress, bookmarks, chapterVisits, recentlyReadResult] = await Promise.all([
-        getReadingProgressBatch(session.user.id, novelIds),
-        getBookmarkCountsBatch(session.user.id, novelIds),
-        getChapterVisitsForAnalytics(session.user.id, novels),
-        getRecentlyReadNovels(session.user.id),
-      ]);
-      progressMap = progress;
-      bookmarkCountMap = bookmarks;
-      if (chapterVisits.length > 0) {
-        analytics = computeReadingAnalytics(chapterVisits);
-        dailyActivity = computeDailyActivity(chapterVisits);
-        velocity = computeReadingVelocity(dailyActivity);
-      }
-      if (recentlyReadResult.length > 0) {
-        // Backward compat: single-novel banner uses the first result
-        continueReading = {
-          ...recentlyReadResult[0],
-          lastReadAt: recentlyReadResult[0].lastReadAt.toISOString(),
-        };
-        // Multi-novel list: serialize all Date → ISO string
-        recentlyRead.push(
-          ...recentlyReadResult.map((r) => ({
-            ...r,
-            lastReadAt: r.lastReadAt.toISOString(),
-          }))
-        );
-      }
+    const data = await loadDashboardData(session.user.id);
+    novels = data.novels;
+    progressMap = data.progressMap;
+    bookmarkCountMap = data.bookmarkCountMap;
+    analytics = data.analytics;
+    dailyActivity = data.dailyActivity;
+    velocity = data.velocity;
+
+    if (data.recentlyRead.length > 0) {
+      // Single-novel banner uses the first result
+      continueReading = {
+        ...data.recentlyRead[0],
+        lastReadAt: data.recentlyRead[0].lastReadAt.toISOString(),
+      };
+      // Multi-novel list: serialize all Date → ISO string
+      recentlyRead.push(
+        ...data.recentlyRead.map((r) => ({
+          ...r,
+          lastReadAt: r.lastReadAt.toISOString(),
+        }))
+      );
     }
   } catch {
     error = "Failed to load novels. Please ensure the database is configured.";

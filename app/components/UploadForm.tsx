@@ -83,7 +83,7 @@ export function UploadForm() {
     [handleFile]
   );
 
-  // --- Upload ---
+  // --- Upload (direct-to-R2 via presigned URL) ---
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -93,24 +93,65 @@ export function UploadForm() {
     setUploading(true);
     setMessage(null);
 
-    const formData = new FormData();
-    formData.append("file", selectedFile.file);
+    const file = selectedFile.file;
 
     try {
-      const res = await fetch("/api/uploads", {
+      // Step 1: Get presigned URL from our API
+      const presignRes = await fetch("/api/uploads/presign", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+        }),
       });
 
-      const data = await res.json() as { error?: string };
-
-      if (!res.ok) {
-        setMessage({ type: "error", text: data.error || "Upload failed" });
-      } else {
-        setMessage({ type: "success", text: `"${selectedFile.file.name}" uploaded successfully!` });
-        clearFile();
-        router.refresh();
+      if (!presignRes.ok) {
+        const data = await presignRes.json() as { error?: string };
+        setMessage({ type: "error", text: data.error || "Failed to prepare upload" });
+        return;
       }
+
+      const { presignedUrl, storageKey, contentType } = await presignRes.json() as {
+        presignedUrl: string;
+        storageKey: string;
+        contentType: string;
+      };
+
+      // Step 2: Upload directly to R2 using presigned URL
+      const uploadRes = await fetch(presignedUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": contentType,
+        },
+      });
+
+      if (!uploadRes.ok) {
+        setMessage({ type: "error", text: "Failed to upload file to storage" });
+        return;
+      }
+
+      // Step 3: Confirm upload and create database record
+      const confirmRes = await fetch("/api/uploads/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storageKey,
+          originalFileName: file.name,
+        }),
+      });
+
+      const confirmData = await confirmRes.json() as { error?: string };
+
+      if (!confirmRes.ok) {
+        setMessage({ type: "error", text: confirmData.error || "Failed to save upload" });
+        return;
+      }
+
+      setMessage({ type: "success", text: `"${file.name}" uploaded successfully!` });
+      clearFile();
+      router.refresh();
     } catch {
       setMessage({ type: "error", text: "Upload failed. Please try again." });
     } finally {

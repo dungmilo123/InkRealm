@@ -283,13 +283,6 @@ export async function createTranslationJobFromNovelDetails(input: {
 }
 
 /**
- * Maximum wall-clock time (ms) the batch loop will run before triggering
- * a continuation via internal fetch. Leaves headroom below Vercel's
- * default 300 s function timeout so the continuation request can be fired.
- */
-const BATCH_TIME_BUDGET_MS = 240_000; // 4 minutes
-
-/**
  * Builds the base URL for internal API calls.
  * Uses VERCEL_URL on deployed environments, falls back to localhost for dev.
  */
@@ -334,16 +327,14 @@ export async function triggerTranslationContinuation(input: {
 }
 
 /**
- * Sequentially translates pending chapters in a translation job.
+ * Translates a single pending chapter in a translation job.
  *
- * Runs in a while-loop, processing one chapter at a time. Checks a
- * time budget after each chapter — when approaching the function timeout,
- * it returns `"continue"` so the caller can trigger a continuation via
- * an internal fetch to a fresh function invocation.
+ * Processes exactly one chapter per invocation. Returns `"continue"`
+ * when more chapters remain, so the caller can trigger a continuation
+ * via an internal fetch to a fresh serverless invocation.
  *
- * @returns `"completed"` when all chapters are done, `"continue"` when
- *   the time budget is exhausted and more chapters remain, or the
- *   finalized job view on failure/cancellation.
+ * @returns the finalized job view when all chapters are done or on
+ *   failure/cancellation, or `"continue"` when more chapters remain.
  */
 export async function runTranslationJobBatch(input: {
   translationId: string;
@@ -351,7 +342,6 @@ export async function runTranslationJobBatch(input: {
   allowFailedState?: boolean;
   userId: string;
 }): Promise<TranslationJobView | "continue"> {
-  const batchStart = Date.now();
   const runnerState = await getTranslationJobForRunner(input.translationId);
   if (!runnerState) {
     throw new TranslationHttpError(404, "Translation job not found.");
@@ -434,145 +424,145 @@ export async function runTranslationJobBatch(input: {
   // Recover any chapters left in TRANSLATING from a prior interrupted invocation
   await resetStalledTranslatingChapters(input.translationId);
 
-  // Auto-continue loop: process chapters one at a time until all done, cancelled, or time budget exhausted
-  while (true) {
-    // Check for cancellation before each chapter
-    const currentJob = await getTranslationJobById(input.translationId);
-    if (currentJob?.status === TranslationStatus.CANCELLED) {
-      return toTranslationJobView(currentJob);
-    }
+  // Check for cancellation before processing
+  const currentJob = await getTranslationJobById(input.translationId);
+  if (currentJob?.status === TranslationStatus.CANCELLED) {
+    return toTranslationJobView(currentJob);
+  }
 
-    const pending = await listPendingChaptersForRun(input.translationId, 1);
-    if (pending.length === 0) {
-      break; // All chapters processed
-    }
+  const pending = await listPendingChaptersForRun(input.translationId, 1);
+  if (pending.length === 0) {
+    // All chapters processed — finalize
+    return finalizeTranslationState({
+      translationId: input.translationId,
+      novelTitle: runnerState.novel.title,
+    });
+  }
 
-    // Check time budget — if running low, yield to a fresh invocation
-    if (Date.now() - batchStart > BATCH_TIME_BUDGET_MS) {
-      return "continue";
-    }
+  const chapterState = pending[0];
 
-    const chapterState = pending[0];
+  const claimed = await markChapterTranslating(
+    input.translationId,
+    chapterState.chapterIndex
+  );
+  if (!claimed) {
+    // Another invocation claimed it — yield to continuation
+    return "continue";
+  }
 
-    const claimed = await markChapterTranslating(
-      input.translationId,
-      chapterState.chapterIndex
-    );
-    if (!claimed) {
-      continue;
-    }
+  const sourceChapter = readerDocument.chapters[chapterState.chapterIndex - 1];
+  if (!sourceChapter) {
+    const message = `Source chapter ${chapterState.chapterIndex} is missing.`;
+    await markChapterFailed({
+      translationId: input.translationId,
+      chapterIndex: chapterState.chapterIndex,
+      errorMessage: message,
+    });
 
-    const sourceChapter = readerDocument.chapters[chapterState.chapterIndex - 1];
-    if (!sourceChapter) {
-      const message = `Source chapter ${chapterState.chapterIndex} is missing.`;
-      await markChapterFailed({
-        translationId: input.translationId,
-        chapterIndex: chapterState.chapterIndex,
-        errorMessage: message,
-      });
+    const failed = await setTranslationFailed({
+      translationId: input.translationId,
+      failedChapterIndex: chapterState.chapterIndex,
+      failureReason: message,
+    });
+    return toTranslationJobView(failed);
+  }
 
-      const failed = await setTranslationFailed({
-        translationId: input.translationId,
-        failedChapterIndex: chapterState.chapterIndex,
-        failureReason: message,
-      });
-      return toTranslationJobView(failed);
-    }
-
-    try {
-      // Assemble context from previous chapters (inside try/catch to prevent silent crashes)
-      let previousContext: ChapterContext[] | undefined;
-      if (hasContext && chapterState.chapterIndex > 1) {
-        const maxContextNeeded = Math.max(
-          runnerState.contextChapters,
-          runnerState.contextSummaries
-        );
-        const prevChapters = await listPreviousTranslatedChapters(
-          input.translationId,
-          chapterState.chapterIndex,
-          maxContextNeeded
-        );
-
-        // prevChapters is ordered desc by chapterIndex — reverse to chronological
-        const sorted = prevChapters.reverse();
-
-        previousContext = sorted.map((ch, idx) => {
-          const isFullContext = idx >= sorted.length - runnerState.contextChapters;
-          return {
-            chapterIndex: ch.chapterIndex,
-            translatedContent: isFullContext ? (ch.translatedContent ?? "") : "",
-            summary: idx < runnerState.contextSummaries ? ch.summary : null,
-          };
-        }).filter((c) => c.translatedContent || c.summary);
-      }
-
-      const translated = await adapter.translateChapter(
-        {
-          provider: runnerState.providerSnapshot,
-          model: runnerState.modelSnapshot,
-          apiKey: credential.apiKey,
-          baseUrl: credential.baseUrl,
-          customPrompt: credential.customPrompt,
-        },
-        {
-          targetLanguage: runnerState.targetLanguage,
-          sourceTitle: sourceChapter.title,
-          sourceContent: getChapterSourceText(sourceChapter.paragraphs),
-          glossary,
-          previousContext,
-        }
+  try {
+    // Assemble context from previous chapters (inside try/catch to prevent silent crashes)
+    let previousContext: ChapterContext[] | undefined;
+    if (hasContext && chapterState.chapterIndex > 1) {
+      const maxContextNeeded = Math.max(
+        runnerState.contextChapters,
+        runnerState.contextSummaries
+      );
+      const prevChapters = await listPreviousTranslatedChapters(
+        input.translationId,
+        chapterState.chapterIndex,
+        maxContextNeeded
       );
 
-      await markChapterTranslated({
-        translationId: input.translationId,
-        chapterIndex: chapterState.chapterIndex,
-        translatedTitle: translated.translatedTitle,
-        translatedContent: translated.translatedContent,
-      });
+      // prevChapters is ordered desc by chapterIndex — reverse to chronological
+      const sorted = prevChapters.reverse();
 
-      // Persist chapter summary if returned
-      if (translated.chapterSummary) {
-        await updateChapterSummary(
-          input.translationId,
-          chapterState.chapterIndex,
-          translated.chapterSummary
-        );
-      }
-
-      // Persist detected terms as pending glossary entries
-      if (translated.detectedTerms && translated.detectedTerms.length > 0 && runnerState.useGlossary) {
-        const newEntries = await createPendingGlossaryEntries({
-          novelId: runnerState.novelId,
-          terms: translated.detectedTerms,
-        });
-
-        // Add newly created entries to the in-memory glossary for subsequent chapters
-        if (glossary && newEntries.length > 0) {
-          for (const entry of newEntries) {
-            glossary.push({
-              canonical: entry.canonical,
-              type: entry.type.toLowerCase(),
-              status: "pending",
-              variants: entry.variants.map((v) => v.variant),
-            });
-          }
-        }
-      }
-    } catch (error) {
-      const reason = trimFailureReason(error);
-      await markChapterFailed({
-        translationId: input.translationId,
-        chapterIndex: chapterState.chapterIndex,
-        errorMessage: reason,
-      });
-
-      const failed = await setTranslationFailed({
-        translationId: input.translationId,
-        failedChapterIndex: chapterState.chapterIndex,
-        failureReason: reason,
-      });
-      return toTranslationJobView(failed);
+      previousContext = sorted.map((ch, idx) => {
+        const isFullContext = idx >= sorted.length - runnerState.contextChapters;
+        return {
+          chapterIndex: ch.chapterIndex,
+          translatedContent: isFullContext ? (ch.translatedContent ?? "") : "",
+          summary: idx < runnerState.contextSummaries ? ch.summary : null,
+        };
+      }).filter((c) => c.translatedContent || c.summary);
     }
+
+    const translated = await adapter.translateChapter(
+      {
+        provider: runnerState.providerSnapshot,
+        model: runnerState.modelSnapshot,
+        apiKey: credential.apiKey,
+        baseUrl: credential.baseUrl,
+        customPrompt: credential.customPrompt,
+      },
+      {
+        targetLanguage: runnerState.targetLanguage,
+        sourceTitle: sourceChapter.title,
+        sourceContent: getChapterSourceText(sourceChapter.paragraphs),
+        glossary,
+        previousContext,
+      }
+    );
+
+    await markChapterTranslated({
+      translationId: input.translationId,
+      chapterIndex: chapterState.chapterIndex,
+      translatedTitle: translated.translatedTitle,
+      translatedContent: translated.translatedContent,
+    });
+
+    // Persist chapter summary if returned
+    if (translated.chapterSummary) {
+      await updateChapterSummary(
+        input.translationId,
+        chapterState.chapterIndex,
+        translated.chapterSummary
+      );
+    }
+
+    // Persist detected terms as pending glossary entries
+    if (translated.detectedTerms && translated.detectedTerms.length > 0 && runnerState.useGlossary) {
+      const newEntries = await createPendingGlossaryEntries({
+        novelId: runnerState.novelId,
+        terms: translated.detectedTerms,
+      });
+
+      if (newEntries.length > 0) {
+        // Log new glossary entries for observability
+        console.log("Created glossary entries", {
+          translationId: input.translationId,
+          chapterIndex: chapterState.chapterIndex,
+          count: newEntries.length,
+        });
+      }
+    }
+  } catch (error) {
+    const reason = trimFailureReason(error);
+    await markChapterFailed({
+      translationId: input.translationId,
+      chapterIndex: chapterState.chapterIndex,
+      errorMessage: reason,
+    });
+
+    const failed = await setTranslationFailed({
+      translationId: input.translationId,
+      failedChapterIndex: chapterState.chapterIndex,
+      failureReason: reason,
+    });
+    return toTranslationJobView(failed);
+  }
+
+  // Chapter translated successfully — check if more remain
+  const remaining = await listPendingChaptersForRun(input.translationId, 1);
+  if (remaining.length > 0) {
+    return "continue";
   }
 
   return finalizeTranslationState({

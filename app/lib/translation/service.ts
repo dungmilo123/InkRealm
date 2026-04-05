@@ -10,9 +10,10 @@ import {
   countChapterTranslationStats,
   countTranslatedChapters,
   createTranslationJobRecord,
+  getAggregatedChapterStatusesAcrossJobs,
   getChapterTranslationStatuses,
+  getLatestTranslatedChapterAcrossJobs,
   getLatestTranslationJobForNovel,
-  getTranslatedChapterContent,
   getTranslationJobById,
   getTranslationJobForRunner,
   getTranslationJobWithOwnershipAndStatuses,
@@ -727,28 +728,57 @@ export async function getLatestNovelTranslationJobView(novelId: string, userId: 
 
 /**
  * Returns initial per-chapter translation statuses for the novel detail page.
- * Used to show chapter translation badges before the polling loop starts.
+ * Aggregates across ALL completed translation jobs so chapters translated
+ * in earlier jobs are still visible. Also includes statuses from the
+ * latest active job (if any) to show in-progress/pending chapters.
  */
 export async function getInitialChapterStatuses(novelId: string, userId: string): Promise<ChapterStatusItem[]> {
   const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) {
     return [];
   }
-  const job = await getLatestTranslationJobForNovel(novelId);
-  if (!job) return [];
 
-  const rawStatuses = await getChapterTranslationStatuses(job.id);
-  return rawStatuses.map((ch) => ({
-    chapterIndex: ch.chapterIndex,
-    status: mapChapterStatus(ch.status),
-    ...(ch.summary ? { summary: ch.summary } : {}),
-  }));
+  // Gather translated chapters across all completed jobs
+  const translatedRows = await getAggregatedChapterStatusesAcrossJobs(novelId);
+  const translatedMap = new Map<number, { status: "translated" | "translating" | "untranslated"; summary: string | null }>(
+    translatedRows.map((row) => [
+      row.chapterIndex,
+      { status: "translated" as const, summary: row.summary },
+    ])
+  );
+
+  // Also include statuses from the latest job (may be in-progress)
+  const latestJob = await getLatestTranslationJobForNovel(novelId);
+  if (latestJob) {
+    const rawStatuses = await getChapterTranslationStatuses(latestJob.id);
+    for (const ch of rawStatuses) {
+      const mapped = mapChapterStatus(ch.status);
+      // Latest job's statuses take precedence (shows in-progress/pending)
+      // unless the chapter is already translated from a completed job
+      // and the latest job hasn't translated it yet
+      if (mapped === "translated" || !translatedMap.has(ch.chapterIndex)) {
+        translatedMap.set(ch.chapterIndex, {
+          status: mapped,
+          summary: ch.summary ?? null,
+        });
+      }
+    }
+  }
+
+  return Array.from(translatedMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([chapterIndex, { status, summary }]) => ({
+      chapterIndex,
+      status,
+      ...(summary ? { summary } : {}),
+    }));
 }
 
 /**
  * Loads a translated chapter's content for the reader view.
- * Returns the translated title and paragraph array, or `null` if the
- * chapter hasn't been translated yet.
+ * Searches across ALL completed translation jobs for the novel and
+ * returns the most recently translated version, or `null` if the
+ * chapter hasn't been translated in any completed job.
  */
 export async function getTranslatedChapterForReader(
   novelId: string,
@@ -758,11 +788,8 @@ export async function getTranslatedChapterForReader(
   const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) return null;
 
-  const job = await getLatestTranslationJobForNovel(novelId);
-  if (!job) return null;
-
-  const chapter = await getTranslatedChapterContent(job.id, chapterIndex);
-  if (!chapter || chapter.status !== "TRANSLATED" || !chapter.translatedContent) return null;
+  const chapter = await getLatestTranslatedChapterAcrossJobs(novelId, chapterIndex);
+  if (!chapter || !chapter.translatedContent) return null;
 
   // Split translatedContent into paragraphs (stored as newline-separated text)
   const translatedParagraphs = chapter.translatedContent

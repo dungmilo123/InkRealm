@@ -1,10 +1,64 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { access, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import test from "node:test";
+import { mock, test } from "node:test";
 import AdmZip from "adm-zip";
 import "dotenv/config";
+
+// ── In-memory storage mock ──────────────────────────────────────────
+// Maps storage keys → Buffers so the test never touches R2.
+const storageMap = new Map<string, Buffer>();
+
+mock.module("@/app/lib/storage", {
+  namedExports: {
+    readNovelFile: async (key: string) => {
+      const buf = storageMap.get(key);
+      if (!buf) throw new Error(`Mock storage: key not found: ${key}`);
+      return buf;
+    },
+    writeNovelFile: async (key: string, buffer: Buffer) => {
+      storageMap.set(key, buffer);
+      return key;
+    },
+    generateStorageKey: (originalFileName: string) => {
+      const ext = originalFileName.includes(".")
+        ? originalFileName.slice(originalFileName.lastIndexOf("."))
+        : "";
+      return `novels/test-${Date.now()}${ext}`;
+    },
+    deleteNovelFile: async () => {},
+  },
+});
+
+// Also mock the export module so finalization doesn't hit R2.
+const exportDir = join(process.cwd(), "storage", "test-exports");
+mock.module("@/app/lib/translation/export", {
+  namedExports: {
+    writeTranslatedExportFile: async (input: {
+      translationId: string;
+      novelTitle: string;
+      targetLanguage: string;
+      chapters: Array<{ chapterIndex: number; translatedTitle: string | null; translatedContent: string | null }>;
+    }) => {
+      await mkdir(exportDir, { recursive: true });
+      const fileName = `${input.translationId}.txt`;
+      const filePath = join(exportDir, fileName);
+      const content = input.chapters
+        .map((ch) => `${ch.translatedTitle}\n${ch.translatedContent}`)
+        .join("\n\n");
+      await writeFile(filePath, content, "utf8");
+      return { fileName, filePath };
+    },
+    canDownloadTranslationExport: (input: { status: string; exportPath: string | null }) => {
+      return input.status === "COMPLETED" && Boolean(input.exportPath);
+    },
+    buildTranslatedExportText: () => "",
+    readTranslatedExportFile: async () => Buffer.alloc(0),
+    deleteTranslatedExportFile: async () => {},
+  },
+});
+
 import { createNovel } from "@/app/lib/novels";
 import { prisma } from "@/app/lib/prisma";
 import { createTranslationProfile } from "@/app/lib/translation/profiles";
@@ -12,7 +66,31 @@ import {
   createTranslationJobFromNovelDetails,
   retryTranslationJob,
   runTranslationJobBatch,
+  type TranslationJobView,
 } from "@/app/lib/translation/service";
+
+/**
+ * Helper: runs the translation batch in a loop (simulating the continuation
+ * chain) until a final result is returned.
+ */
+async function runToCompletion(input: {
+  translationId: string;
+  profileId: string;
+  userId: string;
+  allowFailedState?: boolean;
+}): Promise<TranslationJobView> {
+  const MAX_ITERATIONS = 50;
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
+    const result = await runTranslationJobBatch({
+      translationId: input.translationId,
+      profileId: input.profileId,
+      allowFailedState: input.allowFailedState,
+      userId: input.userId,
+    });
+    if (result !== "continue") return result;
+  }
+  throw new Error("runToCompletion exceeded max iterations");
+}
 
 function buildMinimalEpubBuffer() {
   const zip = new AdmZip();
@@ -80,9 +158,6 @@ function buildMinimalEpubBuffer() {
 test("translation lifecycle works for txt/epub with failure and retry", async () => {
   process.env.TRANSLATION_ENCRYPTION_SECRET = "translation-lifecycle-test-secret";
 
-  const storageDir = join(process.cwd(), "storage", "novels", "translation-tests");
-  await mkdir(storageDir, { recursive: true });
-
   const TEST_USER_ID = "lifecycle-test-user";
   await prisma.user.upsert({
     where: { id: TEST_USER_ID },
@@ -95,7 +170,6 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
   });
 
   const createdNovelIds: string[] = [];
-  const createdFilePaths: string[] = [];
   const exportPaths = new Set<string>();
   const failedTitleOnce = new Set<string>();
 
@@ -165,13 +239,11 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     assert.equal("encryptedApiKey" in profile, false);
     assert.equal("apiKey" in profile, false);
 
-    const txtPath = join(storageDir, "lifecycle.txt");
-    await writeFile(
-      txtPath,
-      `Chapter 1\nA plain text opening.\n\nChapter 2\nA plain text continuation.\n`,
-      "utf8"
+    const txtStorageKey = `novels/test-lifecycle-txt-${Date.now()}.txt`;
+    storageMap.set(
+      txtStorageKey,
+      Buffer.from(`Chapter 1\nA plain text opening.\n\nChapter 2\nA plain text continuation.\n`, "utf8")
     );
-    createdFilePaths.push(txtPath);
 
     const txtNovel = await createNovel({
       title: "Lifecycle TXT",
@@ -179,7 +251,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       fileType: "txt",
       mimeType: "text/plain",
       sizeBytes: 100,
-      storagePath: txtPath,
+      storagePath: txtStorageKey,
       userId: TEST_USER_ID,
     });
     createdNovelIds.push(txtNovel.id);
@@ -190,22 +262,19 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const txtJob = await runTranslationJobBatch({
+    const txtJob = await runToCompletion({
       translationId: txtJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
     });
 
-    assert.notEqual(txtJob, "continue", "Expected completed job, not continuation");
-    if (txtJob === "continue") throw new Error("unreachable");
     assert.equal(txtJob.status, "COMPLETED");
     assert.ok(txtJob.exportPath);
     assert.ok(txtJob.downloadUrl);
     exportPaths.add(txtJob.exportPath!);
 
-    const epubPath = join(storageDir, "lifecycle.epub");
-    await writeFile(epubPath, buildMinimalEpubBuffer());
-    createdFilePaths.push(epubPath);
+    const epubStorageKey = `novels/test-lifecycle-epub-${Date.now()}.epub`;
+    storageMap.set(epubStorageKey, buildMinimalEpubBuffer());
 
     const epubNovel = await createNovel({
       title: "Lifecycle EPUB",
@@ -213,7 +282,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       fileType: "epub",
       mimeType: "application/epub+zip",
       sizeBytes: 200,
-      storagePath: epubPath,
+      storagePath: epubStorageKey,
       userId: TEST_USER_ID,
     });
     createdNovelIds.push(epubNovel.id);
@@ -224,14 +293,12 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const failedJob = await runTranslationJobBatch({
+    const failedJob = await runToCompletion({
       translationId: epubJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
     });
 
-    assert.notEqual(failedJob, "continue", "Expected failed job, not continuation");
-    if (failedJob === "continue") throw new Error("unreachable");
     assert.equal(failedJob.status, "FAILED");
     assert.equal(failedJob.failedChapterIndex, 1);
     assert.ok(failedJob.failureReason);
@@ -242,21 +309,22 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const recoveredJob = await runTranslationJobBatch({
+    const recoveredJob = await runToCompletion({
       translationId: failedJob.id,
       profileId: profile.id,
+      allowFailedState: true,
       userId: TEST_USER_ID,
     });
 
-    assert.notEqual(recoveredJob, "continue", "Expected completed job, not continuation");
-    if (recoveredJob === "continue") throw new Error("unreachable");
     assert.equal(recoveredJob.status, "COMPLETED");
     assert.ok(recoveredJob.exportPath);
     assert.ok(recoveredJob.downloadUrl);
     exportPaths.add(recoveredJob.exportPath!);
 
-    for (const exportPath of exportPaths) {
-      await access(exportPath);
+    // Export paths are local files from the mock writeTranslatedExportFile
+    for (const ep of exportPaths) {
+      const { access } = await import("node:fs/promises");
+      await access(ep);
     }
   } finally {
     await new Promise<void>((resolve, reject) => {
@@ -280,10 +348,11 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       },
     });
 
-    for (const filePath of [...createdFilePaths, ...exportPaths]) {
-      await rm(filePath, { force: true });
+    for (const ep of exportPaths) {
+      await rm(ep, { force: true });
     }
 
-    await rm(storageDir, { recursive: true, force: true });
+    await rm(exportDir, { recursive: true, force: true });
+    storageMap.clear();
   }
 });

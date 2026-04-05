@@ -652,3 +652,55 @@ export async function getTranslationJobWithOwnershipAndStatuses(
     },
   });
 }
+
+
+/**
+ * Finds the latest translated version of a specific chapter across all
+ * COMPLETED translation jobs for a novel. Returns the most recently
+ * updated TRANSLATED chapter, or null if the chapter hasn't been
+ * translated in any completed job.
+ */
+export async function getLatestTranslatedChapterAcrossJobs(
+  novelId: string,
+  chapterIndex: number
+) {
+  return prisma.novelTranslationChapter.findFirst({
+    where: {
+      chapterIndex,
+      status: ChapterTranslationStatus.TRANSLATED,
+      translation: {
+        novelId,
+        status: TranslationStatus.COMPLETED,
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      status: true,
+      translatedTitle: true,
+      translatedContent: true,
+    },
+  });
+}
+
+/**
+ * Aggregates per-chapter translation statuses across all COMPLETED jobs
+ * for a novel. For each chapter index, returns the most recently updated
+ * TRANSLATED record. Uses raw SQL with DISTINCT ON for efficiency.
+ */
+export async function getAggregatedChapterStatusesAcrossJobs(novelId: string) {
+  const rows = await prisma.$queryRaw<
+    Array<{ chapterIndex: number; status: string; summary: string | null }>
+  >`
+    SELECT DISTINCT ON (c."chapterIndex")
+      c."chapterIndex",
+      c."status",
+      c."summary"
+    FROM "NovelTranslationChapter" c
+    INNER JOIN "NovelTranslation" t ON t."id" = c."translationId"
+    WHERE t."novelId" = ${novelId}
+      AND t."status" = 'COMPLETED'
+      AND c."status" = 'TRANSLATED'
+    ORDER BY c."chapterIndex", c."updatedAt" DESC
+  `;
+  return rows;
+}

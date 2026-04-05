@@ -310,7 +310,7 @@ export async function triggerTranslationContinuation(input: {
 }) {
   const url = `${getInternalBaseUrl()}/api/translation/jobs/${input.translationId}/continue`;
   try {
-    await fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -318,6 +318,13 @@ export async function triggerTranslationContinuation(input: {
       },
       body: JSON.stringify({ userId: input.userId }),
     });
+    if (!response.ok) {
+      console.error("Translation continuation returned non-OK status", {
+        translationId: input.translationId,
+        status: response.status,
+        statusText: response.statusText,
+      });
+    }
   } catch (error) {
     console.error("Failed to trigger translation continuation", {
       translationId: input.translationId,

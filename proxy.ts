@@ -27,6 +27,16 @@ function isProtectedApi(pathname: string): boolean {
   return protectedApiPrefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
+/**
+ * Checks whether the request carries a valid internal service token.
+ * Internal server-to-server calls (e.g. translation continuation) use
+ * this header instead of session cookies.
+ */
+function hasValidInternalToken(request: NextRequest): boolean {
+  const token = request.headers.get("x-internal-token");
+  return !!token && token === process.env.AUTH_SECRET;
+}
+
 function buildCspHeader(nonce: string): string {
   const isDev = process.env.NODE_ENV === "development";
 
@@ -79,7 +89,8 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", cspHeaderValue);
 
   // --- Auth gate: only for protected routes ---
-  if (isProtectedPage(pathname) || isProtectedApi(pathname)) {
+  // Internal server-to-server calls authenticate via x-internal-token header
+  if ((isProtectedPage(pathname) || isProtectedApi(pathname)) && !hasValidInternalToken(request)) {
     const sessionToken =
       request.cookies.get("authjs.session-token")?.value ||
       request.cookies.get("__Secure-authjs.session-token")?.value;

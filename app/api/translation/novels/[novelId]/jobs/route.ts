@@ -4,8 +4,7 @@ import { requireAuth } from "@/app/lib/require-auth";
 import {
   createTranslationJobFromNovelDetails,
   getLatestNovelTranslationJobView,
-  runTranslationJobBatch,
-  triggerTranslationContinuation,
+  runTranslationJob,
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { parseStartTranslationPayload } from "@/app/lib/translation/validation";
@@ -53,22 +52,15 @@ export async function POST(
       userId: session.user.id,
     });
 
-    // Run the first batch of chapters in the background. If the time
-    // budget is exhausted, a continuation fetch keeps the chain going
-    // in a fresh function invocation.
+    // Run the translation in the background so the UI gets the
+    // created job immediately and can start polling for progress.
     after(async () => {
       try {
-        const result = await runTranslationJobBatch({
+        await runTranslationJob({
           translationId: job.id,
           allowFailedState: false,
           userId: session.user.id,
         });
-        if (result === "continue") {
-          await triggerTranslationContinuation({
-            translationId: job.id,
-            userId: session.user.id,
-          });
-        }
       } catch (error) {
         console.error("Translation batch failed unexpectedly", {
           translationId: job.id,

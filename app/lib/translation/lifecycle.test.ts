@@ -65,32 +65,9 @@ import { createTranslationProfile } from "@/app/lib/translation/profiles";
 import {
   createTranslationJobFromNovelDetails,
   retryTranslationJob,
-  runTranslationJobBatch,
+  runTranslationJob,
   type TranslationJobView,
 } from "@/app/lib/translation/service";
-
-/**
- * Helper: runs the translation batch in a loop (simulating the continuation
- * chain) until a final result is returned.
- */
-async function runToCompletion(input: {
-  translationId: string;
-  profileId: string;
-  userId: string;
-  allowFailedState?: boolean;
-}): Promise<TranslationJobView> {
-  const MAX_ITERATIONS = 50;
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const result = await runTranslationJobBatch({
-      translationId: input.translationId,
-      profileId: input.profileId,
-      allowFailedState: input.allowFailedState,
-      userId: input.userId,
-    });
-    if (result !== "continue") return result;
-  }
-  throw new Error("runToCompletion exceeded max iterations");
-}
 
 function buildMinimalEpubBuffer() {
   const zip = new AdmZip();
@@ -262,7 +239,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const txtJob = await runToCompletion({
+    const txtJob = await runTranslationJob({
       translationId: txtJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
@@ -293,7 +270,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const failedJob = await runToCompletion({
+    const failedJob = await runTranslationJob({
       translationId: epubJobCreated.id,
       profileId: profile.id,
       userId: TEST_USER_ID,
@@ -309,7 +286,7 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    const recoveredJob = await runToCompletion({
+    const recoveredJob = await runTranslationJob({
       translationId: failedJob.id,
       profileId: profile.id,
       allowFailedState: true,

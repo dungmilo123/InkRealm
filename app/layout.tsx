@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Cormorant_Garamond, Crimson_Pro } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ToasterProvider } from "@/components/toaster-provider";
 import "./globals.css";
 
@@ -50,8 +48,6 @@ export default async function RootLayout({
           {children}
           <ToasterProvider />
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

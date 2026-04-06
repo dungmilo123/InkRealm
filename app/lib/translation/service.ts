@@ -304,11 +304,7 @@ export async function triggerTranslationContinuation(input: {
 }) {
   const url = `${getInternalBaseUrl()}/api/translation/jobs/${input.translationId}/continue`;
   try {
-    // Fire-and-forget: don't await the response. The /continue endpoint
-    // translates a full chapter before responding, which can take 30-60s+.
-    // If we await here inside after(), the after() callback may exceed the
-    // serverless function timeout and get killed — breaking the chain.
-    const fetchPromise = fetch(url, {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -316,21 +312,13 @@ export async function triggerTranslationContinuation(input: {
       },
       body: JSON.stringify({ userId: input.userId }),
     });
-    // Log errors in the background without blocking
-    fetchPromise.then((response) => {
-      if (!response.ok) {
-        console.error("Translation continuation returned non-OK status", {
-          translationId: input.translationId,
-          status: response.status,
-          statusText: response.statusText,
-        });
-      }
-    }).catch((error) => {
-      console.error("Failed to trigger translation continuation", {
+    if (!response.ok) {
+      console.error("Translation continuation returned non-OK status", {
         translationId: input.translationId,
-        error,
+        status: response.status,
+        statusText: response.statusText,
       });
-    });
+    }
   } catch (error) {
     console.error("Failed to trigger translation continuation", {
       translationId: input.translationId,

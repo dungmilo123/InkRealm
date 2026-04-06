@@ -74,3 +74,8 @@ vendor/
 coverage/
 .cache/
 tmp/
+AGENTS.md
+CLAUDE.md
+.augment/
+.agents/
+skills-lock.json

@@ -44,7 +44,7 @@ export async function GET(
     return NextResponse.json({ error: "No cover available" }, { status: 404 });
   }
 
-  return new Response(cover.data as unknown as BodyInit, {
+  return new Response(cover.data, {
     headers: {
       "Content-Type": cover.mediaType,
       "Cache-Control": "public, max-age=31536000, immutable",

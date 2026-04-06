@@ -14,6 +14,7 @@ type ManifestItem = {
   id: string;
   href: string;
   mediaType: string;
+  properties?: string;
 };
 
 function asArray<T>(value: T | T[] | undefined): T[] {
@@ -134,19 +135,110 @@ function parseManifest(manifestNode: unknown): ManifestItem[] {
         "@_id"?: string;
         "@_href"?: string;
         "@_media-type"?: string;
+        "@_properties"?: string;
       };
 
       const id = rawItem["@_id"]?.trim();
       const href = rawItem["@_href"]?.trim();
       const mediaType = rawItem["@_media-type"]?.trim() ?? "";
+      const properties = rawItem["@_properties"]?.trim();
 
       if (!id || !href) {
         return null;
       }
 
-      return { id, href, mediaType };
+      return { id, href, mediaType, ...(properties ? { properties } : {}) };
     })
     .filter((item): item is ManifestItem => item !== null);
+}
+
+export function extractEpubCover(
+  buffer: Buffer,
+): { data: Buffer; mediaType: string } | null {
+  let zip: AdmZip;
+
+  try {
+    zip = new AdmZip(buffer);
+  } catch {
+    return null;
+  }
+
+  const containerXml = readZipText(zip, "META-INF/container.xml");
+  if (!containerXml) {
+    return null;
+  }
+
+  const containerDocument = parser.parse(containerXml) as {
+    container?: {
+      rootfiles?: {
+        rootfile?: { "@_full-path"?: string } | Array<{ "@_full-path"?: string }>;
+      };
+    };
+  };
+
+  const rootfiles = asArray(containerDocument.container?.rootfiles?.rootfile);
+  const rootfilePath = rootfiles[0]?.["@_full-path"];
+  if (!rootfilePath) {
+    return null;
+  }
+
+  const opfXml = readZipText(zip, rootfilePath);
+  if (!opfXml) {
+    return null;
+  }
+
+  const packageDocument = parser.parse(opfXml) as {
+    package?: {
+      metadata?: {
+        meta?:
+          | { "@_name"?: string; "@_content"?: string }
+          | Array<{ "@_name"?: string; "@_content"?: string }>;
+      };
+      manifest?: unknown;
+    };
+  };
+
+  const manifestItems = parseManifest(packageDocument.package?.manifest);
+  const manifestById = new Map(manifestItems.map((item) => [item.id, item]));
+  const opfDirectory = pathPosix.dirname(rootfilePath);
+
+  // EPUB3: manifest item with properties="cover-image"
+  const epub3Cover = manifestItems.find(
+    (item) =>
+      item.properties === "cover-image" && item.mediaType.startsWith("image/"),
+  );
+
+  // EPUB2: <meta name="cover" content="id">
+  let epub2Cover: ManifestItem | undefined;
+  const metaNodes = asArray(packageDocument.package?.metadata?.meta);
+  for (const meta of metaNodes) {
+    if (meta["@_name"]?.toLowerCase() === "cover" && meta["@_content"]) {
+      epub2Cover = manifestById.get(meta["@_content"]);
+      break;
+    }
+  }
+
+  // Fallback: first manifest item whose id or href starts with "cover" and is an image
+  const fallbackCover = manifestItems.find(
+    (item) =>
+      item.mediaType.startsWith("image/") &&
+      (item.id.toLowerCase().startsWith("cover") ||
+        pathPosix.basename(item.href).toLowerCase().startsWith("cover")),
+  );
+
+  const coverItem = epub3Cover ?? epub2Cover ?? fallbackCover;
+  if (!coverItem) {
+    return null;
+  }
+
+  const entryPath = pathPosix.normalize(pathPosix.join(opfDirectory, coverItem.href));
+  const normalized = entryPath.replace(/\\/g, "/");
+  const entry = zip.getEntry(normalized);
+  if (!entry) {
+    return null;
+  }
+
+  return { data: entry.getData(), mediaType: coverItem.mediaType };
 }
 
 export function extractEpubChapters(buffer: Buffer): ParsedReaderChapter[] {

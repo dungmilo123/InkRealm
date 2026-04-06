@@ -344,7 +344,7 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **my-app** (1148 symbols, 3151 relationships, 84 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **my-app** (1147 symbols, 3166 relationships, 84 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

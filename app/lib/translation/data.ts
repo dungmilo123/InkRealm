@@ -460,23 +460,6 @@ export async function getLatestTranslationJobForNovel(novelId: string) {
 }
 
 /**
- * Counts how many chapters are translated in the novel's latest COMPLETED job.
- * Used by the "smart default" logic in job creation to skip already-translated chapters.
- */
-export async function countChapterTranslationStats(novelId: string) {
-  const latest = await prisma.novelTranslation.findFirst({
-    where: { novelId, status: TranslationStatus.COMPLETED },
-    orderBy: { createdAt: "desc" },
-    select: { id: true },
-  });
-  if (!latest) return { translated: 0 };
-  const translated = await prisma.novelTranslationChapter.count({
-    where: { translationId: latest.id, status: ChapterTranslationStatus.TRANSLATED },
-  });
-  return { translated };
-}
-
-/**
  * Resets a failed translation job for retry: sets the job back to PENDING,
  * clears failure metadata, and resets all FAILED/TRANSLATING chapters to PENDING
  * (transactional). Previously translated chapters are left intact.
@@ -631,51 +614,90 @@ export async function getTranslationJobWithOwnershipAndStatuses(
 }
 
 
-/**
- * Finds the latest translated version of a specific chapter across all
- * translation jobs for a novel. Returns the most recently updated
- * TRANSLATED chapter, or null if the chapter hasn't been translated
- * in any job.
- */
-export async function getLatestTranslatedChapterAcrossJobs(
-  novelId: string,
-  chapterIndex: number
-) {
-  return prisma.novelTranslationChapter.findFirst({
+// ── NovelTranslatedChapter (per-novel source of truth) ──────────────────
+
+/** Upserts a NovelTranslatedChapter record on `(novelId, chapterIndex)`. Latest translation wins. */
+export async function upsertNovelTranslatedChapter(input: {
+  novelId: string;
+  chapterIndex: number;
+  translatedTitle: string;
+  translatedContent: string;
+  summary?: string | null;
+  translationId: string;
+}) {
+  return prisma.novelTranslatedChapter.upsert({
     where: {
-      chapterIndex,
-      status: ChapterTranslationStatus.TRANSLATED,
-      translation: {
-        novelId,
+      novelId_chapterIndex: {
+        novelId: input.novelId,
+        chapterIndex: input.chapterIndex,
       },
     },
-    orderBy: { updatedAt: "desc" },
-    select: {
-      status: true,
-      translatedTitle: true,
-      translatedContent: true,
+    create: {
+      novelId: input.novelId,
+      chapterIndex: input.chapterIndex,
+      translatedTitle: input.translatedTitle,
+      translatedContent: input.translatedContent,
+      summary: input.summary ?? null,
+      translationId: input.translationId,
+    },
+    update: {
+      translatedTitle: input.translatedTitle,
+      translatedContent: input.translatedContent,
+      summary: input.summary ?? null,
+      translationId: input.translationId,
     },
   });
 }
 
-/**
- * Aggregates per-chapter translation statuses across all jobs
- * for a novel. For each chapter index, returns the most recently updated
- * TRANSLATED record. Uses raw SQL with DISTINCT ON for efficiency.
- */
-export async function getAggregatedChapterStatusesAcrossJobs(novelId: string) {
-  const rows = await prisma.$queryRaw<
-    Array<{ chapterIndex: number; status: string; summary: string | null }>
-  >`
-    SELECT DISTINCT ON (c."chapterIndex")
-      c."chapterIndex",
-      c."status",
-      c."summary"
-    FROM "NovelTranslationChapter" c
-    INNER JOIN "NovelTranslation" t ON t."id" = c."translationId"
-    WHERE t."novelId" = ${novelId}
-      AND c."status" = 'TRANSLATED'
-    ORDER BY c."chapterIndex", c."updatedAt" DESC
-  `;
-  return rows;
+/** Counts how many chapters of a novel have been translated (across all jobs). */
+export async function countNovelTranslatedChapters(novelId: string) {
+  return prisma.novelTranslatedChapter.count({
+    where: { novelId },
+  });
+}
+
+/** Lists all translated chapters for a novel, returning chapterIndex and summary. Ordered by chapterIndex. */
+export async function listNovelTranslatedChapters(novelId: string) {
+  return prisma.novelTranslatedChapter.findMany({
+    where: { novelId },
+    orderBy: { chapterIndex: "asc" },
+    select: {
+      chapterIndex: true,
+      summary: true,
+    },
+  });
+}
+
+/** Fetches a single translated chapter record by novelId + chapterIndex. */
+export async function getNovelTranslatedChapter(novelId: string, chapterIndex: number) {
+  return prisma.novelTranslatedChapter.findUnique({
+    where: {
+      novelId_chapterIndex: {
+        novelId,
+        chapterIndex,
+      },
+    },
+    select: {
+      translatedTitle: true,
+      translatedContent: true,
+      summary: true,
+      translationId: true,
+    },
+  });
+}
+
+/** Returns an array of chapter indices (1-based) that have NOT been translated for a novel. */
+export async function listUntranslatedChapterIndices(novelId: string, totalChapters: number) {
+  const translated = await prisma.novelTranslatedChapter.findMany({
+    where: { novelId },
+    select: { chapterIndex: true },
+  });
+  const translatedSet = new Set(translated.map((r) => r.chapterIndex));
+  const untranslated: number[] = [];
+  for (let i = 1; i <= totalChapters; i++) {
+    if (!translatedSet.has(i)) {
+      untranslated.push(i);
+    }
+  }
+  return untranslated;
 }

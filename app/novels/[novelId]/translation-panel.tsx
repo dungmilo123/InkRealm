@@ -73,6 +73,7 @@ type TranslationPanelProps = {
   hangingChapterIndex: number | null;
   chapterCount: number;
   chapterStatuses: ChapterStatus[];
+  translatedChapterCount: number;
 };
 
 type PanelState = "idle" | "translating" | "completed" | "failed" | "cancelled";
@@ -96,6 +97,7 @@ export function TranslationPanel({
   hangingChapterIndex,
   chapterCount,
   chapterStatuses,
+  translatedChapterCount,
 }: TranslationPanelProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +199,30 @@ export function TranslationPanel({
     setError(null);
   }
 
+  async function handleContinue() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/translation/novels/${novelId}/continue`, {
+        method: "POST",
+      });
+      const data = await readJsonOrError<{ job: TranslationJob }>(res);
+      onJobUpdate(data.job);
+      toast.success("Continuing translation");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to continue translation.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const remaining = chapterCount - translatedChapterCount;
+  const isTerminal = panelState === "completed" || panelState === "cancelled" || panelState === "failed";
+  const showContinue = isTerminal && remaining > 0;
+
   // No provider configured
   if (!defaultProfile) {
     return (
@@ -281,15 +307,27 @@ export function TranslationPanel({
             ) : null}
           </div>
 
-          <Button
-            className="w-full h-10 px-6 text-sm font-medium"
-            disabled={busy || !!rangeError}
-            aria-busy={busy}
-            onClick={() => void handleStartTranslation()}
-          >
-            <Play className="h-4 w-4 mr-2" aria-hidden="true" />
-            {allTranslated ? "Re-translate" : "Translate"}
-          </Button>
+          {showContinue ? (
+            <Button
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() => void handleContinue()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Continue ({remaining} remaining)
+            </Button>
+          ) : (
+            <Button
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy || !!rangeError}
+              aria-busy={busy}
+              onClick={() => void handleStartTranslation()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              {allTranslated ? "Re-translate" : "Translate"}
+            </Button>
+          )}
 
           {/* Advanced range picker */}
           <div>
@@ -485,6 +523,18 @@ export function TranslationPanel({
             </div>
           ) : null}
 
+          {showContinue && (
+            <Button
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() => void handleContinue()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Continue ({remaining} remaining)
+            </Button>
+          )}
+
           <div className="flex justify-center mt-2">
             <button
               type="button"
@@ -531,6 +581,19 @@ export function TranslationPanel({
             <RotateCcw className="h-4 w-4 mr-2" aria-hidden="true" />
             Retry from Chapter {job.failedChapterIndex ?? "unknown"}
           </Button>
+
+          {showContinue && (
+            <Button
+              variant="outline"
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() => void handleContinue()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Continue ({remaining} remaining)
+            </Button>
+          )}
 
           <div className="flex justify-center mt-2">
             <button

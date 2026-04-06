@@ -32,6 +32,7 @@ type DetailsTabsProps = {
   serializedLatestJob: SerializedTranslationJob | null;
   chapterCount: number;
   initialChapterStatuses: ChapterTranslationStatus[];
+  translatedChapterCount: number;
 };
 
 const TABS = ["Chapters", "Translation", "Glossary"] as const;
@@ -308,6 +309,7 @@ export function DetailsTabs({
   serializedLatestJob,
   chapterCount,
   initialChapterStatuses,
+  translatedChapterCount,
 }: DetailsTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>("Chapters");
   const [job, setJob] = useState(serializedLatestJob);
@@ -433,6 +435,7 @@ export function DetailsTabs({
               hangingChapterIndex={hangingChapterIndex}
               chapterCount={chapterCount}
               chapterStatuses={chapterStatuses}
+              translatedChapterCount={translatedChapterCount}
             />
             {/* Notification opt-in: show when translating + permission not yet granted */}
             {isTranslating && isSupported && canRequest && (

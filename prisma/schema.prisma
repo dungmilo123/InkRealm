@@ -140,13 +140,14 @@ model Novel {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  translations     NovelTranslation[]
-  glossaryEntries  NovelGlossaryEntry[]
-  chapterCount     Int?
-  isPinned         Boolean  @default(false)
-  pinnedAt         DateTime?
-  readingProgress  ReadingProgress[]
-  bookmarks        Bookmark[]
+  translations          NovelTranslation[]
+  translatedChapters    NovelTranslatedChapter[]
+  glossaryEntries       NovelGlossaryEntry[]
+  chapterCount          Int?
+  isPinned              Boolean  @default(false)
+  pinnedAt              DateTime?
+  readingProgress       ReadingProgress[]
+  bookmarks             Bookmark[]
 
   @@index([userId, createdAt])
 }
@@ -185,8 +186,9 @@ model NovelTranslation {
   useGlossary       Boolean                 @default(false)
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
-  novel             Novel                   @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  chapters          NovelTranslationChapter[]
+  novel                    Novel                   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapters                 NovelTranslationChapter[]
+  translatedChapterRecords NovelTranslatedChapter[]
 
   @@index([novelId])
   @@index([novelId, status])
@@ -285,4 +287,21 @@ model UserReadingPreferences {
   paragraphSpacing ReaderParagraphSpacing @default(NORMAL)
   updatedAt        DateTime              @updatedAt
   user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NovelTranslatedChapter {
+  id                String           @id @default(cuid())
+  novelId           String
+  chapterIndex      Int
+  translatedTitle   String
+  translatedContent String
+  summary           String?
+  translationId     String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  novel             Novel            @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  translation       NovelTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, chapterIndex])
+  @@index([novelId])
 }

@@ -7,20 +7,21 @@ import {
 import { getTranslationAdapter } from "@/app/lib/translation/adapters";
 import type { GlossaryPromptEntry, ChapterContext } from "@/app/lib/translation/adapters";
 import {
-  countChapterTranslationStats,
+  countNovelTranslatedChapters,
   countTranslatedChapters,
   createTranslationJobRecord,
-  getAggregatedChapterStatusesAcrossJobs,
   getChapterTranslationStatuses,
-  getLatestTranslatedChapterAcrossJobs,
   getLatestTranslationJobForNovel,
+  getNovelTranslatedChapter,
   getTranslationJobById,
   getTranslationJobForRunner,
   getTranslationJobWithOwnershipAndStatuses,
+  listNovelTranslatedChapters,
   listPendingChaptersForRun,
   listPreviousTranslatedChapters,
   listTranslatedChaptersForExport,
   listTranslationJobsForNovel,
+  listUntranslatedChapterIndices,
   markChapterFailed,
   markChapterTranslated,
   markChapterTranslating,
@@ -31,6 +32,7 @@ import {
   setTranslationInProgress,
   updateChapterSummary,
   updateTranslationCompletedCount,
+  upsertNovelTranslatedChapter,
   type TranslationJobSummary,
 } from "@/app/lib/translation/data";
 import { canDownloadTranslationExport, writeTranslatedExportFile } from "@/app/lib/translation/export";
@@ -249,11 +251,12 @@ export async function createTranslationJobFromNovelDetails(input: {
       (ch) => ch.index >= from && ch.index <= to
     );
   } else {
-    // Smart default: skip already-translated chapters from prior completed jobs
-    const stats = await countChapterTranslationStats(novel.id);
-    if (stats.translated > 0 && stats.translated < readerDocument.chapterCount) {
+    // Smart default: skip already-translated chapters using the per-novel table
+    const translatedCount = await countNovelTranslatedChapters(novel.id);
+    if (translatedCount > 0 && translatedCount < readerDocument.chapterCount) {
+      const untranslatedIndices = await listUntranslatedChapterIndices(novel.id, readerDocument.chapterCount);
       chaptersToTranslate = readerDocument.chapters.filter(
-        (ch) => ch.index > stats.translated
+        (ch) => untranslatedIndices.includes(ch.index)
       );
     }
   }
@@ -464,6 +467,16 @@ export async function runTranslationJob(input: {
           chapterIndex: chapterState.chapterIndex,
           translatedTitle: translated.translatedTitle,
           translatedContent: translated.translatedContent,
+        });
+
+        // Upsert into the per-novel translated chapter table (source of truth)
+        await upsertNovelTranslatedChapter({
+          novelId: runnerState.novelId,
+          chapterIndex: chapterState.chapterIndex,
+          translatedTitle: translated.translatedTitle,
+          translatedContent: translated.translatedContent,
+          summary: translated.chapterSummary ?? null,
+          translationId: input.translationId,
         });
 
         if (translated.chapterSummary) {
@@ -698,8 +711,8 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
     return [];
   }
 
-  // Gather translated chapters across all completed jobs
-  const translatedRows = await getAggregatedChapterStatusesAcrossJobs(novelId);
+  // Gather translated chapters from the per-novel source-of-truth table
+  const translatedRows = await listNovelTranslatedChapters(novelId);
   const translatedMap = new Map<number, { status: "translated" | "translating" | "untranslated"; summary: string | null }>(
     translatedRows.map((row) => [
       row.chapterIndex,
@@ -748,7 +761,7 @@ export async function getTranslatedChapterForReader(
   const novel = await cachedGetNovelById(novelId);
   if (!novel || novel.userId !== userId) return null;
 
-  const chapter = await getLatestTranslatedChapterAcrossJobs(novelId, chapterIndex);
+  const chapter = await getNovelTranslatedChapter(novelId, chapterIndex);
   if (!chapter || !chapter.translatedContent) return null;
 
   // Split translatedContent into paragraphs (stored as newline-separated text)
@@ -761,4 +774,68 @@ export async function getTranslatedChapterForReader(
     translatedTitle: chapter.translatedTitle ?? "",
     translatedParagraphs,
   };
+}
+
+
+/**
+ * Creates a new translation job for untranslated chapters of a novel,
+ * reusing the provider/model config from the latest job.
+ * Used by the "Continue (N remaining)" button.
+ */
+export async function continueTranslation(novelId: string, userId: string) {
+  const novel = await getNovelById(novelId);
+  if (!novel || novel.userId !== userId) {
+    throw new TranslationHttpError(404, "Novel not found.");
+  }
+
+  if (!novel.chapterCount || novel.chapterCount === 0) {
+    throw new TranslationHttpError(400, "Novel has no chapters.");
+  }
+
+  const latestJob = await getLatestTranslationJobForNovel(novelId);
+  if (!latestJob) {
+    throw new TranslationHttpError(400, "No previous translation job found. Start a new translation instead.");
+  }
+
+  const untranslatedIndices = await listUntranslatedChapterIndices(novelId, novel.chapterCount);
+  if (untranslatedIndices.length === 0) {
+    throw new TranslationHttpError(400, "All chapters are already translated.");
+  }
+
+  // Read the novel to get chapter titles
+  let readerDocument: Awaited<ReturnType<typeof getReaderDocument>>;
+  try {
+    readerDocument = await getReaderDocument(novel);
+  } catch (error) {
+    if (error instanceof ReaderUnavailableError) {
+      throw new TranslationHttpError(400, error.message);
+    }
+    throw error;
+  }
+
+  const quality = resolveQualityPreset("premium");
+
+  const chaptersToTranslate = readerDocument.chapters.filter(
+    (ch) => untranslatedIndices.includes(ch.index)
+  );
+
+  if (chaptersToTranslate.length === 0) {
+    throw new TranslationHttpError(400, "No untranslated chapters found.");
+  }
+
+  const created = await createTranslationJobRecord({
+    novelId: novel.id,
+    targetLanguage: "Vietnamese",
+    providerSnapshot: latestJob.providerSnapshot,
+    modelSnapshot: latestJob.modelSnapshot,
+    contextChapters: quality.contextChapters,
+    contextSummaries: quality.contextSummaries,
+    useGlossary: quality.useGlossary,
+    chapters: chaptersToTranslate.map((chapter) => ({
+      chapterIndex: chapter.index,
+      originalTitle: chapter.title,
+    })),
+  });
+
+  return toTranslationJobView(created);
 }

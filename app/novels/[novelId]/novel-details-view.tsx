@@ -65,6 +65,7 @@ type NovelDetailsViewProps = {
   serializedLatestJob: SerializedTranslationJob | null;
   chapterCount: number;
   initialChapterStatuses: ChapterTranslationStatus[];
+  translatedChapterCount: number;
 };
 
 function formatDate(date: Date): string {
@@ -85,6 +86,7 @@ export function NovelDetailsView({
   serializedLatestJob,
   chapterCount,
   initialChapterStatuses,
+  translatedChapterCount,
 }: NovelDetailsViewProps) {
   const readHref = readingProgress
     ? `/novels/${novel.id}/read/${readingProgress.lastChapterIndex}`
@@ -310,6 +312,7 @@ export function NovelDetailsView({
           serializedLatestJob={serializedLatestJob}
           chapterCount={chapterCount}
           initialChapterStatuses={initialChapterStatuses}
+          translatedChapterCount={translatedChapterCount}
         />
       </div>
     </LibraryShelf>

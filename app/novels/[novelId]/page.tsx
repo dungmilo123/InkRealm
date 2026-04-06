@@ -5,6 +5,7 @@ import { getNovelByIdOrNotFound, cachedGetNovelById } from "@/app/lib/novels";
 import { getReaderSummary } from "@/app/lib/reader";
 import { getDefaultProfile } from "@/app/lib/translation/profiles";
 import { getLatestNovelTranslationJobView, getInitialChapterStatuses } from "@/app/lib/translation/service";
+import { countNovelTranslatedChapters } from "@/app/lib/translation/data";
 import { getReadingProgress } from "@/app/lib/reading-progress";
 import { getNovelChapterVisitsForStats } from "@/app/lib/reading-stats-data";
 import { computeNovelReadingStats } from "@/lib/reading-stats";
@@ -57,17 +58,20 @@ export default async function NovelDetailsPage({
   let defaultProfile: Awaited<ReturnType<typeof getDefaultProfile>> = null;
   let latestJob: Awaited<ReturnType<typeof getLatestNovelTranslationJobView>> = null;
   let initialChapterStatuses: ChapterTranslationStatus[] = [];
+  let translatedChapterCount = 0;
   let translationDataError: string | null = null;
 
   try {
-    const [dp, lj, ics] = await Promise.all([
+    const [dp, lj, ics, tcc] = await Promise.all([
       getDefaultProfile(session.user.id),
       getLatestNovelTranslationJobView(novel.id, session.user.id),
       getInitialChapterStatuses(novel.id, session.user.id),
+      countNovelTranslatedChapters(novel.id),
     ]);
     defaultProfile = dp;
     latestJob = lj;
     initialChapterStatuses = ics;
+    translatedChapterCount = tcc;
   } catch {
     translationDataError = "Translation data is currently unavailable.";
   }
@@ -101,6 +105,7 @@ export default async function NovelDetailsPage({
       serializedLatestJob={serializedLatestJob}
       chapterCount={readerSummary.chapterCount}
       initialChapterStatuses={initialChapterStatuses}
+      translatedChapterCount={translatedChapterCount}
     />
   );
 }

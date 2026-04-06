@@ -633,9 +633,9 @@ export async function getTranslationJobWithOwnershipAndStatuses(
 
 /**
  * Finds the latest translated version of a specific chapter across all
- * COMPLETED translation jobs for a novel. Returns the most recently
- * updated TRANSLATED chapter, or null if the chapter hasn't been
- * translated in any completed job.
+ * translation jobs for a novel. Returns the most recently updated
+ * TRANSLATED chapter, or null if the chapter hasn't been translated
+ * in any job.
  */
 export async function getLatestTranslatedChapterAcrossJobs(
   novelId: string,
@@ -647,7 +647,6 @@ export async function getLatestTranslatedChapterAcrossJobs(
       status: ChapterTranslationStatus.TRANSLATED,
       translation: {
         novelId,
-        status: TranslationStatus.COMPLETED,
       },
     },
     orderBy: { updatedAt: "desc" },
@@ -660,7 +659,7 @@ export async function getLatestTranslatedChapterAcrossJobs(
 }
 
 /**
- * Aggregates per-chapter translation statuses across all COMPLETED jobs
+ * Aggregates per-chapter translation statuses across all jobs
  * for a novel. For each chapter index, returns the most recently updated
  * TRANSLATED record. Uses raw SQL with DISTINCT ON for efficiency.
  */
@@ -675,7 +674,6 @@ export async function getAggregatedChapterStatusesAcrossJobs(novelId: string) {
     FROM "NovelTranslationChapter" c
     INNER JOIN "NovelTranslation" t ON t."id" = c."translationId"
     WHERE t."novelId" = ${novelId}
-      AND t."status" = 'COMPLETED'
       AND c."status" = 'TRANSLATED'
     ORDER BY c."chapterIndex", c."updatedAt" DESC
   `;

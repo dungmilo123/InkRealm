@@ -736,9 +736,9 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
 
 /**
  * Loads a translated chapter's content for the reader view.
- * Searches across ALL completed translation jobs for the novel and
+ * Searches across ALL translation jobs for the novel and
  * returns the most recently translated version, or `null` if the
- * chapter hasn't been translated in any completed job.
+ * chapter hasn't been translated in any job.
  */
 export async function getTranslatedChapterForReader(
   novelId: string,

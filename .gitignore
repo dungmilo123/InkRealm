@@ -79,3 +79,8 @@ CLAUDE.md
 .augment/
 .agents/
 skills-lock.json
+
+# ── GSD baseline (auto-generated) ──
+.gsd-id
+.env
+.env.*

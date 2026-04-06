@@ -36,7 +36,7 @@ function buildCspHeader(nonce: string): string {
   //   Dev mode adds 'unsafe-eval' for React Fast Refresh / HMR
   // - style-src: 'unsafe-inline' is needed because Tailwind and next-themes inject inline styles;
   //   nonce-based style-src breaks Tailwind's runtime style injection in dev
-  // - img-src: 'self' + https: for user avatars (Google OAuth) + data: for inline images
+  // - img-src: 'self' + https: for user avatars (Google OAuth) + data: for inline images + blob: for object URLs (e.g. EPUB covers)
   // - font-src: 'self' for next/font/google (fonts are self-hosted at build time)
   // - connect-src: 'self' for API routes; dev adds ws: for HMR WebSocket
   // - frame-src: Google OAuth popup window
@@ -48,7 +48,7 @@ function buildCspHeader(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline'`,
-    "img-src 'self' https: data:",
+    "img-src 'self' https: data: blob:",
     "font-src 'self'",
     `connect-src 'self' https://*.r2.cloudflarestorage.com${isDev ? " ws:" : ""}`,
     "frame-src 'self' https://accounts.google.com",

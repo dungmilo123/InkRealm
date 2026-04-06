@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
 interface BookCoverProps {
   title: string;
   id: string;
@@ -60,7 +64,14 @@ function truncateTitle(title: string, maxLen: number): string {
   return result + "...";
 }
 
-export function BookCover({ title, id, fileType, className = "", width = 120, height = 180 }: BookCoverProps) {
+function GeneratedCover({
+  title,
+  id,
+  fileType,
+  className = "",
+  width = 120,
+  height = 180,
+}: BookCoverProps) {
   const hash = hashString(id + title);
   const palette = PALETTE_FAMILIES[hash % PALETTE_FAMILIES.length];
   const layout = DECORATIVE_LAYOUTS[(hash >> 3) % DECORATIVE_LAYOUTS.length];
@@ -123,5 +134,70 @@ export function BookCover({ title, id, fileType, className = "", width = 120, he
         />
       </div>
     </div>
+  );
+}
+
+export function BookCover({ title, id, fileType, className = "", width = 120, height = 180 }: BookCoverProps) {
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverError, setCoverError] = useState(false);
+
+  useEffect(() => {
+    if (fileType !== "epub") return;
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    async function fetchCover() {
+      try {
+        const res = await fetch(`/api/novels/${id}/cover`);
+        if (!res.ok) {
+          if (!cancelled) setCoverError(true);
+          return;
+        }
+        const blob = await res.blob();
+        if (!cancelled) {
+          objectUrl = URL.createObjectURL(blob);
+          setCoverUrl(objectUrl);
+        }
+      } catch {
+        if (!cancelled) setCoverError(true);
+      }
+    }
+
+    fetchCover();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [id, fileType]);
+
+  // Show real cover image when successfully fetched
+  if (coverUrl) {
+    return (
+      <div className={`relative ${className}`} style={{ width, height }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={coverUrl}
+          alt={title}
+          className="rounded-md object-cover w-full h-full"
+          style={{ width, height, objectFit: "cover" }}
+        />
+      </div>
+    );
+  }
+
+  // Render generated cover as placeholder (loading) or fallback (error / non-epub)
+  return (
+    <GeneratedCover
+      title={title}
+      id={id}
+      fileType={fileType}
+      className={className}
+      width={width}
+      height={height}
+    />
   );
 }

@@ -4,6 +4,65 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+<!-- BEGIN:dev-environment -->
+# Dev Environment
+
+Local development uses isolated resources — never production. All env vars in `.env` point to dev resources.
+
+## Infrastructure (Dev vs Prod)
+
+| Resource | Dev (local) | Prod (Railway) |
+|----------|-------------|----------------|
+| Database | Neon `dev` branch (copy-on-write from prod) | Neon `production` branch |
+| Storage | R2 bucket `novel-storage-dev` | R2 bucket `novel-storage` |
+| Hosting | `next dev` on localhost:3000 | Railway |
+
+## Neon Branching
+
+- **Project:** `solitary-forest-72306372` (org: `org-autumn-breeze-77426129`, region: `ap-southeast-1`)
+- **Production branch:** `br-plain-glade-a14xwqzt` — endpoint `ep-noisy-brook-a1nuyz0u`
+- **Dev branch:** `br-silent-queen-a1y1mryu` — endpoint `ep-weathered-sun-a1fltjnf`
+- Dev branch is a copy-on-write clone of production. Changes to dev never affect prod data.
+- Migrations run locally (`npx prisma migrate dev`) hit the dev branch via `DIRECT_URL`.
+
+### Resetting Dev Data
+
+To reset the dev branch to match current production state:
+```bash
+npx neonctl branches reset dev --parent --org-id org-autumn-breeze-77426129 --project-id solitary-forest-72306372
+```
+
+### Creating a Fresh Dev Branch
+
+If the dev branch gets corrupted or you want a clean slate:
+```bash
+npx neonctl branches delete dev --org-id org-autumn-breeze-77426129 --project-id solitary-forest-72306372
+npx neonctl branches create --name dev --parent production --org-id org-autumn-breeze-77426129 --project-id solitary-forest-72306372
+```
+Then update `DATABASE_URL` and `DIRECT_URL` in `.env` with the new endpoint hostname.
+
+## Env Files
+
+- **`.env`** — Dev credentials (Neon dev branch + R2 dev bucket). Loaded by Next.js and Prisma CLI. Gitignored.
+- **`.env.example`** — Template with placeholder values. Committed to git.
+- **`.env.local`** — Optional personal overrides (takes precedence over `.env`). Gitignored.
+- **Production env vars** live only in Railway dashboard — never in local files.
+
+## R2 Storage
+
+- Dev bucket `novel-storage-dev` is empty by default. Upload test novels after setup.
+- Same Cloudflare account and API token — the token is scoped to both buckets.
+- `R2_BUCKET_NAME` in `.env` controls which bucket the app uses.
+
+## Running Locally
+
+```bash
+npm run dev          # Start Next.js dev server on localhost:3000
+npx prisma studio    # Browse dev database
+npx prisma migrate dev  # Run migrations against dev branch
+```
+<!-- END:dev-environment -->
+
 <!-- BEGIN:git-workflow -->
 # Git Workflow
 
@@ -41,7 +100,7 @@ This project uses a two-branch strategy with selective cherry-picking:
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **my-app** (1148 symbols, 3151 relationships, 84 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **my-app** (1147 symbols, 3166 relationships, 84 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { Novel } from "@/app/generated/prisma/client";
@@ -74,11 +72,11 @@ test("novel details view shows metadata, reading entry, and translation progress
     })
   );
 
-  assert.ok(html.includes("Sample Novel"));
-  assert.ok(html.includes("sample.epub"));
-  assert.ok(html.includes("2.0 KB"));
-  assert.ok(html.includes("Start Reading"));
-  assert.ok(html.includes("/novels/novel-test-id/read/1"));
+  expect(html).toContain("Sample Novel");
+  expect(html).toContain("sample.epub");
+  expect(html).toContain("2.0 KB");
+  expect(html).toContain("Start Reading");
+  expect(html).toContain("/novels/novel-test-id/read/1");
 });
 
 test("novel details view shows reader-unavailable state and hides translation start form", () => {
@@ -103,11 +101,11 @@ test("novel details view shows reader-unavailable state and hides translation st
     })
   );
 
-  assert.ok(html.includes("In-app reading is unavailable for this novel."));
-  assert.ok(html.includes("Could not read this text file from storage."));
+  expect(html).toContain("In-app reading is unavailable for this novel.");
+  expect(html).toContain("Could not read this text file from storage.");
 
-  assert.equal(html.includes("Start Reading"), false);
-  assert.equal(html.includes("/novels/novel-test-id/read/1"), false);
+  expect(html.includes("Start Reading")).toBe(false);
+  expect(html.includes("/novels/novel-test-id/read/1")).toBe(false);
 });
 
 test("novel details view shows translation data error banner", () => {
@@ -128,7 +126,7 @@ test("novel details view shows translation data error banner", () => {
     })
   );
 
-  assert.ok(html.includes("Translation data is currently unavailable."));
+  expect(html).toContain("Translation data is currently unavailable.");
 });
 
 test("novel details view shows Continue Reading when progress exists", () => {
@@ -152,8 +150,8 @@ test("novel details view shows Continue Reading when progress exists", () => {
     })
   );
 
-  assert.ok(html.includes("Continue Reading"));
-  assert.ok(html.includes("Chapter 5"));
-  assert.ok(html.includes("/novels/novel-test-id/read/5"));
-  assert.equal(html.includes("Start Reading"), false);
+  expect(html).toContain("Continue Reading");
+  expect(html).toContain("Chapter 5");
+  expect(html).toContain("/novels/novel-test-id/read/5");
+  expect(html.includes("Start Reading")).toBe(false);
 });

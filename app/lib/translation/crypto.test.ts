@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
 import {
   decryptTranslationCredential,
   encryptTranslationCredential,
@@ -11,10 +9,10 @@ test("translation credentials are encrypted and recoverable", () => {
   const plaintext = "sk-live-translation-key";
   const encrypted = encryptTranslationCredential(plaintext);
 
-  assert.notEqual(encrypted, plaintext);
-  assert.ok(!encrypted.includes(plaintext));
-  assert.ok(encrypted.startsWith("v1:"));
+  expect(encrypted).not.toBe(plaintext);
+  expect(encrypted).not.toContain(plaintext);
+  expect(encrypted.startsWith("v1:")).toBeTruthy();
 
   const decrypted = decryptTranslationCredential(encrypted);
-  assert.equal(decrypted, plaintext);
+  expect(decrypted).toBe(plaintext);
 });

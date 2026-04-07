@@ -5,8 +5,6 @@
  * a pure function so it can be tested without mocking DB accessors.
  * The function faithfully replicates the merge algorithm in service.ts.
  */
-import assert from "node:assert/strict";
-import test from "node:test";
 
 // ── Types (mirrors ChapterStatusItem from service.ts) ─────────────────────────
 
@@ -98,11 +96,11 @@ test("retranslating chapter shows 'translating' not 'translated'", () => {
   const result = mergeChapterStatuses(translated, jobStatuses);
   const byIndex = new Map(result.map((s) => [s.chapterIndex, s.status]));
 
-  assert.equal(byIndex.get(3), "translating", "chapter 3 should be translating during rerun");
-  assert.equal(byIndex.get(1), "translated");
-  assert.equal(byIndex.get(2), "translated");
-  assert.equal(byIndex.get(4), "translated");
-  assert.equal(byIndex.get(5), "translated");
+  expect(byIndex.get(3)).toBe("translating", "chapter 3 should be translating during rerun");
+  expect(byIndex.get(1)).toBe("translated");
+  expect(byIndex.get(2)).toBe("translated");
+  expect(byIndex.get(4)).toBe("translated");
+  expect(byIndex.get(5)).toBe("translated");
 });
 
 test("new job chapters don't reset prior translations", () => {
@@ -122,13 +120,13 @@ test("new job chapters don't reset prior translations", () => {
 
   // Prior chapters stay translated
   for (const i of [1, 2, 3, 4, 5]) {
-    assert.equal(byIndex.get(i), "translated", `chapter ${i} should remain translated`);
+    expect(byIndex.get(i)).toBe("translated", `chapter ${i} should remain translated`);
   }
   // New PENDING chapters show as untranslated
   for (const i of [6, 7, 8, 9, 10]) {
-    assert.equal(byIndex.get(i), "untranslated", `chapter ${i} should be untranslated`);
+    expect(byIndex.get(i)).toBe("untranslated", `chapter ${i} should be untranslated`);
   }
-  assert.equal(result.length, 10, "all 10 chapters present");
+  expect(result.length).toBe(10, "all 10 chapters present");
 });
 
 test("no active job returns only translated chapters", () => {
@@ -136,8 +134,8 @@ test("no active job returns only translated chapters", () => {
 
   const result = mergeChapterStatuses(translated, null);
 
-  assert.equal(result.length, 5);
-  assert.ok(result.every((s) => s.status === "translated"), "all should be translated");
+  expect(result.length).toBe(5);
+  expect(result.every((s) => s.status === "translated")).toBeTruthy();
 });
 
 test("active job completed chapter overrides prior translation entry", () => {
@@ -148,9 +146,9 @@ test("active job completed chapter overrides prior translation entry", () => {
 
   const result = mergeChapterStatuses(translated, jobStatuses);
 
-  assert.equal(result.length, 1);
-  assert.equal(result[0].chapterIndex, 3);
-  assert.equal(result[0].status, "translated");
+  expect(result.length).toBe(1);
+  expect(result[0].chapterIndex).toBe(3);
+  expect(result[0].status).toBe("translated");
 });
 
 test("FAILED chapter in latest job does not override prior translated chapter", () => {
@@ -163,8 +161,8 @@ test("FAILED chapter in latest job does not override prior translated chapter", 
 
   // FAILED maps to "untranslated" which should NOT override existing "translated"
   // because the condition only allows "translated", "translating", or new chapters
-  assert.equal(result.length, 1);
-  assert.equal(result[0].status, "translated", "FAILED should not overwrite prior translated");
+  expect(result.length).toBe(1);
+  expect(result[0].status).toBe("translated", "FAILED should not overwrite prior translated");
 });
 
 test("result is sorted by chapterIndex ascending", () => {
@@ -180,7 +178,7 @@ test("result is sorted by chapterIndex ascending", () => {
   const result = mergeChapterStatuses(translated, jobStatuses);
   const indices = result.map((s) => s.chapterIndex);
 
-  assert.deepEqual(indices, [1, 2, 3, 5], "sorted ascending");
+  expect(indices).toEqual([1, 2, 3, 5], "sorted ascending");
 });
 
 test("summary is preserved from translated rows and latest job", () => {
@@ -194,6 +192,6 @@ test("summary is preserved from translated rows and latest job", () => {
 
   const result = mergeChapterStatuses(translated, jobStatuses);
 
-  assert.equal(result.find((s) => s.chapterIndex === 1)?.summary, "A great start");
-  assert.equal(result.find((s) => s.chapterIndex === 2)?.summary, "New summary from rerun");
+  expect(result.find((s) => s.chapterIndex === 1)?.summary).toBe("A great start");
+  expect(result.find((s) => s.chapterIndex === 2)?.summary).toBe("New summary from rerun");
 });

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
 import {
   getCachedDocument,
   setCachedDocument,
@@ -29,7 +27,7 @@ describe("ReaderDocument LRU cache", () => {
 
   it("returns undefined on cache miss", () => {
     const result = getCachedDocument("nonexistent", new Date("2025-01-01"));
-    assert.equal(result, undefined);
+    expect(result).toBe(undefined);
   });
 
   it("stores and retrieves a document", () => {
@@ -39,7 +37,7 @@ describe("ReaderDocument LRU cache", () => {
     setCachedDocument("novel-1", updatedAt, doc);
     const cached = getCachedDocument("novel-1", updatedAt);
 
-    assert.deepEqual(cached, doc);
+    expect(cached).toEqual(doc);
   });
 
   it("returns undefined for stale updatedAt", () => {
@@ -50,7 +48,7 @@ describe("ReaderDocument LRU cache", () => {
     setCachedDocument("novel-1", oldDate, doc);
     const cached = getCachedDocument("novel-1", newDate);
 
-    assert.equal(cached, undefined);
+    expect(cached).toBe(undefined);
   });
 
   it("evicts oldest entry when cache exceeds max size", () => {
@@ -58,13 +56,13 @@ describe("ReaderDocument LRU cache", () => {
       setCachedDocument(`novel-${i}`, new Date(2025, 0, i + 1), makeDoc(`novel-${i}`, 1));
     }
 
-    assert.notEqual(getCachedDocument("novel-0", new Date(2025, 0, 1)), undefined);
+    expect(getCachedDocument("novel-0", new Date(2025, 0, 1))).not.toBe(undefined);
 
     setCachedDocument("novel-10", new Date(2025, 0, 11), makeDoc("novel-10", 1));
 
-    assert.equal(getCachedDocument("novel-0", new Date(2025, 0, 1)), undefined);
-    assert.notEqual(getCachedDocument("novel-10", new Date(2025, 0, 11)), undefined);
-    assert.notEqual(getCachedDocument("novel-1", new Date(2025, 0, 2)), undefined);
+    expect(getCachedDocument("novel-0", new Date(2025, 0, 1))).toBe(undefined);
+    expect(getCachedDocument("novel-10", new Date(2025, 0, 11))).not.toBe(undefined);
+    expect(getCachedDocument("novel-1", new Date(2025, 0, 2))).not.toBe(undefined);
   });
 
   it("invalidates all entries for a given novelId", () => {
@@ -77,9 +75,9 @@ describe("ReaderDocument LRU cache", () => {
 
     invalidateCachedDocument("novel-1");
 
-    assert.equal(getCachedDocument("novel-1", date1), undefined);
-    assert.equal(getCachedDocument("novel-1", date2), undefined);
-    assert.notEqual(getCachedDocument("novel-2", date1), undefined);
+    expect(getCachedDocument("novel-1", date1)).toBe(undefined);
+    expect(getCachedDocument("novel-1", date2)).toBe(undefined);
+    expect(getCachedDocument("novel-2", date1)).not.toBe(undefined);
   });
 
   it("clearDocumentCache empties the entire cache", () => {
@@ -88,7 +86,7 @@ describe("ReaderDocument LRU cache", () => {
 
     clearDocumentCache();
 
-    assert.equal(getCachedDocument("novel-1", new Date("2025-01-01")), undefined);
-    assert.equal(getCachedDocument("novel-2", new Date("2025-01-01")), undefined);
+    expect(getCachedDocument("novel-1", new Date("2025-01-01"))).toBe(undefined);
+    expect(getCachedDocument("novel-2", new Date("2025-01-01"))).toBe(undefined);
   });
 });

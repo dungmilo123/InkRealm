@@ -1,5 +1,3 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
 import { validateUploadClient } from "./upload-validation";
 
 function fakeFile(overrides: {
@@ -21,64 +19,64 @@ function fakeFile(overrides: {
 describe("validateUploadClient", () => {
   it("accepts a valid .txt file", () => {
     const result = validateUploadClient(fakeFile({ name: "novel.txt", type: "text/plain" }));
-    assert.equal(result.valid, true);
-    assert.equal(result.error, undefined);
+    expect(result.valid).toBe(true);
+    expect(result.error).toBe(undefined);
   });
 
   it("accepts a valid .epub file", () => {
     const result = validateUploadClient(fakeFile({ name: "book.epub", type: "application/epub+zip" }));
-    assert.equal(result.valid, true);
-    assert.equal(result.error, undefined);
+    expect(result.valid).toBe(true);
+    expect(result.error).toBe(undefined);
   });
 
   it("rejects unsupported extensions", () => {
     const result = validateUploadClient(fakeFile({ name: "doc.pdf", type: "application/pdf" }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes(".pdf"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain(".pdf");
   });
 
   it("rejects files with no extension", () => {
     const result = validateUploadClient(fakeFile({ name: "README", type: "" }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes("unknown"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("unknown");
   });
 
   it("rejects wrong MIME type when present", () => {
     const result = validateUploadClient(fakeFile({ name: "novel.txt", type: "application/pdf" }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes("application/pdf"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("application/pdf");
   });
 
   it("allows empty MIME type (some browsers do this)", () => {
     const result = validateUploadClient(fakeFile({ name: "novel.txt", type: "" }));
-    assert.equal(result.valid, true);
+    expect(result.valid).toBe(true);
   });
 
   it("rejects files over 50 MB", () => {
     const result = validateUploadClient(fakeFile({ size: 51 * 1024 * 1024 }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes("too large"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("too large");
   });
 
   it("accepts files exactly at 50 MB", () => {
     const result = validateUploadClient(fakeFile({ size: 50 * 1024 * 1024 }));
-    assert.equal(result.valid, true);
+    expect(result.valid).toBe(true);
   });
 
   it("rejects empty files (0 bytes)", () => {
     const result = validateUploadClient(fakeFile({ size: 0 }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes("empty"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("empty");
   });
 
   it("handles uppercase extensions correctly", () => {
     const result = validateUploadClient(fakeFile({ name: "BOOK.EPUB", type: "application/epub+zip" }));
-    assert.equal(result.valid, true);
+    expect(result.valid).toBe(true);
   });
 
   it("rejects .txt.exe double extension tricks", () => {
     const result = validateUploadClient(fakeFile({ name: "novel.txt.exe", type: "" }));
-    assert.equal(result.valid, false);
-    assert.ok(result.error?.includes(".exe"));
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain(".exe");
   });
 });

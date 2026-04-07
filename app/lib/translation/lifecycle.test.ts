@@ -1,8 +1,6 @@
-import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { mock, test } from "node:test";
 import AdmZip from "adm-zip";
 import "dotenv/config";
 
@@ -10,8 +8,7 @@ import "dotenv/config";
 // Maps storage keys → Buffers so the test never touches R2.
 const storageMap = new Map<string, Buffer>();
 
-mock.module("@/app/lib/storage", {
-  namedExports: {
+vi.mock("@/app/lib/storage", () => ({
     readNovelFile: async (key: string) => {
       const buf = storageMap.get(key);
       if (!buf) throw new Error(`Mock storage: key not found: ${key}`);
@@ -28,36 +25,33 @@ mock.module("@/app/lib/storage", {
       return `novels/test-${Date.now()}${ext}`;
     },
     deleteNovelFile: async () => {},
-  },
-});
+}));
 
 // Also mock the export module so finalization doesn't hit R2.
 const exportDir = join(process.cwd(), "storage", "test-exports");
-mock.module("@/app/lib/translation/export", {
-  namedExports: {
-    writeTranslatedExportFile: async (input: {
-      translationId: string;
-      novelTitle: string;
-      targetLanguage: string;
-      chapters: Array<{ chapterIndex: number; translatedTitle: string | null; translatedContent: string | null }>;
-    }) => {
-      await mkdir(exportDir, { recursive: true });
-      const fileName = `${input.translationId}.txt`;
-      const filePath = join(exportDir, fileName);
-      const content = input.chapters
-        .map((ch) => `${ch.translatedTitle}\n${ch.translatedContent}`)
-        .join("\n\n");
-      await writeFile(filePath, content, "utf8");
-      return { fileName, filePath };
-    },
-    canDownloadTranslationExport: (input: { status: string; exportPath: string | null }) => {
-      return input.status === "COMPLETED" && Boolean(input.exportPath);
-    },
-    buildTranslatedExportText: () => "",
-    readTranslatedExportFile: async () => Buffer.alloc(0),
-    deleteTranslatedExportFile: async () => {},
+vi.mock("@/app/lib/translation/export", () => ({
+  writeTranslatedExportFile: async (input: {
+    translationId: string;
+    novelTitle: string;
+    targetLanguage: string;
+    chapters: Array<{ chapterIndex: number; translatedTitle: string | null; translatedContent: string | null }>;
+  }) => {
+    await mkdir(exportDir, { recursive: true });
+    const fileName = `${input.translationId}.txt`;
+    const filePath = join(exportDir, fileName);
+    const content = input.chapters
+      .map((ch) => `${ch.translatedTitle}\n${ch.translatedContent}`)
+      .join("\n\n");
+    await writeFile(filePath, content, "utf8");
+    return { fileName, filePath };
   },
-});
+  canDownloadTranslationExport: (input: { status: string; exportPath: string | null }) => {
+    return input.status === "COMPLETED" && Boolean(input.exportPath);
+  },
+  buildTranslatedExportText: () => "",
+  readTranslatedExportFile: async () => Buffer.alloc(0),
+  deleteTranslatedExportFile: async () => {},
+}));
 
 import { createNovel } from "@/app/lib/novels";
 import { prisma } from "@/app/lib/prisma";
@@ -212,9 +206,9 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       apiKey: "mock-api-key",
     }, TEST_USER_ID);
 
-    assert.ok(profile.id);
-    assert.equal("encryptedApiKey" in profile, false);
-    assert.equal("apiKey" in profile, false);
+    expect(profile.id).toBeTruthy();
+    expect("encryptedApiKey" in profile).toBe(false);
+    expect("apiKey" in profile).toBe(false);
 
     const txtStorageKey = `novels/test-lifecycle-txt-${Date.now()}.txt`;
     storageMap.set(
@@ -245,9 +239,9 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    assert.equal(txtJob.status, "COMPLETED");
-    assert.ok(txtJob.exportPath);
-    assert.ok(txtJob.downloadUrl);
+    expect(txtJob.status).toBe("COMPLETED");
+    expect(txtJob.exportPath).toBeTruthy();
+    expect(txtJob.downloadUrl).toBeTruthy();
     exportPaths.add(txtJob.exportPath!);
 
     const epubStorageKey = `novels/test-lifecycle-epub-${Date.now()}.epub`;
@@ -276,9 +270,9 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    assert.equal(failedJob.status, "FAILED");
-    assert.equal(failedJob.failedChapterIndex, 1);
-    assert.ok(failedJob.failureReason);
+    expect(failedJob.status).toBe("FAILED");
+    expect(failedJob.failedChapterIndex).toBe(1);
+    expect(failedJob.failureReason).toBeTruthy();
 
     await retryTranslationJob({
       translationId: failedJob.id,
@@ -293,9 +287,9 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
       userId: TEST_USER_ID,
     });
 
-    assert.equal(recoveredJob.status, "COMPLETED");
-    assert.ok(recoveredJob.exportPath);
-    assert.ok(recoveredJob.downloadUrl);
+    expect(recoveredJob.status).toBe("COMPLETED");
+    expect(recoveredJob.exportPath).toBeTruthy();
+    expect(recoveredJob.downloadUrl).toBeTruthy();
     exportPaths.add(recoveredJob.exportPath!);
 
     // Export paths are local files from the mock writeTranslatedExportFile

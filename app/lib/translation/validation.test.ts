@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import {
   parseCreateProfilePayload,
@@ -7,12 +5,14 @@ import {
 } from "@/app/lib/translation/validation";
 
 function expectBadRequest(fn: () => unknown, messagePattern: RegExp) {
-  assert.throws(fn, (error) => {
-    assert.ok(error instanceof TranslationHttpError);
-    assert.equal(error.status, 400);
-    assert.match(error.message, messagePattern);
-    return true;
-  });
+  try {
+    fn();
+    expect.unreachable("Expected function to throw");
+  } catch (error) {
+    expect(error).toBeInstanceOf(TranslationHttpError);
+    expect((error as TranslationHttpError).status).toBe(400);
+    expect((error as TranslationHttpError).message).toMatch(messagePattern);
+  }
 }
 
 test("create profile payload rejects unsupported provider", () => {

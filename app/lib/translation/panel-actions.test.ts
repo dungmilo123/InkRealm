@@ -4,8 +4,6 @@
  * These pure functions were extracted in S02/T01 so the CTA logic
  * can be tested without rendering React components.
  */
-import assert from "node:assert/strict";
-import test from "node:test";
 
 import {
   getTranslatedCount,
@@ -16,7 +14,7 @@ import {
 // ── getTranslatedCount ───────────────────────────────────────────────────────
 
 test("getTranslatedCount: empty array → 0", () => {
-  assert.equal(getTranslatedCount([]), 0);
+  expect(getTranslatedCount([])).toBe(0);
 });
 
 test("getTranslatedCount: all translated → full count", () => {
@@ -25,7 +23,7 @@ test("getTranslatedCount: all translated → full count", () => {
     { chapterIndex: 2, status: "translated" },
     { chapterIndex: 3, status: "translated" },
   ];
-  assert.equal(getTranslatedCount(statuses), 3);
+  expect(getTranslatedCount(statuses)).toBe(3);
 });
 
 test("getTranslatedCount: mix of statuses → only translated counted", () => {
@@ -35,7 +33,7 @@ test("getTranslatedCount: mix of statuses → only translated counted", () => {
     { chapterIndex: 3, status: "untranslated" },
     { chapterIndex: 4, status: "translated" },
   ];
-  assert.equal(getTranslatedCount(statuses), 2);
+  expect(getTranslatedCount(statuses)).toBe(2);
 });
 
 test("getTranslatedCount: all untranslated → 0", () => {
@@ -43,43 +41,28 @@ test("getTranslatedCount: all untranslated → 0", () => {
     { chapterIndex: 1, status: "untranslated" },
     { chapterIndex: 2, status: "untranslated" },
   ];
-  assert.equal(getTranslatedCount(statuses), 0);
+  expect(getTranslatedCount(statuses)).toBe(0);
 });
 
 // ── getTerminalAction ────────────────────────────────────────────────────────
 
 test("getTerminalAction: terminal + valid range → 'range-execute'", () => {
-  assert.equal(
-    getTerminalAction({ isTerminal: true, hasValidRange: true, remaining: 5 }),
-    "range-execute"
-  );
+  expect(getTerminalAction({ isTerminal: true, hasValidRange: true, remaining: 5 })).toBe("range-execute");
 });
 
 test("getTerminalAction: terminal + no range + remaining > 0 → 'continue'", () => {
-  assert.equal(
-    getTerminalAction({ isTerminal: true, hasValidRange: false, remaining: 3 }),
-    "continue"
-  );
+  expect(getTerminalAction({ isTerminal: true, hasValidRange: false, remaining: 3 })).toBe("continue");
 });
 
 test("getTerminalAction: terminal + no range + remaining === 0 → 'none'", () => {
-  assert.equal(
-    getTerminalAction({ isTerminal: true, hasValidRange: false, remaining: 0 }),
-    "none"
-  );
+  expect(getTerminalAction({ isTerminal: true, hasValidRange: false, remaining: 0 })).toBe("none");
 });
 
 test("getTerminalAction: not terminal → 'start'", () => {
-  assert.equal(
-    getTerminalAction({ isTerminal: false, hasValidRange: false, remaining: 5 }),
-    "start"
-  );
+  expect(getTerminalAction({ isTerminal: false, hasValidRange: false, remaining: 5 })).toBe("start");
 });
 
 test("getTerminalAction: terminal + valid range + remaining === 0 → still 'range-execute'", () => {
   // Range overrides even when nothing is remaining
-  assert.equal(
-    getTerminalAction({ isTerminal: true, hasValidRange: true, remaining: 0 }),
-    "range-execute"
-  );
+  expect(getTerminalAction({ isTerminal: true, hasValidRange: true, remaining: 0 })).toBe("range-execute");
 });

@@ -1,6 +1,4 @@
 import "dotenv/config";
-import assert from "node:assert/strict";
-import { describe, it, before, after } from "node:test";
 import { prisma } from "@/app/lib/prisma";
 import {
   toggleBookmark,
@@ -21,7 +19,7 @@ function uniqueSuffix() {
 }
 
 // Set up test user and novels before all tests; clean up after.
-before(async () => {
+beforeAll(async () => {
   await prisma.user.upsert({
     where: { id: TEST_USER_ID },
     update: {},
@@ -50,7 +48,7 @@ before(async () => {
   }
 });
 
-after(async () => {
+afterAll(async () => {
   // Clean up all bookmarks first (FK constraint), then novels, then user
   await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   await prisma.novel.deleteMany({
@@ -62,27 +60,27 @@ after(async () => {
 // ─── toggleBookmark ────────────────────────────────────────────────
 
 describe("toggleBookmark", () => {
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
   it("creates a bookmark when none exists", async () => {
     const result = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 0);
-    assert.notEqual(result, null);
-    assert.equal(result!.chapterIndex, 0);
-    assert.equal(result!.note, null);
-    assert.ok(result!.id);
-    assert.ok(result!.createdAt instanceof Date);
+    expect(result).not.toBe(null);
+    expect(result!.chapterIndex).toBe(0);
+    expect(result!.note).toBe(null);
+    expect(result!.id).toBeTruthy();
+    expect(result!.createdAt instanceof Date).toBeTruthy();
   });
 
   it("removes a bookmark on second toggle (same chapter)", async () => {
     // First toggle: create
     const created = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 5);
-    assert.notEqual(created, null);
+    expect(created).not.toBe(null);
 
     // Second toggle: remove
     const removed = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 5);
-    assert.equal(removed, null);
+    expect(removed).toBe(null);
 
     // Verify it's actually gone from the database
     const exists = await prisma.bookmark.findUnique({
@@ -94,7 +92,7 @@ describe("toggleBookmark", () => {
         },
       },
     });
-    assert.equal(exists, null);
+    expect(exists).toBe(null);
   });
 
   it("third toggle re-creates the bookmark", async () => {
@@ -104,8 +102,8 @@ describe("toggleBookmark", () => {
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 10);
     // Toggle 3: re-create
     const result = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 10);
-    assert.notEqual(result, null);
-    assert.equal(result!.chapterIndex, 10);
+    expect(result).not.toBe(null);
+    expect(result!.chapterIndex).toBe(10);
   });
 
   it("stores an optional note when creating", async () => {
@@ -115,16 +113,16 @@ describe("toggleBookmark", () => {
       20,
       "Important chapter!"
     );
-    assert.notEqual(result, null);
-    assert.equal(result!.note, "Important chapter!");
+    expect(result).not.toBe(null);
+    expect(result!.note).toBe("Important chapter!");
   });
 
   it("handles different chapters independently", async () => {
     const ch1 = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 30);
     const ch2 = await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 31);
-    assert.notEqual(ch1, null);
-    assert.notEqual(ch2, null);
-    assert.notEqual(ch1!.id, ch2!.id);
+    expect(ch1).not.toBe(null);
+    expect(ch2).not.toBe(null);
+    expect(ch1!.id).not.toBe(ch2!.id);
 
     // Removing one doesn't affect the other
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 30);
@@ -133,7 +131,7 @@ describe("toggleBookmark", () => {
       TEST_NOVEL_ID_1,
       31
     );
-    assert.equal(ch2Still, true);
+    expect(ch2Still).toBe(true);
   });
 });
 
@@ -142,17 +140,17 @@ describe("toggleBookmark", () => {
 describe("updateBookmarkNote", () => {
   let bookmarkId: string;
 
-  before(async () => {
+  beforeAll(async () => {
     const bookmark = await toggleBookmark(
       TEST_USER_ID,
       TEST_NOVEL_ID_1,
       100
     );
-    assert.notEqual(bookmark, null);
+    expect(bookmark).not.toBe(null);
     bookmarkId = bookmark!.id;
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
@@ -162,23 +160,19 @@ describe("updateBookmarkNote", () => {
       bookmarkId,
       "My note"
     );
-    assert.equal(updated.note, "My note");
-    assert.equal(updated.id, bookmarkId);
+    expect(updated.note).toBe("My note");
+    expect(updated.id).toBe(bookmarkId);
   });
 
   it("clears a note when set to null", async () => {
     const updated = await updateBookmarkNote(TEST_USER_ID, bookmarkId, null);
-    assert.equal(updated.note, null);
+    expect(updated.note).toBe(null);
   });
 
   it("throws for non-existent bookmark", async () => {
-    await assert.rejects(
+    await expect(
       () => updateBookmarkNote(TEST_USER_ID, "nonexistent-id", "note"),
-      (error: Error) => {
-        assert.match(error.message, /not found/i);
-        return true;
-      }
-    );
+    ).rejects.toThrow(/not found/i);
   });
 
   it("throws when bookmark belongs to another user", async () => {
@@ -195,13 +189,9 @@ describe("updateBookmarkNote", () => {
     });
 
     try {
-      await assert.rejects(
+      await expect(
         () => updateBookmarkNote(otherUserId, bookmarkId, "hijack"),
-        (error: Error) => {
-          assert.match(error.message, /not found/i);
-          return true;
-        }
-      );
+      ).rejects.toThrow(/not found/i);
     } finally {
       await prisma.user.deleteMany({ where: { id: otherUserId } });
     }
@@ -211,11 +201,11 @@ describe("updateBookmarkNote", () => {
 // ─── isChapterBookmarked ───────────────────────────────────────────
 
 describe("isChapterBookmarked", () => {
-  before(async () => {
+  beforeAll(async () => {
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 200);
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
@@ -225,7 +215,7 @@ describe("isChapterBookmarked", () => {
       TEST_NOVEL_ID_1,
       200
     );
-    assert.equal(result, true);
+    expect(result).toBe(true);
   });
 
   it("returns false for a non-bookmarked chapter", async () => {
@@ -234,7 +224,7 @@ describe("isChapterBookmarked", () => {
       TEST_NOVEL_ID_1,
       999
     );
-    assert.equal(result, false);
+    expect(result).toBe(false);
   });
 
   it("returns false for a different novel", async () => {
@@ -243,21 +233,21 @@ describe("isChapterBookmarked", () => {
       TEST_NOVEL_ID_2,
       200
     );
-    assert.equal(result, false);
+    expect(result).toBe(false);
   });
 });
 
 // ─── getBookmarksForNovel ──────────────────────────────────────────
 
 describe("getBookmarksForNovel", () => {
-  before(async () => {
+  beforeAll(async () => {
     // Create bookmarks at chapters 3, 1, 7 (out of order)
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 3, "Third chapter");
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 1, null);
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 7, "Lucky seven");
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
@@ -266,7 +256,7 @@ describe("getBookmarksForNovel", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_1
     );
-    assert.equal(bookmarks.length, 3);
+    expect(bookmarks.length).toBe(3);
   });
 
   it("returns bookmarks ordered by chapter index ascending", async () => {
@@ -274,10 +264,7 @@ describe("getBookmarksForNovel", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_1
     );
-    assert.deepEqual(
-      bookmarks.map((b) => b.chapterIndex),
-      [1, 3, 7]
-    );
+    expect(bookmarks.map((b) => b.chapterIndex)).toEqual([1, 3, 7]);
   });
 
   it("preserves notes", async () => {
@@ -286,9 +273,9 @@ describe("getBookmarksForNovel", () => {
       TEST_NOVEL_ID_1
     );
     const byChapter = new Map(bookmarks.map((b) => [b.chapterIndex, b.note]));
-    assert.equal(byChapter.get(3), "Third chapter");
-    assert.equal(byChapter.get(1), null);
-    assert.equal(byChapter.get(7), "Lucky seven");
+    expect(byChapter.get(3)).toBe("Third chapter");
+    expect(byChapter.get(1)).toBe(null);
+    expect(byChapter.get(7)).toBe("Lucky seven");
   });
 
   it("returns empty array for novel with no bookmarks", async () => {
@@ -296,7 +283,7 @@ describe("getBookmarksForNovel", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_2
     );
-    assert.deepEqual(bookmarks, []);
+    expect(bookmarks).toEqual([]);
   });
 
   it("does not leak bookmarks from other novels", async () => {
@@ -313,16 +300,16 @@ describe("getBookmarksForNovel", () => {
     );
 
     // Novel 1 should still have exactly 3, novel 2 should have 1
-    assert.equal(novel1Bookmarks.length, 3);
-    assert.equal(novel2Bookmarks.length, 1);
-    assert.equal(novel2Bookmarks[0].chapterIndex, 0);
+    expect(novel1Bookmarks.length).toBe(3);
+    expect(novel2Bookmarks.length).toBe(1);
+    expect(novel2Bookmarks[0].chapterIndex).toBe(0);
   });
 });
 
 // ─── getBookmarkCountsBatch ────────────────────────────────────────
 
 describe("getBookmarkCountsBatch", () => {
-  before(async () => {
+  beforeAll(async () => {
     // Novel 1: 3 bookmarks
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 0);
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 1);
@@ -332,7 +319,7 @@ describe("getBookmarkCountsBatch", () => {
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_2, 5);
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
@@ -341,8 +328,8 @@ describe("getBookmarkCountsBatch", () => {
       TEST_NOVEL_ID_1,
       TEST_NOVEL_ID_2,
     ]);
-    assert.equal(counts.get(TEST_NOVEL_ID_1), 3);
-    assert.equal(counts.get(TEST_NOVEL_ID_2), 1);
+    expect(counts.get(TEST_NOVEL_ID_1)).toBe(3);
+    expect(counts.get(TEST_NOVEL_ID_2)).toBe(1);
   });
 
   it("omits novels with zero bookmarks from the map", async () => {
@@ -351,33 +338,33 @@ describe("getBookmarkCountsBatch", () => {
       TEST_NOVEL_ID_1,
       fakeNovelId,
     ]);
-    assert.equal(counts.has(fakeNovelId), false);
-    assert.equal(counts.get(TEST_NOVEL_ID_1), 3);
+    expect(counts.has(fakeNovelId)).toBe(false);
+    expect(counts.get(TEST_NOVEL_ID_1)).toBe(3);
   });
 
   it("returns empty map for empty input", async () => {
     const counts = await getBookmarkCountsBatch(TEST_USER_ID, []);
-    assert.equal(counts.size, 0);
+    expect(counts.size).toBe(0);
   });
 
   it("returns a Map (not a plain object)", async () => {
     const counts = await getBookmarkCountsBatch(TEST_USER_ID, [
       TEST_NOVEL_ID_1,
     ]);
-    assert.ok(counts instanceof Map);
+    expect(counts instanceof Map).toBeTruthy();
   });
 });
 
 // ─── getBookmarkedChapterIndices ───────────────────────────────────
 
 describe("getBookmarkedChapterIndices", () => {
-  before(async () => {
+  beforeAll(async () => {
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 2);
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 5);
     await toggleBookmark(TEST_USER_ID, TEST_NOVEL_ID_1, 11);
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.bookmark.deleteMany({ where: { userId: TEST_USER_ID } });
   });
 
@@ -386,11 +373,11 @@ describe("getBookmarkedChapterIndices", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_1
     );
-    assert.ok(indices instanceof Set);
-    assert.equal(indices.size, 3);
-    assert.equal(indices.has(2), true);
-    assert.equal(indices.has(5), true);
-    assert.equal(indices.has(11), true);
+    expect(indices instanceof Set).toBeTruthy();
+    expect(indices.size).toBe(3);
+    expect(indices.has(2)).toBe(true);
+    expect(indices.has(5)).toBe(true);
+    expect(indices.has(11)).toBe(true);
   });
 
   it("does not include non-bookmarked chapters", async () => {
@@ -398,8 +385,8 @@ describe("getBookmarkedChapterIndices", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_1
     );
-    assert.equal(indices.has(0), false);
-    assert.equal(indices.has(99), false);
+    expect(indices.has(0)).toBe(false);
+    expect(indices.has(99)).toBe(false);
   });
 
   it("returns empty set for novel with no bookmarks", async () => {
@@ -407,7 +394,7 @@ describe("getBookmarkedChapterIndices", () => {
       TEST_USER_ID,
       TEST_NOVEL_ID_2
     );
-    assert.equal(indices.size, 0);
+    expect(indices.size).toBe(0);
   });
 
   it("enables O(1) lookups (Set.has)", async () => {
@@ -417,8 +404,8 @@ describe("getBookmarkedChapterIndices", () => {
     );
     // This tests the contract: the return type supports .has() for O(1) checks
     // which is the whole reason we return Set instead of array
-    assert.equal(typeof indices.has, "function");
-    assert.equal(indices.has(5), true);
-    assert.equal(indices.has(999), false);
+    expect(typeof indices.has).toBe("function");
+    expect(indices.has(5)).toBe(true);
+    expect(indices.has(999)).toBe(false);
   });
 });

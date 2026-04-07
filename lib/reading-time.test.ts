@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, test } from "node:test";
 import {
   countWords,
   countWordsInParagraphs,
@@ -10,124 +8,118 @@ import {
 
 describe("countWords", () => {
   test("counts words in a normal sentence", () => {
-    assert.equal(countWords("Hello world foo bar"), 4);
+    expect(countWords("Hello world foo bar")).toBe(4);
   });
 
   test("returns 0 for empty string", () => {
-    assert.equal(countWords(""), 0);
+    expect(countWords("")).toBe(0);
   });
 
   test("returns 0 for whitespace-only string", () => {
-    assert.equal(countWords("   \t  \n  "), 0);
+    expect(countWords("   \t  \n  ")).toBe(0);
   });
 
   test("handles single word", () => {
-    assert.equal(countWords("hello"), 1);
+    expect(countWords("hello")).toBe(1);
   });
 
   test("handles multiple spaces between words", () => {
-    assert.equal(countWords("hello    world"), 2);
+    expect(countWords("hello    world")).toBe(2);
   });
 
   test("handles leading and trailing whitespace", () => {
-    assert.equal(countWords("  hello world  "), 2);
+    expect(countWords("  hello world  ")).toBe(2);
   });
 
   test("handles tabs and newlines", () => {
-    assert.equal(countWords("hello\tworld\nfoo"), 3);
+    expect(countWords("hello\tworld\nfoo")).toBe(3);
   });
 });
 
 describe("countWordsInParagraphs", () => {
   test("sums words across paragraphs", () => {
-    assert.equal(
-      countWordsInParagraphs(["Hello world", "Foo bar baz"]),
-      5
-    );
+    expect(countWordsInParagraphs(["Hello world", "Foo bar baz"])).toBe(5);
   });
 
   test("returns 0 for empty array", () => {
-    assert.equal(countWordsInParagraphs([]), 0);
+    expect(countWordsInParagraphs([])).toBe(0);
   });
 
   test("skips empty paragraphs", () => {
-    assert.equal(
-      countWordsInParagraphs(["Hello world", "", "  ", "Foo"]),
-      3
-    );
+    expect(countWordsInParagraphs(["Hello world", "", "  ", "Foo"])).toBe(3);
   });
 });
 
 describe("estimateReadingMinutes", () => {
   test("returns 0 for 0 words", () => {
-    assert.equal(estimateReadingMinutes(0), 0);
+    expect(estimateReadingMinutes(0)).toBe(0);
   });
 
   test("returns 0 for negative word count", () => {
-    assert.equal(estimateReadingMinutes(-100), 0);
+    expect(estimateReadingMinutes(-100)).toBe(0);
   });
 
   test("returns minimum 1 minute for small word counts", () => {
-    assert.equal(estimateReadingMinutes(1), 1);
-    assert.equal(estimateReadingMinutes(50), 1);
-    assert.equal(estimateReadingMinutes(238), 1);
+    expect(estimateReadingMinutes(1)).toBe(1);
+    expect(estimateReadingMinutes(50)).toBe(1);
+    expect(estimateReadingMinutes(238)).toBe(1);
   });
 
   test("rounds up to next minute", () => {
     // 239 words / 238 WPM = 1.004 → ceil = 2
-    assert.equal(estimateReadingMinutes(239), 2);
+    expect(estimateReadingMinutes(239)).toBe(2);
   });
 
   test("calculates correctly for larger counts", () => {
     // 238 * 10 = 2380 words → 10 minutes exactly
-    assert.equal(estimateReadingMinutes(2380), 10);
+    expect(estimateReadingMinutes(2380)).toBe(10);
     // 238 * 60 = 14280 words → 60 minutes
-    assert.equal(estimateReadingMinutes(14280), 60);
+    expect(estimateReadingMinutes(14280)).toBe(60);
   });
 });
 
 describe("formatReadingTime", () => {
   test("formats zero as less than 1 min", () => {
-    assert.equal(formatReadingTime(0), "< 1 min");
+    expect(formatReadingTime(0)).toBe("< 1 min");
   });
 
   test("formats minutes under 60", () => {
-    assert.equal(formatReadingTime(1), "1 min");
-    assert.equal(formatReadingTime(45), "45 min");
+    expect(formatReadingTime(1)).toBe("1 min");
+    expect(formatReadingTime(45)).toBe("45 min");
   });
 
   test("formats exact hours", () => {
-    assert.equal(formatReadingTime(60), "1 hr");
-    assert.equal(formatReadingTime(120), "2 hr");
+    expect(formatReadingTime(60)).toBe("1 hr");
+    expect(formatReadingTime(120)).toBe("2 hr");
   });
 
   test("formats hours with remaining minutes", () => {
-    assert.equal(formatReadingTime(90), "1 hr 30 min");
-    assert.equal(formatReadingTime(150), "2 hr 30 min");
-    assert.equal(formatReadingTime(61), "1 hr 1 min");
+    expect(formatReadingTime(90)).toBe("1 hr 30 min");
+    expect(formatReadingTime(150)).toBe("2 hr 30 min");
+    expect(formatReadingTime(61)).toBe("1 hr 1 min");
   });
 });
 
 describe("formatWordCount", () => {
   test("formats counts under 1000 as-is", () => {
-    assert.equal(formatWordCount(0), "0");
-    assert.equal(formatWordCount(500), "500");
-    assert.equal(formatWordCount(999), "999");
+    expect(formatWordCount(0)).toBe("0");
+    expect(formatWordCount(500)).toBe("500");
+    expect(formatWordCount(999)).toBe("999");
   });
 
   test("formats counts in the thousands with one decimal", () => {
-    assert.equal(formatWordCount(1000), "1.0k");
-    assert.equal(formatWordCount(1234), "1.2k");
-    assert.equal(formatWordCount(9999), "10.0k");
+    expect(formatWordCount(1000)).toBe("1.0k");
+    expect(formatWordCount(1234)).toBe("1.2k");
+    expect(formatWordCount(9999)).toBe("10.0k");
   });
 
   test("formats tens of thousands", () => {
-    assert.equal(formatWordCount(15678), "15.7k");
-    assert.equal(formatWordCount(50000), "50.0k");
+    expect(formatWordCount(15678)).toBe("15.7k");
+    expect(formatWordCount(50000)).toBe("50.0k");
   });
 
   test("formats hundreds of thousands as rounded k", () => {
-    assert.equal(formatWordCount(123456), "123k");
-    assert.equal(formatWordCount(500000), "500k");
+    expect(formatWordCount(123456)).toBe("123k");
+    expect(formatWordCount(500000)).toBe("500k");
   });
 });

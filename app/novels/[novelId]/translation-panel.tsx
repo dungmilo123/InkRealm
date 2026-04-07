@@ -5,6 +5,7 @@ import Link from "next/link";
 import { readJsonOrError } from "@/lib/fetch";
 import { toast } from "sonner";
 import { useTranslationEta } from "./use-translation-eta";
+import { getTerminalAction, getTranslatedCount } from "@/app/lib/translation/panel-actions";
 import {
   Play,
   X,
@@ -219,9 +220,11 @@ export function TranslationPanel({
     }
   }
 
-  const remaining = chapterCount - translatedChapterCount;
+  const crossJobTranslated = getTranslatedCount(chapterStatuses);
+  const remaining = chapterCount - crossJobTranslated;
   const isTerminal = panelState === "completed" || panelState === "cancelled" || panelState === "failed";
-  const showContinue = isTerminal && remaining > 0;
+  const hasValidRange = showRange && !!fromNum && !!toNum && !rangeError;
+  const terminalAction = getTerminalAction({ isTerminal, hasValidRange, remaining });
 
   // No provider configured
   if (!defaultProfile) {
@@ -277,6 +280,69 @@ export function TranslationPanel({
   const allTranslated =
     job?.status === "COMPLETED" && job.completedChapters >= chapterCount;
 
+  const rangePicker = (
+    <div>
+      <button
+        type="button"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        onClick={() => setShowRange(!showRange)}
+        aria-expanded={showRange}
+        aria-controls="chapter-range-options"
+      >
+        {showRange ? (
+          <>
+            <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+            Hide chapter range
+          </>
+        ) : (
+          <>
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+            Advanced: Set chapter range
+          </>
+        )}
+      </button>
+
+      {showRange ? (
+        <div id="chapter-range-options" className="mt-3 space-y-3">
+          <div className="flex items-end gap-2">
+            <div className="flex-1 space-y-1">
+              <Label htmlFor="chapter-from" className="text-sm text-muted-foreground">
+                From chapter
+              </Label>
+              <Input
+                id="chapter-from"
+                type="number"
+                min={1}
+                max={chapterCount}
+                value={chapterFrom}
+                onChange={(e) => setChapterFrom(e.target.value)}
+                placeholder="1"
+              />
+            </div>
+            <span className="pb-2 text-muted-foreground">→</span>
+            <div className="flex-1 space-y-1">
+              <Label htmlFor="chapter-to" className="text-sm text-muted-foreground">
+                To chapter
+              </Label>
+              <Input
+                id="chapter-to"
+                type="number"
+                min={1}
+                max={chapterCount}
+                value={chapterTo}
+                onChange={(e) => setChapterTo(e.target.value)}
+                placeholder={String(chapterCount)}
+              />
+            </div>
+          </div>
+          {rangeError ? (
+            <p className="text-xs text-destructive">{rangeError}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       {providerNote}
@@ -297,17 +363,17 @@ export function TranslationPanel({
             <p className="text-sm text-muted-foreground mt-1">
               {allTranslated
                 ? "All chapters translated · Vietnamese · Premium quality"
-                : `${chapterCount - (job?.completedChapters ?? 0)} chapters untranslated · Vietnamese · Premium quality`}
+                : `${remaining} chapters untranslated · Vietnamese · Premium quality`}
             </p>
             {panelState === "cancelled" && job ? (
               <p className="text-xs text-muted-foreground mt-1">
-                Previous translation was cancelled. {job.completedChapters}{" "}
+                Previous translation was cancelled. {crossJobTranslated}{" "}
                 chapters already translated will be kept.
               </p>
             ) : null}
           </div>
 
-          {showContinue ? (
+          {terminalAction === "continue" ? (
             <Button
               className="w-full h-10 px-6 text-sm font-medium"
               disabled={busy}
@@ -316,6 +382,16 @@ export function TranslationPanel({
             >
               <Play className="h-4 w-4 mr-2" aria-hidden="true" />
               Continue ({remaining} remaining)
+            </Button>
+          ) : terminalAction === "range-execute" ? (
+            <Button
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy || !!rangeError}
+              aria-busy={busy}
+              onClick={() => void handleStartTranslation()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Translate Chapters {fromNum}–{toNum}
             </Button>
           ) : (
             <Button
@@ -330,66 +406,7 @@ export function TranslationPanel({
           )}
 
           {/* Advanced range picker */}
-          <div>
-            <button
-              type="button"
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-              onClick={() => setShowRange(!showRange)}
-              aria-expanded={showRange}
-              aria-controls="chapter-range-options"
-            >
-              {showRange ? (
-                <>
-                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-                  Hide chapter range
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-                  Advanced: Set chapter range
-                </>
-              )}
-            </button>
-
-            {showRange ? (
-              <div id="chapter-range-options" className="mt-3 space-y-3">
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 space-y-1">
-                    <Label htmlFor="chapter-from" className="text-sm text-muted-foreground">
-                      From chapter
-                    </Label>
-                    <Input
-                      id="chapter-from"
-                      type="number"
-                      min={1}
-                      max={chapterCount}
-                      value={chapterFrom}
-                      onChange={(e) => setChapterFrom(e.target.value)}
-                      placeholder="1"
-                    />
-                  </div>
-                  <span className="pb-2 text-muted-foreground">→</span>
-                  <div className="flex-1 space-y-1">
-                    <Label htmlFor="chapter-to" className="text-sm text-muted-foreground">
-                      To chapter
-                    </Label>
-                    <Input
-                      id="chapter-to"
-                      type="number"
-                      min={1}
-                      max={chapterCount}
-                      value={chapterTo}
-                      onChange={(e) => setChapterTo(e.target.value)}
-                      placeholder={String(chapterCount)}
-                    />
-                  </div>
-                </div>
-                {rangeError ? (
-                  <p className="text-xs text-destructive">{rangeError}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          {rangePicker}
         </div>
       )}
 
@@ -523,7 +540,7 @@ export function TranslationPanel({
             </div>
           ) : null}
 
-          {showContinue && (
+          {terminalAction === "continue" && (
             <Button
               className="w-full h-10 px-6 text-sm font-medium"
               disabled={busy}
@@ -534,6 +551,19 @@ export function TranslationPanel({
               Continue ({remaining} remaining)
             </Button>
           )}
+          {terminalAction === "range-execute" && (
+            <Button
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy || !!rangeError}
+              aria-busy={busy}
+              onClick={() => void handleStartTranslation()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Translate Chapters {fromNum}–{toNum}
+            </Button>
+          )}
+
+          {rangePicker}
 
           <div className="flex justify-center mt-2">
             <button
@@ -582,7 +612,7 @@ export function TranslationPanel({
             Retry from Chapter {job.failedChapterIndex ?? "unknown"}
           </Button>
 
-          {showContinue && (
+          {terminalAction === "continue" && (
             <Button
               variant="outline"
               className="w-full h-10 px-6 text-sm font-medium"
@@ -594,6 +624,20 @@ export function TranslationPanel({
               Continue ({remaining} remaining)
             </Button>
           )}
+          {terminalAction === "range-execute" && (
+            <Button
+              variant="outline"
+              className="w-full h-10 px-6 text-sm font-medium"
+              disabled={busy || !!rangeError}
+              aria-busy={busy}
+              onClick={() => void handleStartTranslation()}
+            >
+              <Play className="h-4 w-4 mr-2" aria-hidden="true" />
+              Translate Chapters {fromNum}–{toNum}
+            </Button>
+          )}
+
+          {rangePicker}
 
           <div className="flex justify-center mt-2">
             <button

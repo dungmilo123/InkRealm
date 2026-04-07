@@ -142,7 +142,8 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
 
   const createdNovelIds: string[] = [];
   const exportPaths = new Set<string>();
-  const failedTitleOnce = new Set<string>();
+  const failedTitleCount = new Map<string, number>();
+  let allowRetryJobToSucceed = false;
 
   const server = createServer(async (request, response) => {
     if (request.method !== "POST" || request.url !== "/v1/chat/completions") {
@@ -164,8 +165,9 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     const titleMatch = userMessage.match(/Chapter title[^\n]*:\n([^\n]+)/);
     const sourceTitle = titleMatch?.[1]?.trim() ?? "Unknown Chapter";
 
-    if (sourceTitle === "EPUB Chapter 1" && !failedTitleOnce.has(sourceTitle)) {
-      failedTitleOnce.add(sourceTitle);
+    if (sourceTitle === "EPUB Chapter 1" && !allowRetryJobToSucceed) {
+      const count = (failedTitleCount.get(sourceTitle) ?? 0) + 1;
+      failedTitleCount.set(sourceTitle, count);
       response.statusCode = 500;
       response.setHeader("Content-Type", "application/json");
       response.end(JSON.stringify({ error: "forced-failure" }));
@@ -273,6 +275,8 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     expect(failedJob.status).toBe("FAILED");
     expect(failedJob.failedChapterIndex).toBe(1);
     expect(failedJob.failureReason).toBeTruthy();
+
+    allowRetryJobToSucceed = true;
 
     await retryTranslationJob({
       translationId: failedJob.id,

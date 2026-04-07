@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import {
   normalizeEmail,
   validateEmail,
@@ -10,62 +8,62 @@ import {
 
 describe("normalizeEmail", () => {
   it("lowercases and trims whitespace", () => {
-    assert.equal(normalizeEmail("  User@Example.COM  "), "user@example.com");
+    expect(normalizeEmail("  User@Example.COM  ")).toBe("user@example.com");
   });
 
   it("handles already-normalized emails", () => {
-    assert.equal(normalizeEmail("user@example.com"), "user@example.com");
+    expect(normalizeEmail("user@example.com")).toBe("user@example.com");
   });
 });
 
 describe("validateEmail", () => {
   it("rejects null/undefined/empty", () => {
-    assert.notEqual(validateEmail(null), null);
-    assert.notEqual(validateEmail(undefined), null);
-    assert.notEqual(validateEmail(""), null);
-    assert.notEqual(validateEmail("   "), null);
+    expect(validateEmail(null)).not.toBe(null);
+    expect(validateEmail(undefined)).not.toBe(null);
+    expect(validateEmail("")).not.toBe(null);
+    expect(validateEmail("   ")).not.toBe(null);
   });
 
   it("rejects invalid formats", () => {
-    assert.notEqual(validateEmail("not-an-email"), null);
-    assert.notEqual(validateEmail("@missing-local.com"), null);
-    assert.notEqual(validateEmail("missing-domain@"), null);
+    expect(validateEmail("not-an-email")).not.toBe(null);
+    expect(validateEmail("@missing-local.com")).not.toBe(null);
+    expect(validateEmail("missing-domain@")).not.toBe(null);
   });
 
   it("accepts valid emails", () => {
-    assert.equal(validateEmail("user@example.com"), null);
-    assert.equal(validateEmail("a+tag@sub.domain.org"), null);
+    expect(validateEmail("user@example.com")).toBe(null);
+    expect(validateEmail("a+tag@sub.domain.org")).toBe(null);
   });
 });
 
 describe("validatePassword", () => {
   it("rejects null/undefined/empty", () => {
-    assert.notEqual(validatePassword(null), null);
-    assert.notEqual(validatePassword(undefined), null);
-    assert.notEqual(validatePassword(""), null);
+    expect(validatePassword(null)).not.toBe(null);
+    expect(validatePassword(undefined)).not.toBe(null);
+    expect(validatePassword("")).not.toBe(null);
   });
 
   it("rejects too-short passwords", () => {
     const result = validatePassword("a".repeat(PASSWORD_MIN_LENGTH - 1));
-    assert.notEqual(result, null);
-    assert.ok(result!.error.includes("at least"));
+    expect(result).not.toBe(null);
+    expect(result!.error).toContain("at least");
   });
 
   it("rejects too-long passwords (bcrypt 72-byte limit)", () => {
     const result = validatePassword("a".repeat(PASSWORD_MAX_LENGTH + 1));
-    assert.notEqual(result, null);
-    assert.ok(result!.error.includes("at most"));
+    expect(result).not.toBe(null);
+    expect(result!.error).toContain("exceeds the maximum length");
   });
 
   it("accepts passwords within valid range", () => {
-    assert.equal(validatePassword("a".repeat(PASSWORD_MIN_LENGTH)), null);
-    assert.equal(validatePassword("a".repeat(PASSWORD_MAX_LENGTH)), null);
-    assert.equal(validatePassword("SecureP@ssw0rd!"), null);
+    expect(validatePassword("a".repeat(PASSWORD_MIN_LENGTH))).toBe(null);
+    expect(validatePassword("a".repeat(PASSWORD_MAX_LENGTH))).toBe(null);
+    expect(validatePassword("SecureP@ssw0rd!")).toBe(null);
   });
 
   it("uses custom label in error messages", () => {
     const result = validatePassword("short", "New password");
-    assert.notEqual(result, null);
-    assert.ok(result!.error.startsWith("New password"));
+    expect(result).not.toBe(null);
+    expect(result!.error.startsWith("New password")).toBeTruthy();
   });
 });

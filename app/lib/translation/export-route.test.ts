@@ -1,6 +1,4 @@
 import "dotenv/config";
-import assert from "node:assert/strict";
-import test from "node:test";
 import {
   TranslationProvider,
   TranslationStatus,
@@ -31,14 +29,13 @@ async function ensureTestUser() {
 test("export service rejects unknown translation ids", async () => {
   await ensureTestUser();
 
-  await assert.rejects(
-    () => getDownloadableTranslationJob(`missing-${uniqueSuffix()}`, TEST_USER_ID),
-    (error) => {
-      assert.ok(error instanceof TranslationHttpError);
-      assert.equal(error.status, 404);
-      return true;
-    }
-  );
+  try {
+    await getDownloadableTranslationJob(`missing-${uniqueSuffix()}`, TEST_USER_ID);
+    expect.unreachable("Expected function to throw");
+  } catch (error) {
+    expect(error).toBeInstanceOf(TranslationHttpError);
+    expect((error as TranslationHttpError).status).toBe(404);
+  }
 });
 
 test("export service rejects translations without completed exports", async () => {
@@ -68,15 +65,14 @@ test("export service rejects translations without completed exports", async () =
       },
     });
 
-    await assert.rejects(
-      () => getDownloadableTranslationJob(pendingTranslation.id, TEST_USER_ID),
-      (error) => {
-        assert.ok(error instanceof TranslationHttpError);
-        assert.equal(error.status, 404);
-        assert.match(error.message, /not available/i);
-        return true;
-      }
-    );
+    try {
+      await getDownloadableTranslationJob(pendingTranslation.id, TEST_USER_ID);
+      expect.unreachable("Expected function to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TranslationHttpError);
+      expect((error as TranslationHttpError).status).toBe(404);
+      expect((error as TranslationHttpError).message).toMatch(/not available/i);
+    }
   } finally {
     await prisma.novel.deleteMany({
       where: { id: novel.id },
@@ -111,14 +107,13 @@ test("export service rejects access from non-owner", async () => {
       },
     });
 
-    await assert.rejects(
-      () => getDownloadableTranslationJob(translation.id, "other-user-id"),
-      (error) => {
-        assert.ok(error instanceof TranslationHttpError);
-        assert.equal(error.status, 404);
-        return true;
-      }
-    );
+    try {
+      await getDownloadableTranslationJob(translation.id, "other-user-id");
+      expect.unreachable("Expected function to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TranslationHttpError);
+      expect((error as TranslationHttpError).status).toBe(404);
+    }
   } finally {
     await prisma.novel.deleteMany({
       where: { id: novel.id },

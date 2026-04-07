@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, test } from "node:test";
 import { readJsonOrError } from "./fetch";
 
 describe("readJsonOrError", () => {
@@ -11,7 +9,7 @@ describe("readJsonOrError", () => {
     });
 
     const result = await readJsonOrError<{ id: number; name: string }>(response);
-    assert.deepEqual(result, { id: 1, name: "Test" });
+    expect(result).toEqual({ id: 1, name: "Test" });
   });
 
   test("returns full payload including extra fields", async () => {
@@ -19,47 +17,43 @@ describe("readJsonOrError", () => {
     const response = new Response(JSON.stringify(body), { status: 200 });
 
     const result = await readJsonOrError<{ data: number[]; meta: { total: number } }>(response);
-    assert.deepEqual(result, body);
+    expect(result).toEqual(body);
   });
 
   test("throws with server error message on 400 response", async () => {
     const body = { error: "Email is required" };
     const response = new Response(JSON.stringify(body), { status: 400 });
 
-    await assert.rejects(
-      () => readJsonOrError(response),
-      { message: "Email is required" }
-    );
+    await expect(
+      () => readJsonOrError(response)
+    ).rejects.toThrow("Email is required");
   });
 
   test("throws with server error message on 401 response", async () => {
     const body = { error: "Unauthorized" };
     const response = new Response(JSON.stringify(body), { status: 401 });
 
-    await assert.rejects(
-      () => readJsonOrError(response),
-      { message: "Unauthorized" }
-    );
+    await expect(
+      () => readJsonOrError(response)
+    ).rejects.toThrow("Unauthorized");
   });
 
   test("throws with server error message on 500 response", async () => {
     const body = { error: "Internal server error" };
     const response = new Response(JSON.stringify(body), { status: 500 });
 
-    await assert.rejects(
-      () => readJsonOrError(response),
-      { message: "Internal server error" }
-    );
+    await expect(
+      () => readJsonOrError(response)
+    ).rejects.toThrow("Internal server error");
   });
 
   test("throws 'Request failed' when error response has no error field", async () => {
     const body = { success: false };
     const response = new Response(JSON.stringify(body), { status: 422 });
 
-    await assert.rejects(
-      () => readJsonOrError(response),
-      { message: "Request failed" }
-    );
+    await expect(
+      () => readJsonOrError(response)
+    ).rejects.toThrow("Request failed");
   });
 
   test("throws 'Request failed' when error field is empty string", async () => {
@@ -67,10 +61,9 @@ describe("readJsonOrError", () => {
     const response = new Response(JSON.stringify(body), { status: 400 });
 
     // Empty string is falsy, so || falls through to "Request failed"
-    await assert.rejects(
-      () => readJsonOrError(response),
-      { message: "Request failed" }
-    );
+    await expect(
+      () => readJsonOrError(response)
+    ).rejects.toThrow("Request failed");
   });
 
   test("does not throw for 2xx statuses with error-shaped body", async () => {
@@ -79,8 +72,8 @@ describe("readJsonOrError", () => {
     const response = new Response(JSON.stringify(body), { status: 200 });
 
     const result = await readJsonOrError<{ error: string; data: string }>(response);
-    assert.equal(result.data, "ok");
-    assert.equal(result.error, "not a real error");
+    expect(result.data).toBe("ok");
+    expect(result.error).toBe("not a real error");
   });
 
   test("handles 201 Created response with JSON body", async () => {
@@ -88,6 +81,6 @@ describe("readJsonOrError", () => {
     const response = new Response(JSON.stringify(body), { status: 201 });
 
     const result = await readJsonOrError<{ id: number }>(response);
-    assert.equal(result.id, 42);
+    expect(result.id).toBe(42);
   });
 });

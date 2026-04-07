@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
 import { TranslationStatus } from "@/app/generated/prisma/client";
 import {
   buildTranslatedExportText,
@@ -27,35 +25,26 @@ test("translated export builder preserves chapter order", () => {
   const chapterOnePosition = content.indexOf("Chapter 1: Chuong Mot");
   const chapterTwoPosition = content.indexOf("Chapter 2: Chuong Hai");
 
-  assert.ok(chapterOnePosition >= 0);
-  assert.ok(chapterTwoPosition >= 0);
-  assert.ok(chapterOnePosition < chapterTwoPosition);
-  assert.ok(content.includes("Noi dung 1"));
-  assert.ok(content.includes("Noi dung 2"));
+  expect(chapterOnePosition >= 0).toBeTruthy();
+  expect(chapterTwoPosition >= 0).toBeTruthy();
+  expect(chapterOnePosition < chapterTwoPosition).toBeTruthy();
+  expect(content).toContain("Noi dung 1");
+  expect(content).toContain("Noi dung 2");
 });
 
 test("export availability is limited to completed jobs with paths", () => {
-  assert.equal(
-    canDownloadTranslationExport({
-      status: TranslationStatus.COMPLETED,
-      exportPath: "/tmp/export.txt",
-    }),
-    true
-  );
+  expect(canDownloadTranslationExport({
+    status: TranslationStatus.COMPLETED,
+    exportPath: "/tmp/export.txt",
+  })).toBe(true);
 
-  assert.equal(
-    canDownloadTranslationExport({
-      status: TranslationStatus.COMPLETED,
-      exportPath: null,
-    }),
-    false
-  );
+  expect(canDownloadTranslationExport({
+    status: TranslationStatus.COMPLETED,
+    exportPath: null,
+  })).toBe(false);
 
-  assert.equal(
-    canDownloadTranslationExport({
-      status: TranslationStatus.FAILED,
-      exportPath: "/tmp/export.txt",
-    }),
-    false
-  );
+  expect(canDownloadTranslationExport({
+    status: TranslationStatus.FAILED,
+    exportPath: "/tmp/export.txt",
+  })).toBe(false);
 });

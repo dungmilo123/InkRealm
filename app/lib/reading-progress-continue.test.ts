@@ -1,6 +1,4 @@
 import "dotenv/config";
-import assert from "node:assert/strict";
-import { describe, it, before, after } from "node:test";
 import { prisma } from "@/app/lib/prisma";
 import { getContinueReadingNovel } from "@/app/lib/reading-progress";
 
@@ -47,7 +45,7 @@ async function createVisitAtTime(
 
 // ─── Setup / Teardown ──────────────────────────────────────────────
 
-before(async () => {
+beforeAll(async () => {
   await prisma.user.upsert({
     where: { id: TEST_USER_ID },
     update: {},
@@ -77,7 +75,7 @@ before(async () => {
   }
 });
 
-after(async () => {
+afterAll(async () => {
   // Clean up in FK order: visits → progress → novels → user
   await prisma.chapterVisit.deleteMany({
     where: { readingProgress: { userId: TEST_USER_ID } },
@@ -96,11 +94,11 @@ after(async () => {
 describe("getContinueReadingNovel", () => {
   it("returns null for a user with no reading history", async () => {
     const result = await getContinueReadingNovel("nonexistent-user-id");
-    assert.equal(result, null);
+    expect(result).toBe(null);
   });
 
   describe("with reading history", () => {
-    before(async () => {
+    beforeAll(async () => {
       // Novel A: read chapters 1, 2, 3 — earlier timestamps
       await createVisitAtTime(
         TEST_USER_ID,
@@ -130,7 +128,7 @@ describe("getContinueReadingNovel", () => {
       );
     });
 
-    after(async () => {
+    afterAll(async () => {
       await prisma.chapterVisit.deleteMany({
         where: { readingProgress: { userId: TEST_USER_ID } },
       });
@@ -141,47 +139,44 @@ describe("getContinueReadingNovel", () => {
 
     it("returns the most recently read novel", async () => {
       const result = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(result !== null, "result should not be null");
-      assert.equal(result.novel.id, TEST_NOVEL_B);
+      expect(result !== null, "result should not be null").toBeTruthy();
+      expect(result.novel.id).toBe(TEST_NOVEL_B);
     });
 
     it("returns correct novel metadata", async () => {
       const result = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(result !== null);
+      expect(result !== null).toBeTruthy();
 
-      assert.equal(typeof result.novel.id, "string");
-      assert.equal(typeof result.novel.title, "string");
-      assert.equal(result.novel.fileType, "txt");
-      assert.equal(result.novel.chapterCount, 10);
+      expect(typeof result.novel.id).toBe("string");
+      expect(typeof result.novel.title).toBe("string");
+      expect(result.novel.fileType).toBe("txt");
+      expect(result.novel.chapterCount).toBe(10);
     });
 
     it("returns the lastChapterIndex of the most recent novel", async () => {
       const result = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(result !== null);
+      expect(result !== null).toBeTruthy();
       // Novel B had chapter 1 visited
-      assert.equal(result.lastChapterIndex, 1);
+      expect(result.lastChapterIndex).toBe(1);
     });
 
     it("returns correct totalVisited count (chapter visits for that novel)", async () => {
       const result = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(result !== null);
+      expect(result !== null).toBeTruthy();
       // Novel B has 1 chapter visit
-      assert.equal(result.totalVisited, 1);
+      expect(result.totalVisited).toBe(1);
     });
 
     it("returns lastReadAt as a Date", async () => {
       const result = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(result !== null);
-      assert.ok(result.lastReadAt instanceof Date, "lastReadAt should be a Date");
-      assert.ok(
-        !isNaN(result.lastReadAt.getTime()),
-        "lastReadAt should be a valid date"
-      );
+      expect(result !== null).toBeTruthy();
+      expect(result.lastReadAt instanceof Date, "lastReadAt should be a Date").toBeTruthy();
+      expect(!isNaN(result.lastReadAt.getTime())).toBeTruthy();
     });
   });
 
   describe("recency ordering", () => {
-    before(async () => {
+    beforeAll(async () => {
       // Read novel A first, then novel B
       await createVisitAtTime(
         TEST_USER_ID,
@@ -197,7 +192,7 @@ describe("getContinueReadingNovel", () => {
       );
     });
 
-    after(async () => {
+    afterAll(async () => {
       await prisma.chapterVisit.deleteMany({
         where: { readingProgress: { userId: TEST_USER_ID } },
       });
@@ -209,8 +204,8 @@ describe("getContinueReadingNovel", () => {
     it("updates recency when a previously-read novel is read again", async () => {
       // Novel B was most recent
       const before = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(before !== null);
-      assert.equal(before.novel.id, TEST_NOVEL_B, "Novel B should be most recent initially");
+      expect(before !== null).toBeTruthy();
+      expect(before.novel.id).toBe(TEST_NOVEL_B, "Novel B should be most recent initially");
 
       // Now read novel A again (later visit)
       await createVisitAtTime(
@@ -221,21 +216,18 @@ describe("getContinueReadingNovel", () => {
       );
 
       const afterResult = await getContinueReadingNovel(TEST_USER_ID);
-      assert.ok(afterResult !== null);
-      assert.equal(
-        afterResult.novel.id,
-        TEST_NOVEL_A,
-        "Novel A should be most recent after new visit"
-      );
-      assert.equal(afterResult.lastChapterIndex, 2);
-      assert.equal(afterResult.totalVisited, 2, "Novel A now has 2 visits (ch 1 + ch 2)");
+      expect(afterResult !== null).toBeTruthy();
+      expect(afterResult.novel.id).toBe(TEST_NOVEL_A,
+        "Novel A should be most recent after new visit");
+      expect(afterResult.lastChapterIndex).toBe(2);
+      expect(afterResult.totalVisited).toBe(2, "Novel A now has 2 visits (ch 1 + ch 2)");
     });
   });
 
   describe("user isolation", () => {
     const OTHER_USER_ID = "continue-reading-other-user";
 
-    before(async () => {
+    beforeAll(async () => {
       await prisma.user.upsert({
         where: { id: OTHER_USER_ID },
         update: {},
@@ -255,7 +247,7 @@ describe("getContinueReadingNovel", () => {
       );
     });
 
-    after(async () => {
+    afterAll(async () => {
       await prisma.chapterVisit.deleteMany({
         where: { readingProgress: { userId: OTHER_USER_ID } },
       });
@@ -267,11 +259,11 @@ describe("getContinueReadingNovel", () => {
 
     it("does not return another user's reading progress", async () => {
       const result = await getContinueReadingNovel(OTHER_USER_ID);
-      assert.ok(result !== null);
+      expect(result !== null).toBeTruthy();
       // Other user only has novel A at chapter 5
-      assert.equal(result.novel.id, TEST_NOVEL_A);
-      assert.equal(result.lastChapterIndex, 5);
-      assert.equal(result.totalVisited, 1);
+      expect(result.novel.id).toBe(TEST_NOVEL_A);
+      expect(result.lastChapterIndex).toBe(5);
+      expect(result.totalVisited).toBe(1);
     });
   });
 });

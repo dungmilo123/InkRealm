@@ -11,33 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-build-unit:
-    name: Lint, Build & Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npx prisma generate
-
-      - run: npm run lint
-
-      - name: Build
-        run: npm run build
-        env:
-          DATABASE_URL: "postgresql://unused:unused@localhost:5432/unused"
-          AUTH_SECRET: "ci-placeholder"
-
-      - run: npm run test:unit
-
-  integration:
-    name: Integration Tests
+  ci:
+    name: Lint, Build & Test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -66,13 +41,21 @@ jobs:
 
       - run: npx prisma generate
 
+      - run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/myapp_test?schema=public"
+          AUTH_SECRET: "ci-placeholder"
+
       - name: Apply migrations
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/myapp_test?schema=public"
 
-      - name: Run integration tests
-        run: npm run test:integration
+      - name: Test
+        run: npm test
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/myapp_test?schema=public"
           TRANSLATION_ENCRYPTION_SECRET: "ci-test-encryption-secret"

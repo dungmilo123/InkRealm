@@ -1,5 +1,3 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
 import {
   formatBookmarksAsMarkdown,
   formatBookmarksAsPlainText,
@@ -39,16 +37,16 @@ describe("formatBookmarksAsMarkdown", () => {
     const result = formatBookmarksAsMarkdown(
       makeOptions({ bookmarks: [] })
     );
-    assert.ok(result.includes("# Bookmarks: The Great Novel"));
-    assert.ok(result.includes("*No bookmarks*"));
+    expect(result).toContain("# Bookmarks: The Great Novel");
+    expect(result).toContain("*No bookmarks*");
   });
 
   it("includes header with novel title and bookmark count", () => {
     const result = formatBookmarksAsMarkdown(makeOptions());
-    assert.ok(result.includes("# Bookmarks: The Great Novel"));
-    assert.ok(result.includes("1 bookmark ·"));
+    expect(result).toContain("# Bookmarks: The Great Novel");
+    expect(result).toContain("1 bookmark ·");
     // No plural "s" for 1 bookmark
-    assert.ok(!result.includes("1 bookmarks"));
+    expect(result).not.toContain("1 bookmarks");
   });
 
   it("pluralizes bookmark count correctly", () => {
@@ -64,13 +62,13 @@ describe("formatBookmarksAsMarkdown", () => {
         ]),
       })
     );
-    assert.ok(result.includes("2 bookmarks ·"));
+    expect(result).toContain("2 bookmarks ·");
   });
 
   it("formats each bookmark with chapter heading and date", () => {
     const result = formatBookmarksAsMarkdown(makeOptions());
-    assert.ok(result.includes("## Chapter 1: The Beginning"));
-    assert.ok(result.includes("*Bookmarked Mar 12, 2026*"));
+    expect(result).toContain("## Chapter 1: The Beginning");
+    expect(result).toContain("*Bookmarked Mar 12, 2026*");
   });
 
   it("includes note as blockquote when present", () => {
@@ -81,7 +79,7 @@ describe("formatBookmarksAsMarkdown", () => {
         ],
       })
     );
-    assert.ok(result.includes("> Important plot twist here"));
+    expect(result).toContain("> Important plot twist here");
   });
 
   it("omits note section when note is null", () => {
@@ -90,7 +88,7 @@ describe("formatBookmarksAsMarkdown", () => {
         bookmarks: [makeBookmark({ note: null })],
       })
     );
-    assert.ok(!result.includes(">"));
+    expect(result).not.toContain(">");
   });
 
   it("falls back to 'Chapter N' when title is not in map", () => {
@@ -100,7 +98,7 @@ describe("formatBookmarksAsMarkdown", () => {
         chapterTitles: new Map(), // no titles
       })
     );
-    assert.ok(result.includes("## Chapter 99: Chapter 99"));
+    expect(result).toContain("## Chapter 99: Chapter 99");
   });
 
   it("separates bookmarks with horizontal rules", () => {
@@ -117,7 +115,7 @@ describe("formatBookmarksAsMarkdown", () => {
       })
     );
     const ruleCount = (result.match(/^---$/gm) || []).length;
-    assert.equal(ruleCount, 2); // one separator per bookmark
+    expect(ruleCount).toBe(2); // one separator per bookmark
   });
 
   it("handles multi-line notes with blockquote continuation", () => {
@@ -128,7 +126,7 @@ describe("formatBookmarksAsMarkdown", () => {
         ],
       })
     );
-    assert.ok(result.includes("> Line one\n> Line two\n> Line three"));
+    expect(result).toContain("> Line one\n> Line two\n> Line three");
   });
 });
 
@@ -139,14 +137,14 @@ describe("formatBookmarksAsPlainText", () => {
     const result = formatBookmarksAsPlainText(
       makeOptions({ bookmarks: [] })
     );
-    assert.ok(result.includes("Bookmarks: The Great Novel"));
-    assert.ok(result.includes("No bookmarks"));
+    expect(result).toContain("Bookmarks: The Great Novel");
+    expect(result).toContain("No bookmarks");
   });
 
   it("formats each bookmark with chapter and date", () => {
     const result = formatBookmarksAsPlainText(makeOptions());
-    assert.ok(result.includes("Ch. 1 - The Beginning"));
-    assert.ok(result.includes("Bookmarked: Mar 12, 2026"));
+    expect(result).toContain("Ch. 1 - The Beginning");
+    expect(result).toContain("Bookmarked: Mar 12, 2026");
   });
 
   it("includes note prefixed with 'Note:'", () => {
@@ -155,7 +153,7 @@ describe("formatBookmarksAsPlainText", () => {
         bookmarks: [makeBookmark({ note: "My annotation" })],
       })
     );
-    assert.ok(result.includes("Note: My annotation"));
+    expect(result).toContain("Note: My annotation");
   });
 
   it("omits note line when note is null", () => {
@@ -164,7 +162,7 @@ describe("formatBookmarksAsPlainText", () => {
         bookmarks: [makeBookmark({ note: null })],
       })
     );
-    assert.ok(!result.includes("Note:"));
+    expect(result).not.toContain("Note:");
   });
 });
 
@@ -173,29 +171,29 @@ describe("formatBookmarksAsPlainText", () => {
 describe("generateExportFilename", () => {
   it("generates .md filename from novel title", () => {
     const filename = generateExportFilename("The Great Novel");
-    assert.equal(filename, "the-great-novel-bookmarks.md");
+    expect(filename).toBe("the-great-novel-bookmarks.md");
   });
 
   it("generates .txt filename for plain format", () => {
     const filename = generateExportFilename("The Great Novel", "plain");
-    assert.equal(filename, "the-great-novel-bookmarks.txt");
+    expect(filename).toBe("the-great-novel-bookmarks.txt");
   });
 
   it("strips special characters from title", () => {
     const filename = generateExportFilename("Héllo! (World) #1");
-    assert.equal(filename, "hllo-world-1-bookmarks.md");
+    expect(filename).toBe("hllo-world-1-bookmarks.md");
   });
 
   it("collapses multiple spaces into single dash", () => {
     const filename = generateExportFilename("The   Great   Novel");
-    assert.equal(filename, "the-great-novel-bookmarks.md");
+    expect(filename).toBe("the-great-novel-bookmarks.md");
   });
 
   it("truncates long titles to 50 characters", () => {
     const longTitle = "A".repeat(100);
     const filename = generateExportFilename(longTitle);
     // 50 chars of title + "-bookmarks.md" = 63 total
-    assert.ok(filename.length <= 64);
-    assert.ok(filename.endsWith("-bookmarks.md"));
+    expect(filename.length <= 64).toBeTruthy();
+    expect(filename.endsWith("-bookmarks.md")).toBeTruthy();
   });
 });

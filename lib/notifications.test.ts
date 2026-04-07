@@ -1,5 +1,3 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
-import assert from "node:assert/strict";
 
 // ─── Browser API Mocks ────────────────────────────────────────────
 
@@ -67,24 +65,24 @@ import {
 
 describe("notifications — isNotificationSupported", () => {
   it("returns true when Notification exists on window", () => {
-    assert.equal(isNotificationSupported(), true);
+    expect(isNotificationSupported()).toBe(true);
   });
 });
 
 describe("notifications — getNotificationPermission", () => {
   it("returns current permission", () => {
     mockPermission = "granted";
-    assert.equal(getNotificationPermission(), "granted");
+    expect(getNotificationPermission()).toBe("granted");
   });
 
   it("returns denied when permission is denied", () => {
     mockPermission = "denied";
-    assert.equal(getNotificationPermission(), "denied");
+    expect(getNotificationPermission()).toBe("denied");
   });
 
   it("returns default when permission is default", () => {
     mockPermission = "default";
-    assert.equal(getNotificationPermission(), "default");
+    expect(getNotificationPermission()).toBe("default");
   });
 });
 
@@ -92,27 +90,27 @@ describe("notifications — requestNotificationPermission", () => {
   it("returns existing permission if already granted", async () => {
     mockPermission = "granted";
     const result = await requestNotificationPermission();
-    assert.equal(result, "granted");
+    expect(result).toBe("granted");
   });
 
   it("returns existing permission if already denied", async () => {
     mockPermission = "denied";
     const result = await requestNotificationPermission();
-    assert.equal(result, "denied");
+    expect(result).toBe("denied");
   });
 
   it("requests permission when default and returns granted", async () => {
     mockPermission = "default";
     mockRequestResult = "granted";
     const result = await requestNotificationPermission();
-    assert.equal(result, "granted");
+    expect(result).toBe("granted");
   });
 
   it("requests permission when default and returns denied", async () => {
     mockPermission = "default";
     mockRequestResult = "denied";
     const result = await requestNotificationPermission();
-    assert.equal(result, "denied");
+    expect(result).toBe("denied");
   });
 });
 
@@ -128,42 +126,42 @@ describe("notifications — sendNotification", () => {
       title: "Translation Complete",
       body: "12 chapters translated",
     });
-    assert.notEqual(result, null);
-    assert.equal(lastNotificationArgs?.title, "Translation Complete");
-    assert.equal(lastNotificationArgs?.options.body, "12 chapters translated");
+    expect(result).not.toBe(null);
+    expect(lastNotificationArgs?.title).toBe("Translation Complete");
+    expect(lastNotificationArgs?.options.body).toBe("12 chapters translated");
   });
 
   it("uses default icon when none provided", () => {
     sendNotification({ title: "Test" });
-    assert.equal(lastNotificationArgs?.options.icon, "/icon.svg");
+    expect(lastNotificationArgs?.options.icon).toBe("/icon.svg");
   });
 
   it("uses custom icon when provided", () => {
     sendNotification({ title: "Test", icon: "/custom.png" });
-    assert.equal(lastNotificationArgs?.options.icon, "/custom.png");
+    expect(lastNotificationArgs?.options.icon).toBe("/custom.png");
   });
 
   it("passes tag for notification deduplication", () => {
     sendNotification({ title: "Test", tag: "translation-job-123" });
-    assert.equal(lastNotificationArgs?.options.tag, "translation-job-123");
+    expect(lastNotificationArgs?.options.tag).toBe("translation-job-123");
   });
 
   it("returns null when permission not granted", () => {
     mockPermission = "denied";
     const result = sendNotification({ title: "Test" });
-    assert.equal(result, null);
+    expect(result).toBe(null);
   });
 
   it("returns null when permission is default (not yet requested)", () => {
     mockPermission = "default";
     const result = sendNotification({ title: "Test" });
-    assert.equal(result, null);
+    expect(result).toBe(null);
   });
 
   it("returns null when tab is visible (user sees in-app toast)", () => {
     mockVisibilityState = "visible";
     const result = sendNotification({ title: "Test" });
-    assert.equal(result, null);
+    expect(result).toBe(null);
   });
 
   it("fires onClick handler and focuses window on click", () => {
@@ -179,13 +177,13 @@ describe("notifications — sendNotification", () => {
       onClick: () => { clicked = true; },
     });
 
-    assert.notEqual(notification, null);
+    expect(notification).not.toBe(null);
     // Simulate clicking the notification
     if (notification && notification.onclick) {
       (notification.onclick as () => void).call(notification);
     }
-    assert.equal(clicked, true);
-    assert.equal(focused, true);
+    expect(clicked).toBe(true);
+    expect(focused).toBe(true);
 
     (globalThis as Record<string, unknown>).focus = origFocus;
   });

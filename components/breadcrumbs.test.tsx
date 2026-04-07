@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import test from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -11,9 +9,9 @@ test("Breadcrumbs renders a nav with aria-label Breadcrumb", () => {
     })
   );
 
-  assert.ok(html.includes('aria-label="Breadcrumb"'));
-  assert.ok(html.includes("<nav"));
-  assert.ok(html.includes("<ol"));
+  expect(html).toContain('aria-label="Breadcrumb"');
+  expect(html).toContain("<nav");
+  expect(html).toContain("<ol");
 });
 
 test("Breadcrumbs renders a single item as current page span", () => {
@@ -23,10 +21,10 @@ test("Breadcrumbs renders a single item as current page span", () => {
     })
   );
 
-  assert.ok(html.includes("Dashboard"));
-  assert.ok(html.includes('aria-current="page"'));
+  expect(html).toContain("Dashboard");
+  expect(html).toContain('aria-current="page"');
   // Single item should not have a separator
-  assert.equal(html.includes(" / "), false);
+  expect(html.includes(" / ")).toBe(false);
 });
 
 test("Breadcrumbs renders intermediate items as links", () => {
@@ -40,12 +38,12 @@ test("Breadcrumbs renders intermediate items as links", () => {
   );
 
   // Dashboard should be a link
-  assert.ok(html.includes('href="/dashboard"'));
-  assert.ok(html.includes("Dashboard"));
+  expect(html).toContain('href="/dashboard"');
+  expect(html).toContain("Dashboard");
 
   // My Novel is the last item — should be a span with aria-current="page"
-  assert.ok(html.includes("My Novel"));
-  assert.ok(html.includes('aria-current="page"'));
+  expect(html).toContain("My Novel");
+  expect(html).toContain('aria-current="page"');
 });
 
 test("Breadcrumbs renders three-level breadcrumb correctly", () => {
@@ -59,11 +57,11 @@ test("Breadcrumbs renders three-level breadcrumb correctly", () => {
     })
   );
 
-  assert.ok(html.includes('href="/dashboard"'));
-  assert.ok(html.includes('href="/novels/123"'));
-  assert.ok(html.includes("Chapter 1"));
+  expect(html).toContain('href="/dashboard"');
+  expect(html).toContain('href="/novels/123"');
+  expect(html).toContain("Chapter 1");
   // Last item should be current page
-  assert.ok(html.includes('aria-current="page"'));
+  expect(html).toContain('aria-current="page"');
 });
 
 test("Breadcrumbs renders separator / between items", () => {
@@ -77,8 +75,8 @@ test("Breadcrumbs renders separator / between items", () => {
   );
 
   // Separator / should be present with aria-hidden
-  assert.ok(html.includes('aria-hidden="true"'));
-  assert.match(html, /aria-hidden="true"[^>]*>\s*\/\s*</);
+  expect(html).toContain('aria-hidden="true"');
+  expect(html).toMatch(/aria-hidden="true"[^>]*>\s*\/\s*</);
 });
 
 test("Breadcrumbs does not render separator before first item", () => {
@@ -93,7 +91,7 @@ test("Breadcrumbs does not render separator before first item", () => {
 
   // Should only have one separator (between items), not before first
   const separatorCount = (html.match(/aria-hidden="true"/g) ?? []).length;
-  assert.equal(separatorCount, 1);
+  expect(separatorCount).toBe(1);
 });
 
 test("Breadcrumbs item without href renders as span when not last", () => {
@@ -107,8 +105,8 @@ test("Breadcrumbs item without href renders as span when not last", () => {
     })
   );
 
-  assert.match(html, /<span[^>]*>No Link<\/span>/);
-  assert.match(html, /<a[^>]*href="\/linked"[^>]*>Linked<\/a>/);
+  expect(html).toMatch(/<span[^>]*>No Link<\/span>/);
+  expect(html).toMatch(/<a[^>]*href="\/linked"[^>]*>Linked<\/a>/);
 });
 
 test("Breadcrumbs last item with href renders as span (not link)", () => {
@@ -123,10 +121,10 @@ test("Breadcrumbs last item with href renders as span (not link)", () => {
   );
 
   // The last item "Current" should be a span with aria-current, not a link
-  assert.ok(html.includes('aria-current="page"'));
-  assert.ok(html.includes("Current"));
+  expect(html).toContain('aria-current="page"');
+  expect(html).toContain("Current");
   // href="/current" should NOT appear since the last item renders as span
-  assert.equal(html.includes('href="/current"'), false);
+  expect(html.includes('href="/current"')).toBe(false);
 });
 
 test("Breadcrumbs renders labels correctly", () => {
@@ -139,6 +137,6 @@ test("Breadcrumbs renders labels correctly", () => {
     })
   );
 
-  assert.ok(html.includes("InkRealm Dashboard"));
-  assert.ok(html.includes("A Very Long Novel Title"));
+  expect(html).toContain("InkRealm Dashboard");
+  expect(html).toContain("A Very Long Novel Title");
 });

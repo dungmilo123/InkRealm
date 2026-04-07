@@ -1,6 +1,4 @@
 import "dotenv/config";
-import assert from "node:assert/strict";
-import test from "node:test";
 import { prisma } from "@/app/lib/prisma";
 import { TranslationHttpError } from "@/app/lib/translation/errors";
 import {
@@ -34,22 +32,19 @@ test("profile create fails safely when encryption secret is missing", async () =
   delete process.env.TRANSLATION_ENCRYPTION_SECRET;
 
   try {
-    await assert.rejects(
-      async () => {
+    try {
         await createTranslationProfile({
           provider: "OPENAI",
           model,
           baseUrl: "https://api.openai.com/v1",
           apiKey: "sk-missing-secret",
         }, TEST_USER_ID);
-      },
-      (error) => {
-        assert.ok(error instanceof TranslationHttpError);
-        assert.equal(error.status, 500);
-        assert.match(error.message, /TRANSLATION_ENCRYPTION_SECRET is required/i);
-        return true;
-      }
-    );
+        expect.unreachable("Expected function to throw");
+    } catch (error) {
+        expect(error).toBeInstanceOf(TranslationHttpError);
+        expect((error as TranslationHttpError).status).toBe(500);
+        expect((error as TranslationHttpError).message).toMatch(/TRANSLATION_ENCRYPTION_SECRET is required/i);
+        }
   } finally {
     if (originalSecret) {
       process.env.TRANSLATION_ENCRYPTION_SECRET = originalSecret;
@@ -61,7 +56,7 @@ test("profile create fails safely when encryption secret is missing", async () =
   const persistedCount = await prisma.translationProfile.count({
     where: { model },
   });
-  assert.equal(persistedCount, 0);
+  expect(persistedCount).toBe(0);
 });
 
 test("profile update with apiKey fails safely when encryption secret is missing", async () => {
@@ -87,23 +82,20 @@ test("profile update with apiKey fails safely when encryption secret is missing"
         encryptedApiKey: true,
       },
     });
-    assert.ok(before);
+    expect(before).toBeTruthy();
 
     delete process.env.TRANSLATION_ENCRYPTION_SECRET;
 
-    await assert.rejects(
-      async () => {
+    try {
         await updateTranslationProfile(createdProfile.id, {
           apiKey: "sk-after-update",
         }, TEST_USER_ID);
-      },
-      (error) => {
-        assert.ok(error instanceof TranslationHttpError);
-        assert.equal(error.status, 500);
-        assert.match(error.message, /TRANSLATION_ENCRYPTION_SECRET is required/i);
-        return true;
-      }
-    );
+        expect.unreachable("Expected function to throw");
+    } catch (error) {
+        expect(error).toBeInstanceOf(TranslationHttpError);
+        expect((error as TranslationHttpError).status).toBe(500);
+        expect((error as TranslationHttpError).message).toMatch(/TRANSLATION_ENCRYPTION_SECRET is required/i);
+        }
 
     const after = await prisma.translationProfile.findUnique({
       where: { id: createdProfile.id },
@@ -111,8 +103,8 @@ test("profile update with apiKey fails safely when encryption secret is missing"
         encryptedApiKey: true,
       },
     });
-    assert.ok(after);
-    assert.equal(after.encryptedApiKey, before.encryptedApiKey);
+    expect(after).toBeTruthy();
+    expect(after.encryptedApiKey).toBe(before.encryptedApiKey);
   } finally {
     if (createdProfileId) {
       await prisma.translationProfile.deleteMany({

@@ -1,5 +1,3 @@
-import assert from "node:assert/strict";
-import { describe, test } from "node:test";
 import {
   getWeekStart,
   computeReadingVelocity,
@@ -21,37 +19,37 @@ function day(
 describe("getWeekStart", () => {
   test("returns Monday for a Monday", () => {
     // 2026-03-30 is a Monday
-    assert.equal(getWeekStart("2026-03-30"), "2026-03-30");
+    expect(getWeekStart("2026-03-30")).toBe("2026-03-30");
   });
 
   test("returns previous Monday for a Wednesday", () => {
     // 2026-04-01 is a Wednesday
-    assert.equal(getWeekStart("2026-04-01"), "2026-03-30");
+    expect(getWeekStart("2026-04-01")).toBe("2026-03-30");
   });
 
   test("returns previous Monday for a Sunday", () => {
     // 2026-04-05 is a Sunday
-    assert.equal(getWeekStart("2026-04-05"), "2026-03-30");
+    expect(getWeekStart("2026-04-05")).toBe("2026-03-30");
   });
 
   test("returns previous Monday for a Saturday", () => {
     // 2026-04-04 is a Saturday
-    assert.equal(getWeekStart("2026-04-04"), "2026-03-30");
+    expect(getWeekStart("2026-04-04")).toBe("2026-03-30");
   });
 
   test("returns previous Monday for a Friday", () => {
     // 2026-04-03 is a Friday → Monday is 2026-03-30
-    assert.equal(getWeekStart("2026-04-03"), "2026-03-30");
+    expect(getWeekStart("2026-04-03")).toBe("2026-03-30");
   });
 
   test("handles month boundary correctly", () => {
     // 2026-03-01 is a Sunday → Monday is 2026-02-23
-    assert.equal(getWeekStart("2026-03-01"), "2026-02-23");
+    expect(getWeekStart("2026-03-01")).toBe("2026-02-23");
   });
 
   test("handles year boundary correctly", () => {
     // 2026-01-01 is a Thursday → Monday is 2025-12-29
-    assert.equal(getWeekStart("2026-01-01"), "2025-12-29");
+    expect(getWeekStart("2026-01-01")).toBe("2025-12-29");
   });
 });
 
@@ -60,24 +58,24 @@ describe("getWeekStart", () => {
 describe("computeReadingVelocity", () => {
   test("returns empty result for no activity", () => {
     const result = computeReadingVelocity([]);
-    assert.equal(result.weeks.length, 0);
-    assert.equal(result.maxChapters, 0);
-    assert.equal(result.avgChaptersPerWeek, 0);
-    assert.equal(result.totalChapters, 0);
-    assert.equal(result.trend.direction, "flat");
-    assert.equal(result.trend.label, "No data");
+    expect(result.weeks.length).toBe(0);
+    expect(result.maxChapters).toBe(0);
+    expect(result.avgChaptersPerWeek).toBe(0);
+    expect(result.totalChapters).toBe(0);
+    expect(result.trend.direction).toBe("flat");
+    expect(result.trend.label).toBe("No data");
   });
 
   test("returns correct number of weeks", () => {
     const activity = [day("2026-04-01", 3)];
     const result = computeReadingVelocity(activity, 12, "2026-04-03");
-    assert.equal(result.weeks.length, 12);
+    expect(result.weeks.length).toBe(12);
   });
 
   test("respects weeksToShow parameter", () => {
     const activity = [day("2026-04-01", 3)];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
-    assert.equal(result.weeks.length, 4);
+    expect(result.weeks.length).toBe(4);
   });
 
   test("aggregates daily activity into correct weekly buckets", () => {
@@ -91,9 +89,9 @@ describe("computeReadingVelocity", () => {
 
     // Find the week containing 2026-03-30
     const currentWeek = result.weeks.find((w) => w.weekStart === "2026-03-30");
-    assert.ok(currentWeek, "Should find week starting 2026-03-30");
-    assert.equal(currentWeek.chaptersRead, 6); // 2 + 3 + 1
-    assert.equal(currentWeek.isCurrentWeek, true);
+    expect(currentWeek, "Should find week starting 2026-03-30").toBeTruthy();
+    expect(currentWeek.chaptersRead).toBe(6); // 2 + 3 + 1
+    expect(currentWeek.isCurrentWeek).toBe(true);
   });
 
   test("marks current week correctly", () => {
@@ -101,9 +99,9 @@ describe("computeReadingVelocity", () => {
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
 
     const currentWeeks = result.weeks.filter((w) => w.isCurrentWeek);
-    assert.equal(currentWeeks.length, 1);
+    expect(currentWeeks.length).toBe(1);
     // 2026-04-03 is Friday, week starts 2026-03-30 (Monday)
-    assert.equal(currentWeeks[0].weekStart, "2026-03-30");
+    expect(currentWeeks[0].weekStart).toBe("2026-03-30");
   });
 
   test("computes maxChapters correctly", () => {
@@ -113,7 +111,7 @@ describe("computeReadingVelocity", () => {
       day("2026-03-30", 3), // week 3: 3
     ];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
-    assert.equal(result.maxChapters, 10);
+    expect(result.maxChapters).toBe(10);
   });
 
   test("computes totalChapters correctly", () => {
@@ -123,7 +121,7 @@ describe("computeReadingVelocity", () => {
       day("2026-03-30", 3),
     ];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
-    assert.equal(result.totalChapters, 18);
+    expect(result.totalChapters).toBe(18);
   });
 
   test("avgChaptersPerWeek excludes current partial week", () => {
@@ -141,7 +139,7 @@ describe("computeReadingVelocity", () => {
     // Actually: weeks are Mon 3/2, Mon 3/9, Mon 3/16, Mon 3/23, Mon 3/30(current)
     // Complete weeks with data: 3/9=4, 3/16=6, 3/23=8, others=0
     // 4 completed weeks total (3/2, 3/9, 3/16, 3/23), avg = (0+4+6+8)/4 = 4.5
-    assert.equal(result.avgChaptersPerWeek, 4.5);
+    expect(result.avgChaptersPerWeek).toBe(4.5);
   });
 
   test("weeks are ordered chronologically", () => {
@@ -149,10 +147,7 @@ describe("computeReadingVelocity", () => {
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
 
     for (let i = 1; i < result.weeks.length; i++) {
-      assert.ok(
-        result.weeks[i].weekStart > result.weeks[i - 1].weekStart,
-        `Week ${i} should be after week ${i - 1}`
-      );
+      expect(result.weeks[i].weekStart > result.weeks[i - 1].weekStart).toBeTruthy();
     }
   });
 
@@ -162,10 +157,7 @@ describe("computeReadingVelocity", () => {
 
     for (const week of result.weeks) {
       // Label should match "Mon DD" pattern (e.g., "Mar 30")
-      assert.ok(
-        /^[A-Z][a-z]{2} \d{1,2}$/.test(week.label),
-        `Label "${week.label}" should match "Mon DD" format`
-      );
+      expect(/^[A-Z][a-z]{2} \d{1,2}$/.test(week.label)).toBeTruthy();
     }
   });
 
@@ -175,7 +167,7 @@ describe("computeReadingVelocity", () => {
       day("2026-04-01", 3),
     ];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
-    assert.equal(result.totalChapters, 3); // only the recent activity
+    expect(result.totalChapters).toBe(3); // only the recent activity
   });
 });
 
@@ -191,7 +183,7 @@ describe("computeReadingVelocity trend", () => {
     const result = computeReadingVelocity(activity, 2, "2026-04-03");
     // Only 1 complete week (starts 3/23, which is empty) + current partial week
     // completedWeeks.length === 1 → "Not enough data"
-    assert.equal(result.trend.label, "Not enough data");
+    expect(result.trend.label).toBe("Not enough data");
   });
 
   test("reports upward trend when most recent week exceeds average", () => {
@@ -203,8 +195,8 @@ describe("computeReadingVelocity trend", () => {
       day("2026-03-23", 8),
     ];
     const result = computeReadingVelocity(activity, 5, "2026-04-03");
-    assert.equal(result.trend.direction, "up");
-    assert.ok(result.trend.percentChange > 0);
+    expect(result.trend.direction).toBe("up");
+    expect(result.trend.percentChange > 0).toBeTruthy();
   });
 
   test("reports downward trend when most recent week is below average", () => {
@@ -216,8 +208,8 @@ describe("computeReadingVelocity trend", () => {
       day("2026-03-23", 2),
     ];
     const result = computeReadingVelocity(activity, 5, "2026-04-03");
-    assert.equal(result.trend.direction, "down");
-    assert.ok(result.trend.percentChange < 0);
+    expect(result.trend.direction).toBe("down");
+    expect(result.trend.percentChange < 0).toBeTruthy();
   });
 
   test("reports flat trend when change is within ±10%", () => {
@@ -229,11 +221,8 @@ describe("computeReadingVelocity trend", () => {
       day("2026-03-23", 5),
     ];
     const result = computeReadingVelocity(activity, 3, "2026-04-03");
-    assert.equal(result.trend.direction, "flat");
-    assert.ok(
-      Math.abs(result.trend.percentChange) <= 10,
-      "Percent change should be within ±10%"
-    );
+    expect(result.trend.direction).toBe("flat");
+    expect(Math.abs(result.trend.percentChange) <= 10).toBeTruthy();
   });
 
   test("handles all-zero previous weeks (no prior activity)", () => {
@@ -241,7 +230,7 @@ describe("computeReadingVelocity trend", () => {
     const activity = [day("2026-03-23", 5)];
     const result = computeReadingVelocity(activity, 5, "2026-04-03");
     // Previous weeks all 0, recent = 5 → up +100%
-    assert.equal(result.trend.direction, "up");
+    expect(result.trend.direction).toBe("up");
   });
 
   test("trend label includes sign and percentage", () => {
@@ -251,14 +240,8 @@ describe("computeReadingVelocity trend", () => {
       day("2026-03-23", 8),
     ];
     const result = computeReadingVelocity(activity, 5, "2026-04-03");
-    assert.ok(
-      result.trend.label.includes("%"),
-      `Label "${result.trend.label}" should contain %`
-    );
-    assert.ok(
-      result.trend.label.includes("vs"),
-      `Label "${result.trend.label}" should contain 'vs'`
-    );
+    expect(result.trend.label).toContain("%");
+    expect(result.trend.label).toContain("vs");
   });
 });
 
@@ -268,14 +251,14 @@ describe("computeReadingVelocity edge cases", () => {
   test("returns empty for weeksToShow = 0", () => {
     const activity = [day("2026-04-01", 3)];
     const result = computeReadingVelocity(activity, 0, "2026-04-03");
-    assert.equal(result.weeks.length, 0);
+    expect(result.weeks.length).toBe(0);
   });
 
   test("handles single day of activity", () => {
     const activity = [day("2026-04-01", 1)];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
-    assert.equal(result.totalChapters, 1);
-    assert.equal(result.maxChapters, 1);
+    expect(result.totalChapters).toBe(1);
+    expect(result.maxChapters).toBe(1);
   });
 
   test("handles multiple days in same week correctly", () => {
@@ -288,8 +271,8 @@ describe("computeReadingVelocity edge cases", () => {
     ];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
     const week = result.weeks.find((w) => w.weekStart === "2026-03-23");
-    assert.ok(week, "Should find week starting 2026-03-23");
-    assert.equal(week.chaptersRead, 15); // 1+2+3+4+5
+    expect(week, "Should find week starting 2026-03-23").toBeTruthy();
+    expect(week.chaptersRead).toBe(15); // 1+2+3+4+5
   });
 
   test("accumulates estimated minutes per week", () => {
@@ -299,7 +282,7 @@ describe("computeReadingVelocity edge cases", () => {
     ];
     const result = computeReadingVelocity(activity, 4, "2026-04-03");
     const week = result.weeks.find((w) => w.weekStart === "2026-03-23");
-    assert.ok(week);
-    assert.equal(week.estimatedMinutes, 25); // 10 + 15
+    expect(week).toBeTruthy();
+    expect(week.estimatedMinutes).toBe(25); // 10 + 15
   });
 });

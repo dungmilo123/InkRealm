@@ -11,8 +11,6 @@
  *                          overlay polled entries (polled wins on collision),
  *                          return sorted by chapterIndex ascending
  */
-import assert from "node:assert/strict";
-import test from "node:test";
 
 // ── Pure merge function extracted from the useMemo in DetailsTabs ────────────
 
@@ -64,21 +62,21 @@ test("polled statuses overlay initial without losing prior chapters", () => {
   const merged = mergeChapterStatuses(initial, polled);
 
   // All 10 chapters must be present
-  assert.equal(merged.length, 10, "should have 10 chapters");
+  expect(merged.length).toBe(10, "should have 10 chapters");
 
   // Chapters 1-5 retain translated status from initial
   for (let i = 1; i <= 5; i++) {
     const entry = merged.find((s) => s.chapterIndex === i);
-    assert.ok(entry, `chapter ${i} must exist`);
-    assert.equal(entry!.status, "translated", `chapter ${i} should be translated`);
+    expect(entry, `chapter ${i} must exist`).toBeTruthy();
+    expect(entry!.status).toBe("translated", `chapter ${i} should be translated`);
   }
 
   // Chapters 6-10 use polled status
-  assert.equal(merged.find((s) => s.chapterIndex === 6)?.status, "translating");
-  assert.equal(merged.find((s) => s.chapterIndex === 7)?.status, "translating");
-  assert.equal(merged.find((s) => s.chapterIndex === 8)?.status, "untranslated");
-  assert.equal(merged.find((s) => s.chapterIndex === 9)?.status, "untranslated");
-  assert.equal(merged.find((s) => s.chapterIndex === 10)?.status, "untranslated");
+  expect(merged.find((s) => s.chapterIndex === 6)?.status).toBe("translating");
+  expect(merged.find((s) => s.chapterIndex === 7)?.status).toBe("translating");
+  expect(merged.find((s) => s.chapterIndex === 8)?.status).toBe("untranslated");
+  expect(merged.find((s) => s.chapterIndex === 9)?.status).toBe("untranslated");
+  expect(merged.find((s) => s.chapterIndex === 10)?.status).toBe("untranslated");
 });
 
 test("empty polled returns initialChapterStatuses unchanged", () => {
@@ -86,7 +84,7 @@ test("empty polled returns initialChapterStatuses unchanged", () => {
   const merged = mergeChapterStatuses(initial, []);
 
   // Must be the exact same reference (no copy performed)
-  assert.strictEqual(merged, initial, "should return the exact initial reference");
+  expect(merged).toBe(initial, "should return the exact initial reference");
 });
 
 test("result is sorted by chapterIndex ascending when input order is jumbled", () => {
@@ -103,7 +101,7 @@ test("result is sorted by chapterIndex ascending when input order is jumbled", (
   const merged = mergeChapterStatuses(initial, polled);
 
   const indices = merged.map((s) => s.chapterIndex);
-  assert.deepEqual(indices, [1, 2, 3, 4, 5], "should be sorted ascending");
+  expect(indices).toEqual([1, 2, 3, 4, 5], "should be sorted ascending");
 });
 
 test("polled entry overwrites initial entry for the same chapter", () => {
@@ -112,6 +110,6 @@ test("polled entry overwrites initial entry for the same chapter", () => {
 
   const merged = mergeChapterStatuses(initial, polled);
 
-  assert.equal(merged.length, 1);
-  assert.equal(merged[0].status, "translating", "polled should win for chapter 1");
+  expect(merged.length).toBe(1);
+  expect(merged[0].status).toBe("translating", "polled should win for chapter 1");
 });

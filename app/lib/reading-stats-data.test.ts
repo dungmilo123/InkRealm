@@ -1,6 +1,4 @@
 import "dotenv/config";
-import assert from "node:assert/strict";
-import { describe, it, before, after } from "node:test";
 import { prisma } from "@/app/lib/prisma";
 import {
   getVisitTimestamps,
@@ -47,7 +45,7 @@ async function createVisit(
 
 // ─── Setup / Teardown ──────────────────────────────────────────────
 
-before(async () => {
+beforeAll(async () => {
   await prisma.user.upsert({
     where: { id: TEST_USER_ID },
     update: {},
@@ -76,7 +74,7 @@ before(async () => {
   }
 });
 
-after(async () => {
+afterAll(async () => {
   // Clean up in FK order: visits → progress → novels → user
   await prisma.chapterVisit.deleteMany({
     where: {
@@ -95,7 +93,7 @@ after(async () => {
 // ─── getVisitTimestamps ────────────────────────────────────────────
 
 describe("getVisitTimestamps", () => {
-  before(async () => {
+  beforeAll(async () => {
     // Create visits across two novels on different dates
     const day1 = new Date("2026-03-01T10:00:00Z");
     const day2 = new Date("2026-03-02T14:00:00Z");
@@ -106,7 +104,7 @@ describe("getVisitTimestamps", () => {
     await createVisit(TEST_USER_ID, TEST_NOVEL_ID_2, 1, day3);
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.chapterVisit.deleteMany({
       where: { readingProgress: { userId: TEST_USER_ID } },
     });
@@ -117,11 +115,11 @@ describe("getVisitTimestamps", () => {
 
   it("returns ISO timestamps for all visits across all novels", async () => {
     const timestamps = await getVisitTimestamps(TEST_USER_ID);
-    assert.equal(timestamps.length, 3);
+    expect(timestamps.length).toBe(3);
 
     // Each timestamp should be a valid ISO string
     for (const ts of timestamps) {
-      assert.ok(!isNaN(new Date(ts).getTime()), `"${ts}" is not a valid ISO date`);
+      expect(isNaN(new Date(ts).getTime())).toBeFalsy();
     }
   });
 
@@ -130,20 +128,20 @@ describe("getVisitTimestamps", () => {
     for (let i = 1; i < timestamps.length; i++) {
       const prev = new Date(timestamps[i - 1]).getTime();
       const curr = new Date(timestamps[i]).getTime();
-      assert.ok(prev >= curr, "timestamps should be in descending order");
+      expect(prev >= curr, "timestamps should be in descending order").toBeTruthy();
     }
   });
 
   it("returns empty array for user with no visits", async () => {
     const timestamps = await getVisitTimestamps("nonexistent-user-id");
-    assert.deepEqual(timestamps, []);
+    expect(timestamps).toEqual([]);
   });
 });
 
 // ─── getNovelChapterVisitsForStats ─────────────────────────────────
 
 describe("getNovelChapterVisitsForStats", () => {
-  before(async () => {
+  beforeAll(async () => {
     const day1 = new Date("2026-03-10T10:00:00Z");
     const day2 = new Date("2026-03-11T14:00:00Z");
 
@@ -153,7 +151,7 @@ describe("getNovelChapterVisitsForStats", () => {
     await createVisit(TEST_USER_ID, TEST_NOVEL_ID_2, 1, day1);
   });
 
-  after(async () => {
+  afterAll(async () => {
     await prisma.chapterVisit.deleteMany({
       where: { readingProgress: { userId: TEST_USER_ID } },
     });
@@ -168,9 +166,9 @@ describe("getNovelChapterVisitsForStats", () => {
     });
     const visits = await getNovelChapterVisitsForStats(TEST_USER_ID, novel);
 
-    assert.equal(visits.length, 2);
+    expect(visits.length).toBe(2);
     const indices = visits.map((v) => v.chapterIndex).sort();
-    assert.deepEqual(indices, [1, 3]);
+    expect(indices).toEqual([1, 3]);
   });
 
   it("returns ChapterVisitData shape with required fields", async () => {
@@ -180,11 +178,11 @@ describe("getNovelChapterVisitsForStats", () => {
     const visits = await getNovelChapterVisitsForStats(TEST_USER_ID, novel);
 
     for (const visit of visits) {
-      assert.ok(typeof visit.chapterIndex === "number", "chapterIndex is number");
-      assert.ok(typeof visit.visitedAt === "string", "visitedAt is string");
-      assert.ok(!isNaN(new Date(visit.visitedAt).getTime()), "visitedAt is valid ISO");
-      assert.ok(typeof visit.wordCount === "number", "wordCount is number");
-      assert.ok(visit.wordCount >= 0, "wordCount is non-negative");
+      expect(typeof visit.chapterIndex === "number", "chapterIndex is number").toBeTruthy();
+      expect(typeof visit.visitedAt === "string", "visitedAt is string").toBeTruthy();
+      expect(isNaN(new Date(visit.visitedAt).getTime())).toBeFalsy();
+      expect(typeof visit.wordCount === "number", "wordCount is number").toBeTruthy();
+      expect(visit.wordCount >= 0, "wordCount is non-negative").toBeTruthy();
     }
   });
 
@@ -197,7 +195,7 @@ describe("getNovelChapterVisitsForStats", () => {
     for (let i = 1; i < visits.length; i++) {
       const prev = new Date(visits[i - 1].visitedAt).getTime();
       const curr = new Date(visits[i].visitedAt).getTime();
-      assert.ok(prev >= curr, "visits should be in descending order");
+      expect(prev >= curr, "visits should be in descending order").toBeTruthy();
     }
   });
 
@@ -211,7 +209,7 @@ describe("getNovelChapterVisitsForStats", () => {
       "nonexistent-user-id",
       novel
     );
-    assert.deepEqual(visits, []);
+    expect(visits).toEqual([]);
   });
 
   it("gracefully handles missing novel files (wordCount falls back to 0)", async () => {
@@ -222,9 +220,9 @@ describe("getNovelChapterVisitsForStats", () => {
     });
     const visits = await getNovelChapterVisitsForStats(TEST_USER_ID, novel);
 
-    assert.ok(visits.length > 0, "should still return visits");
+    expect(visits.length > 0, "should still return visits").toBeTruthy();
     for (const v of visits) {
-      assert.equal(v.wordCount, 0, "wordCount should be 0 for missing files");
+      expect(v.wordCount).toBe(0, "wordCount should be 0 for missing files");
     }
   });
 });

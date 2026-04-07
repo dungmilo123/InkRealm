@@ -728,8 +728,10 @@ export async function getInitialChapterStatuses(novelId: string, userId: string)
       const mapped = mapChapterStatus(ch.status);
       // Latest job's statuses take precedence (shows in-progress/pending)
       // unless the chapter is already translated from a completed job
-      // and the latest job hasn't translated it yet
-      if (mapped === "translated" || !translatedMap.has(ch.chapterIndex)) {
+      // and the latest job hasn't translated it yet.
+      // "translating" is also allowed to override "translated" to reflect
+      // active reruns correctly.
+      if (mapped === "translated" || mapped === "translating" || !translatedMap.has(ch.chapterIndex)) {
         translatedMap.set(ch.chapterIndex, {
           status: mapped,
           summary: ch.summary ?? null,

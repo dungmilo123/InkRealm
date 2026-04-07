@@ -330,10 +330,19 @@ export function DetailsTabs({
       jobId: job?.id,
     });
 
-  // Use polled statuses when available, fall back to initial SSR statuses
-  const chapterStatuses = polledChapterStatuses.length > 0
-    ? polledChapterStatuses
-    : initialChapterStatuses;
+  // Merge polled statuses on top of initial SSR statuses so that chapters
+  // from prior jobs (not covered by the active job) remain visible during
+  // polling. Polled data takes precedence for the chapters it covers.
+  const chapterStatuses = useMemo(() => {
+    if (polledChapterStatuses.length === 0) return initialChapterStatuses;
+    const merged = new Map(
+      initialChapterStatuses.map((s) => [s.chapterIndex, s])
+    );
+    for (const s of polledChapterStatuses) {
+      merged.set(s.chapterIndex, s);
+    }
+    return Array.from(merged.values()).sort((a, b) => a.chapterIndex - b.chapterIndex);
+  }, [initialChapterStatuses, polledChapterStatuses]);
 
   // Derive progress from chapter statuses (accurate during translation, unlike job.completedChapters)
   const translatedCount = chapterStatuses.filter((s) => s.status === "translated").length;

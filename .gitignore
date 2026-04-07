@@ -46,7 +46,7 @@ next-env.d.ts
 .claude
 .codex
 .opencode/
-/app/generated/prisma
+/app/generated
 CLAUDE.md
 .gitnexus
 

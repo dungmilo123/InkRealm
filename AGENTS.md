@@ -58,9 +58,20 @@ Then update `DATABASE_URL` and `DIRECT_URL` in `.env` with the new endpoint host
 
 ```bash
 npm run dev          # Start Next.js dev server on localhost:3000
+npm test             # Run all tests (vitest)
+npm run test:watch   # Run tests in watch mode
 npx prisma studio    # Browse dev database
 npx prisma migrate dev  # Run migrations against dev branch
 ```
+
+## Testing
+
+- **Runner:** [Vitest](https://vitest.dev/) with global test APIs (`describe`, `it`, `expect`, `vi`)
+- **Config:** `vitest.config.ts` (path alias `@/*` resolved there)
+- **Discovery:** All `**/*.test.{ts,tsx}` files are auto-discovered — no need to register new test files
+- **Assertions:** Use `expect()` (not `assert` from `node:assert`)
+- **Mocking:** Use `vi.mock()` for module mocks, `vi.fn()` for function mocks
+- **CI:** Single GitHub Actions job runs lint → build → migrate → test
 <!-- END:dev-environment -->
 
 <!-- BEGIN:git-workflow -->

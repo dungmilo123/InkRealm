@@ -148,9 +148,9 @@ I wanted a self-hosted reading platform for personal novel collections that coul
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run all tests (unit + integration) |
-| `npm run test:unit` | Unit tests only |
-| `npm run test:integration` | Integration tests only |
+| `npm test` | Run all tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run worker` | Start background translation worker |
 
 ---
 
@@ -347,18 +347,50 @@ npx prisma generate
 
 ## Testing
 
-Tests use the Node.js native test runner (`node:test`) with `tsx`:
+Tests use [Vitest](https://vitest.dev/) with global test APIs:
 
 ```bash
-npm test                # All tests
-npm run test:unit       # Unit tests only
-npm run test:integration # Integration tests only
-
-# Single test file
-npx tsx --test app/lib/translation/crypto.test.ts
+npm test              # All tests
+npm run test:watch    # Watch mode
+npx vitest run path/to/file.test.ts  # Single file
 ```
 
 Test coverage includes: translation profiles and lifecycle, state management, glossary operations, EPUB export, reader caching, input validation, encryption, and quality presets.
+
+---
+
+## Background Worker
+
+Translation jobs run in a separate BullMQ worker process, decoupled from the Next.js web server. The worker picks jobs from a Redis-backed queue and processes them sequentially.
+
+### Local Development
+
+```bash
+npm run worker
+```
+
+This starts the worker via `tsx worker/index.ts`. It reads `.env` / `.env.local` the same way Next.js does (via `@next/env`).
+
+### Railway Deployment
+
+The worker runs as a **separate Railway service** from the same GitHub repo as the web app. To configure it:
+
+1. In the Railway dashboard, create a new service from the same repo.
+2. Go to the service's **Settings → Config as Code → Custom config path** and set it to `railway.worker.json`.
+3. Railway will use the worker-specific build and deploy commands defined in that file (`npx prisma generate` for build, `npm run worker` for start).
+4. Set the following environment variables on the worker service:
+
+   | Variable | Purpose |
+   |----------|---------|
+   | `DATABASE_URL` | PostgreSQL connection string |
+   | `UPSTASH_REDIS_URL` | Redis connection for BullMQ |
+   | `TRANSLATION_ENCRYPTION_SECRET` | AES key for decrypting API keys |
+   | `R2_ACCOUNT_ID` | Cloudflare R2 account |
+   | `R2_ACCESS_KEY_ID` | R2 access key |
+   | `R2_SECRET_ACCESS_KEY` | R2 secret key |
+   | `R2_BUCKET_NAME` | R2 bucket name |
+
+The worker exposes a `/health` endpoint for Railway's health checks (`healthcheckPath` in `railway.worker.json`).
 
 ---
 

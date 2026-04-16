@@ -1,11 +1,10 @@
-import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/require-auth";
 import {
   continueTranslation,
-  runTranslationJob,
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError } from "@/app/lib/translation/http";
+import { enqueueTranslationJob } from "@/app/lib/queue/translation";
 import { apiLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function POST(
@@ -23,20 +22,10 @@ export async function POST(
 
     const job = await continueTranslation(novelId, session.user.id);
 
-    // Run the translation in the background
-    after(async () => {
-      try {
-        await runTranslationJob({
-          translationId: job.id,
-          allowFailedState: false,
-          userId: session.user.id,
-        });
-      } catch (error) {
-        console.error("Continue translation batch failed unexpectedly", {
-          translationId: job.id,
-          error,
-        });
-      }
+    await enqueueTranslationJob({
+      translationId: job.id,
+      userId: session.user.id,
+      allowFailedState: false,
     });
 
     return NextResponse.json({ job }, { status: 201 });

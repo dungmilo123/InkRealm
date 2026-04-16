@@ -1,13 +1,12 @@
-import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/app/lib/require-auth";
 import {
   createTranslationJobFromNovelDetails,
   getLatestNovelTranslationJobView,
-  runTranslationJob,
 } from "@/app/lib/translation/service";
 import { handleTranslationRouteError, safeReadJson } from "@/app/lib/translation/http";
 import { parseStartTranslationPayload } from "@/app/lib/translation/validation";
+import { enqueueTranslationJob } from "@/app/lib/queue/translation";
 import { apiLimiter, apiFrequentLimiter, getClientIp, rateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function GET(
@@ -52,21 +51,10 @@ export async function POST(
       userId: session.user.id,
     });
 
-    // Run the translation in the background so the UI gets the
-    // created job immediately and can start polling for progress.
-    after(async () => {
-      try {
-        await runTranslationJob({
-          translationId: job.id,
-          allowFailedState: false,
-          userId: session.user.id,
-        });
-      } catch (error) {
-        console.error("Translation batch failed unexpectedly", {
-          translationId: job.id,
-          error,
-        });
-      }
+    await enqueueTranslationJob({
+      translationId: job.id,
+      userId: session.user.id,
+      allowFailedState: false,
     });
 
     return NextResponse.json({ job }, { status: 201 });

@@ -5,7 +5,11 @@ import Link from "next/link";
 import { readJsonOrError } from "@/lib/fetch";
 import { toast } from "sonner";
 import { useTranslationEta } from "./use-translation-eta";
-import { getTerminalAction, getTranslatedCount } from "@/app/lib/translation/panel-actions";
+import {
+  getJobScopedProgress,
+  getTerminalAction,
+  getTranslatedCount,
+} from "@/app/lib/translation/panel-actions";
 import {
   Play,
   X,
@@ -108,12 +112,19 @@ export function TranslationPanel({
 
   const panelState = getPanelState(job);
 
-  // Derive progress from chapter statuses (accurate during translation)
-  const liveTranslatedCount = chapterStatuses.filter((s) => s.status === "translated").length;
-  const liveTotalChapters = job?.totalChapters ?? chapterCount;
-  const liveProgressPercent = liveTotalChapters > 0
-    ? Math.round((liveTranslatedCount / liveTotalChapters) * 100)
-    : 0;
+  // Keep cross-job count for terminal actions / copy, but display job-scoped
+  // progress to avoid impossible values in range jobs (e.g. "15 of 4").
+  const crossJobTranslatedCount = getTranslatedCount(chapterStatuses);
+  const {
+    completedChapters: liveTranslatedCount,
+    totalChapters: liveTotalChapters,
+    progressPercent: liveProgressPercent,
+  } = getJobScopedProgress({
+    jobCompletedChapters: job?.completedChapters,
+    jobTotalChapters: job?.totalChapters,
+    fallbackCompletedChapters: crossJobTranslatedCount,
+    fallbackTotalChapters: chapterCount,
+  });
 
   // ETA calculation from chapter completion timestamps
   const { etaLabel } = useTranslationEta(chapterStatuses, liveTotalChapters, job?.createdAt);
@@ -219,7 +230,7 @@ export function TranslationPanel({
     }
   }
 
-  const crossJobTranslated = getTranslatedCount(chapterStatuses);
+  const crossJobTranslated = crossJobTranslatedCount;
   const remaining = chapterCount - crossJobTranslated;
   const isTerminal = panelState === "completed" || panelState === "cancelled" || panelState === "failed";
   const hasValidRange = showRange && !!fromNum && !!toNum && !rangeError;

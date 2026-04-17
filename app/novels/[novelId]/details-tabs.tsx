@@ -9,6 +9,10 @@ import { GlossaryPanel } from "./glossary-panel";
 import { useTranslationSSE } from "./use-translation-sse";
 import { useTranslationEta } from "./use-translation-eta";
 import { useTranslationNotification } from "./use-translation-notification";
+import {
+  getJobScopedProgress,
+  getTranslatedCount,
+} from "@/app/lib/translation/panel-actions";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
 import { Bell, BellOff, Search, X, ChevronDown } from "lucide-react";
 import type {
@@ -344,12 +348,19 @@ export function DetailsTabs({
     return Array.from(merged.values()).sort((a, b) => a.chapterIndex - b.chapterIndex);
   }, [initialChapterStatuses, polledChapterStatuses]);
 
-  // Derive progress from chapter statuses (accurate during translation, unlike job.completedChapters)
-  const translatedCount = chapterStatuses.filter((s) => s.status === "translated").length;
-  const totalChaptersForProgress = job?.totalChapters ?? chapterCount;
-  const progressPercent = totalChaptersForProgress > 0
-    ? Math.round((translatedCount / totalChaptersForProgress) * 100)
-    : 0;
+  // Display job-scoped progress to avoid mixing cross-job translated counts
+  // with a range job total (e.g. "15 of 4").
+  const crossJobTranslatedCount = getTranslatedCount(chapterStatuses);
+  const {
+    completedChapters: translatedCount,
+    totalChapters: totalChaptersForProgress,
+    progressPercent,
+  } = getJobScopedProgress({
+    jobCompletedChapters: job?.completedChapters,
+    jobTotalChapters: job?.totalChapters,
+    fallbackCompletedChapters: crossJobTranslatedCount,
+    fallbackTotalChapters: chapterCount,
+  });
   const isCompleted = job?.status === "COMPLETED";
   const isTranslating = job?.status === "IN_PROGRESS" || job?.status === "PENDING";
 

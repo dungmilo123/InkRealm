@@ -1,11 +1,12 @@
 /**
- * Unit tests for panel action decision helpers (getTranslatedCount, getTerminalAction).
+ * Unit tests for panel decision helpers
+ * (getTranslatedCount, getJobScopedProgress, getTerminalAction).
  *
- * These pure functions were extracted in S02/T01 so the CTA logic
- * can be tested without rendering React components.
+ * These pure functions are tested without rendering React components.
  */
 
 import {
+  getJobScopedProgress,
   getTranslatedCount,
   getTerminalAction,
   type ChapterStatus,
@@ -42,6 +43,66 @@ test("getTranslatedCount: all untranslated → 0", () => {
     { chapterIndex: 2, status: "untranslated" },
   ];
   expect(getTranslatedCount(statuses)).toBe(0);
+});
+
+// ── getJobScopedProgress ────────────────────────────────────────────────────
+
+test("getJobScopedProgress: uses job-scoped counters when available", () => {
+  const result = getJobScopedProgress({
+    jobCompletedChapters: 2,
+    jobTotalChapters: 4,
+    fallbackCompletedChapters: 15,
+    fallbackTotalChapters: 15,
+  });
+
+  expect(result).toEqual({
+    completedChapters: 2,
+    totalChapters: 4,
+    progressPercent: 50,
+  });
+});
+
+test("getJobScopedProgress: clamps impossible completed values", () => {
+  const result = getJobScopedProgress({
+    jobCompletedChapters: 15,
+    jobTotalChapters: 4,
+    fallbackCompletedChapters: 15,
+    fallbackTotalChapters: 15,
+  });
+
+  expect(result).toEqual({
+    completedChapters: 4,
+    totalChapters: 4,
+    progressPercent: 100,
+  });
+});
+
+test("getJobScopedProgress: falls back to cross-job counters when job counters are missing", () => {
+  const result = getJobScopedProgress({
+    fallbackCompletedChapters: 3,
+    fallbackTotalChapters: 10,
+  });
+
+  expect(result).toEqual({
+    completedChapters: 3,
+    totalChapters: 10,
+    progressPercent: 30,
+  });
+});
+
+test("getJobScopedProgress: zero/negative total returns zeroed progress", () => {
+  const result = getJobScopedProgress({
+    jobCompletedChapters: 5,
+    jobTotalChapters: 0,
+    fallbackCompletedChapters: 5,
+    fallbackTotalChapters: 0,
+  });
+
+  expect(result).toEqual({
+    completedChapters: 0,
+    totalChapters: 0,
+    progressPercent: 0,
+  });
 });
 
 // ── getTerminalAction ────────────────────────────────────────────────────────

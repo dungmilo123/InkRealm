@@ -84,3 +84,6 @@ skills-lock.json
 .gsd-id
 .env
 .env.*
+
+# ── GSD baseline (auto-generated) ──
+.bg-shell/

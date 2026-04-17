@@ -5,16 +5,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ---------------------------------------------------------------------------
 
 const mockPublish = vi.fn().mockResolvedValue(1); // 1 subscriber
+const mockOn = vi.fn();
 const mockRedisCtor = vi.fn();
 
 const mockRedisInstance = {
   publish: mockPublish,
+  on: mockOn,
 };
 
 vi.mock("ioredis", () => {
   // Must use a regular function so `new IORedis(...)` works
-  function IORedis() {
-    mockRedisCtor();
+  function IORedis(...args: unknown[]) {
+    mockRedisCtor(...args);
     return mockRedisInstance;
   }
   return { default: IORedis };
@@ -224,5 +226,18 @@ describe("publishChapterTranslated", () => {
 
     const g = globalThis as Record<string, unknown>;
     expect(g.__translationPublisher).toBeDefined();
+  });
+
+  it("attaches an error listener when publisher connection is created", async () => {
+    await publishChapterTranslated(validEvent());
+
+    expect(mockOn).toHaveBeenCalledWith("error", expect.any(Function));
+  });
+
+  it("uses bounded maxRetriesPerRequest for publisher connection", async () => {
+    await publishChapterTranslated(validEvent());
+
+    const ctorArgs = mockRedisCtor.mock.calls[0] as [string, { maxRetriesPerRequest: number }];
+    expect(ctorArgs[1].maxRetriesPerRequest).toBe(3);
   });
 });

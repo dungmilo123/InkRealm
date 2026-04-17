@@ -168,6 +168,37 @@ async function finalizeTranslationState(input: {
       exportPath: exportFile.filePath,
       completedChapters: translatedCount,
     });
+
+    // Publish a terminal state event so connected SSE clients observe the
+    // completed status immediately without waiting for reconnect/polling.
+    try {
+      const lastChapter = chapters[chapters.length - 1];
+      if (lastChapter) {
+        await publishChapterTranslated({
+          type: "chapter-translated",
+          translationId: input.translationId,
+          chapterStatus: {
+            chapterIndex: lastChapter.chapterIndex,
+            status: "translated",
+            completedAt: lastChapter.updatedAt instanceof Date
+              ? lastChapter.updatedAt.toISOString()
+              : String(lastChapter.updatedAt),
+          },
+          job: {
+            id: completed.id,
+            status: completed.status,
+            completedChapters: completed.completedChapters,
+            totalChapters: completed.totalChapters,
+            updatedAt: completed.updatedAt instanceof Date
+              ? completed.updatedAt.toISOString()
+              : String(completed.updatedAt),
+          },
+        });
+      }
+    } catch {
+      // Swallow — publish must never fail the translation (R031)
+    }
+
     return toTranslationJobView(completed);
   }
 
@@ -463,7 +494,7 @@ export async function runTranslationJob(input: {
           }
         );
 
-        await markChapterTranslated({
+        const translatedChapter = await markChapterTranslated({
           translationId: input.translationId,
           chapterIndex: chapterState.chapterIndex,
           translatedTitle: translated.translatedTitle,
@@ -517,7 +548,9 @@ export async function runTranslationJob(input: {
             chapterStatus: {
               chapterIndex: chapterState.chapterIndex,
               status: "translated",
-              completedAt: new Date().toISOString(),
+              completedAt: translatedChapter.updatedAt instanceof Date
+                ? translatedChapter.updatedAt.toISOString()
+                : String(translatedChapter.updatedAt),
             },
             job: {
               id: updatedJob.id,

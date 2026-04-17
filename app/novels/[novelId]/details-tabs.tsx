@@ -317,7 +317,7 @@ export function DetailsTabs({
     (updater: (prev: typeof job) => typeof job) => setJob(updater),
     []
   );
-  const { sseConnected, isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
+  const { isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
     useTranslationSSE(job, handleJobUpdate, initialChapterStatuses);
 
   // Browser notifications for background translation completion

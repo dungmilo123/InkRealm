@@ -139,7 +139,6 @@ function GeneratedCover({
 
 export function BookCover({ title, id, fileType, className = "", width = 120, height = 180 }: BookCoverProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [coverError, setCoverError] = useState(false);
 
   useEffect(() => {
     if (fileType !== "epub") return;
@@ -151,7 +150,6 @@ export function BookCover({ title, id, fileType, className = "", width = 120, he
       try {
         const res = await fetch(`/api/novels/${id}/cover`);
         if (!res.ok) {
-          if (!cancelled) setCoverError(true);
           return;
         }
         const blob = await res.blob();
@@ -160,7 +158,7 @@ export function BookCover({ title, id, fileType, className = "", width = 120, he
           setCoverUrl(objectUrl);
         }
       } catch {
-        if (!cancelled) setCoverError(true);
+        return;
       }
     }
 

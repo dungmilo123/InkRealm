@@ -40,6 +40,7 @@ export interface ChapterTranslatedEvent {
 
 const globalForPublisher = globalThis as unknown as {
   __translationPublisher?: IORedis;
+  __translationPublisherConfigValidated?: boolean;
 };
 
 /**
@@ -62,6 +63,30 @@ function getRedisUrl(): string {
 }
 
 /**
+ * One-time startup validation so misconfiguration is visible immediately in logs.
+ * Runtime publish still stays best-effort and non-throwing (R031).
+ */
+function validatePublisherConfigOnStartup(): void {
+  if (globalForPublisher.__translationPublisherConfigValidated) {
+    return;
+  }
+  globalForPublisher.__translationPublisherConfigValidated = true;
+
+  try {
+    getRedisUrl();
+  } catch (error) {
+    if (process.env.NODE_ENV !== "test") {
+      console.error(
+        "[pubsub] Startup Redis publisher configuration error:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+}
+
+validatePublisherConfigOnStartup();
+
+/**
  * Returns a lazy ioredis singleton dedicated to Pub/Sub publishing.
  * Separate from the BullMQ connection — ioredis requires distinct clients
  * for pub/sub vs. command usage.
@@ -73,9 +98,16 @@ function getPublisherConnection(): IORedis {
 
   const url = getRedisUrl();
   const client = new IORedis(url, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 3,
     enableReadyCheck: false,
     lazyConnect: true,
+  });
+
+  client.on("error", (error) => {
+    console.error(
+      "[pubsub] Redis publisher error:",
+      error instanceof Error ? error.message : error,
+    );
   });
 
   globalForPublisher.__translationPublisher = client;

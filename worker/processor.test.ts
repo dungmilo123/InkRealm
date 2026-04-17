@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Job } from "bullmq";
 import type { TranslationQueueJobData } from "@/app/lib/queue/translation";
 
 // ── Mocks ──────────────────────────────────────────────────────────────
@@ -21,19 +22,25 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
+type TranslationRecord = NonNullable<
+  Awaited<ReturnType<typeof getTranslationJobById>>
+>;
+
 /** Minimal fake BullMQ Job object — only the fields the processor uses. */
-function fakeJob(data: TranslationQueueJobData) {
-  return { data } as any;
+function fakeJob(data: TranslationQueueJobData): Job<TranslationQueueJobData> {
+  return { data } as unknown as Job<TranslationQueueJobData>;
 }
 
-function fakeTranslation(overrides: Record<string, unknown> = {}) {
+function fakeTranslation(
+  overrides: Partial<TranslationRecord> = {},
+): TranslationRecord {
   return {
     id: "trans-1",
     status: "IN_PROGRESS",
     failedChapterIndex: null,
     failureReason: null,
     ...overrides,
-  };
+  } as TranslationRecord;
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────
@@ -52,7 +59,9 @@ describe("processTranslationJob", () => {
       profileId: "p-789",
       allowFailedState: true,
     };
-    vi.mocked(runTranslationJob).mockResolvedValue({} as any);
+    vi.mocked(runTranslationJob).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof runTranslationJob>>,
+    );
 
     await processTranslationJob(fakeJob(data));
 
@@ -69,7 +78,9 @@ describe("processTranslationJob", () => {
       translationId: "t-123",
       userId: "u-456",
     };
-    vi.mocked(runTranslationJob).mockResolvedValue({} as any);
+    vi.mocked(runTranslationJob).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof runTranslationJob>>,
+    );
 
     await processTranslationJob(fakeJob(data));
 
@@ -102,9 +113,11 @@ describe("handleTerminalFailure", () => {
 
   it("marks translation FAILED in DB when status is IN_PROGRESS", async () => {
     vi.mocked(getTranslationJobById).mockResolvedValue(
-      fakeTranslation({ status: "IN_PROGRESS" }) as any,
+      fakeTranslation({ status: "IN_PROGRESS" }),
     );
-    vi.mocked(setTranslationFailed).mockResolvedValue({} as any);
+    vi.mocked(setTranslationFailed).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof setTranslationFailed>>,
+    );
 
     await handleTerminalFailure(fakeJob(baseData), new Error("out of tokens"));
 
@@ -120,9 +133,11 @@ describe("handleTerminalFailure", () => {
       fakeTranslation({
         status: "IN_PROGRESS",
         failedChapterIndex: 7,
-      }) as any,
+      }),
     );
-    vi.mocked(setTranslationFailed).mockResolvedValue({} as any);
+    vi.mocked(setTranslationFailed).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof setTranslationFailed>>,
+    );
 
     await handleTerminalFailure(
       fakeJob(baseData),
@@ -136,7 +151,7 @@ describe("handleTerminalFailure", () => {
 
   it("skips FAILED write when DB status is CANCELLED", async () => {
     vi.mocked(getTranslationJobById).mockResolvedValue(
-      fakeTranslation({ status: "CANCELLED" }) as any,
+      fakeTranslation({ status: "CANCELLED" }),
     );
 
     await handleTerminalFailure(fakeJob(baseData), new Error("boom"));
@@ -149,7 +164,7 @@ describe("handleTerminalFailure", () => {
 
   it("skips FAILED write when DB status is COMPLETED", async () => {
     vi.mocked(getTranslationJobById).mockResolvedValue(
-      fakeTranslation({ status: "COMPLETED" }) as any,
+      fakeTranslation({ status: "COMPLETED" }),
     );
 
     await handleTerminalFailure(fakeJob(baseData), new Error("boom"));
@@ -190,7 +205,7 @@ describe("handleTerminalFailure", () => {
 
   it("does not throw when DB write (setTranslationFailed) fails", async () => {
     vi.mocked(getTranslationJobById).mockResolvedValue(
-      fakeTranslation({ status: "IN_PROGRESS" }) as any,
+      fakeTranslation({ status: "IN_PROGRESS" }),
     );
     vi.mocked(setTranslationFailed).mockRejectedValue(
       new Error("write timeout"),
@@ -208,14 +223,21 @@ describe("handleTerminalFailure", () => {
 
   it("truncates long error messages to 1000 chars", async () => {
     vi.mocked(getTranslationJobById).mockResolvedValue(
-      fakeTranslation({ status: "IN_PROGRESS" }) as any,
+      fakeTranslation({ status: "IN_PROGRESS" }),
     );
-    vi.mocked(setTranslationFailed).mockResolvedValue({} as any);
+    vi.mocked(setTranslationFailed).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof setTranslationFailed>>,
+    );
 
     const longMessage = "x".repeat(2000);
     await handleTerminalFailure(fakeJob(baseData), new Error(longMessage));
 
-    const call = vi.mocked(setTranslationFailed).mock.calls[0][0];
+    const firstCall = vi.mocked(setTranslationFailed).mock.calls[0];
+    expect(firstCall).toBeDefined();
+    if (!firstCall) {
+      throw new Error("Expected setTranslationFailed to be called");
+    }
+    const call = firstCall[0];
     expect(call.failureReason).toHaveLength(1000);
   });
 
@@ -224,9 +246,11 @@ describe("handleTerminalFailure", () => {
       fakeTranslation({
         status: "PENDING",
         failedChapterIndex: null,
-      }) as any,
+      }),
     );
-    vi.mocked(setTranslationFailed).mockResolvedValue({} as any);
+    vi.mocked(setTranslationFailed).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof setTranslationFailed>>,
+    );
 
     await handleTerminalFailure(fakeJob(baseData), new Error("fail"));
 

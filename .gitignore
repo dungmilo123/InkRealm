@@ -80,10 +80,7 @@ CLAUDE.md
 .agents/
 skills-lock.json
 
-# ── GSD baseline (auto-generated) ──
 .gsd-id
 .env
 .env.*
-
-# ── GSD baseline (auto-generated) ──
 .bg-shell/

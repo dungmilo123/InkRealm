@@ -114,27 +114,6 @@ function makeJob(overrides: Partial<MockJob> = {}): MockJob {
   };
 }
 
-function makeSnapshotEvent(
-  job: MockJob,
-  chapterStatuses: MockChapterStatus[]
-) {
-  return { job, chapterStatuses };
-}
-
-function makeChapterTranslatedEvent(
-  translationId: string,
-  chapterIndex: number,
-  completedAt: string,
-  job: MockJob
-) {
-  return {
-    type: "chapter-translated",
-    translationId,
-    chapterStatus: { chapterIndex, status: "translated" as const, completedAt },
-    job,
-  };
-}
-
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -584,12 +563,10 @@ describe("useTranslationSSE", () => {
         [1, { chapterIndex: 1, status: "translated", completedAt: "2024-01-01T00:00:00Z" }],
         [2, { chapterIndex: 2, status: "translating" }],
       ]);
-      const lastKnown = Array.from(map.values());
-
-      // Simulate fetch failure — map should NOT be cleared
+      // Simulate fetch failure — map should NOT be cleared.
       const fetchFailed = true;
       if (fetchFailed) {
-        // Skip cycle — lastKnown preserved
+        // Skip cycle — map state is preserved.
       }
 
       expect(map.get(1)!.status).toBe("translated");

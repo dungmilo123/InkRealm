@@ -67,7 +67,6 @@ import {
   createTranslationJobFromNovelDetails,
   retryTranslationJob,
   runTranslationJob,
-  type TranslationJobView,
 } from "@/app/lib/translation/service";
 
 function buildMinimalEpubBuffer() {

@@ -226,7 +226,10 @@ function setupSuccessfulRun(chapterCount = 2) {
     chapterSummary: null,
     detectedTerms: [],
   });
-  mockMarkChapterTranslated.mockResolvedValue({});
+  mockMarkChapterTranslated.mockImplementation(async (input: { chapterIndex: number }) => ({
+    chapterIndex: input.chapterIndex,
+    updatedAt: new Date(`2026-01-${String(input.chapterIndex).padStart(2, "0")}T00:00:00.000Z`),
+  }));
   mockUpsertNovelTranslatedChapter.mockResolvedValue({});
   // countTranslatedChapters is called once per chapter in the loop, then once in finalize
   mockCountTranslatedChapters.mockResolvedValue(chapterCount);
@@ -253,8 +256,38 @@ describe("runTranslationJob pub/sub integration", () => {
     vi.clearAllMocks();
   });
 
-  it("calls publishChapterTranslated once per chapter with correct translationId and chapterIndex", async () => {
+  it("calls publishChapterTranslated for each chapter and emits a final completed-state event", async () => {
     setupSuccessfulRun(2);
+
+    await runTranslationJob({
+      translationId: TRANSLATION_ID,
+      profileId: "profile-1",
+      userId: USER_ID,
+    });
+
+    expect(mockPublishChapterTranslated).toHaveBeenCalledTimes(3);
+
+    // Chapter events
+    const firstCall = mockPublishChapterTranslated.mock.calls[0][0] as ChapterTranslatedEvent;
+    expect(firstCall.translationId).toBe(TRANSLATION_ID);
+    expect(firstCall.chapterStatus.chapterIndex).toBe(1);
+    expect(firstCall.job.status).toBe("IN_PROGRESS");
+
+    const secondCall = mockPublishChapterTranslated.mock.calls[1][0] as ChapterTranslatedEvent;
+    expect(secondCall.translationId).toBe(TRANSLATION_ID);
+    expect(secondCall.chapterStatus.chapterIndex).toBe(2);
+    expect(secondCall.job.status).toBe("IN_PROGRESS");
+
+    // Final terminal event
+    const terminalCall = mockPublishChapterTranslated.mock.calls[2][0] as ChapterTranslatedEvent;
+    expect(terminalCall.translationId).toBe(TRANSLATION_ID);
+    expect(terminalCall.chapterStatus.chapterIndex).toBe(2);
+    expect(terminalCall.job.status).toBe("COMPLETED");
+    expect(terminalCall.job.completedChapters).toBe(2);
+  });
+
+  it("uses DB-backed chapter completedAt and emits terminal completed status", async () => {
+    setupSuccessfulRun(1);
 
     await runTranslationJob({
       translationId: TRANSLATION_ID,
@@ -264,54 +297,33 @@ describe("runTranslationJob pub/sub integration", () => {
 
     expect(mockPublishChapterTranslated).toHaveBeenCalledTimes(2);
 
-    // First chapter
-    const firstCall = mockPublishChapterTranslated.mock.calls[0][0] as ChapterTranslatedEvent;
-    expect(firstCall.translationId).toBe(TRANSLATION_ID);
-    expect(firstCall.chapterStatus.chapterIndex).toBe(1);
-
-    // Second chapter
-    const secondCall = mockPublishChapterTranslated.mock.calls[1][0] as ChapterTranslatedEvent;
-    expect(secondCall.translationId).toBe(TRANSLATION_ID);
-    expect(secondCall.chapterStatus.chapterIndex).toBe(2);
-  });
-
-  it("includes correct payload shape with type, chapterStatus, and job fields", async () => {
-    setupSuccessfulRun(1);
-
-    await runTranslationJob({
-      translationId: TRANSLATION_ID,
-      profileId: "profile-1",
-      userId: USER_ID,
-    });
-
-    expect(mockPublishChapterTranslated).toHaveBeenCalledTimes(1);
-
-    const event = mockPublishChapterTranslated.mock.calls[0][0] as ChapterTranslatedEvent;
+    const chapterEvent = mockPublishChapterTranslated.mock.calls[0][0] as ChapterTranslatedEvent;
 
     // type field
-    expect(event.type).toBe("chapter-translated");
+    expect(chapterEvent.type).toBe("chapter-translated");
 
     // chapterStatus fields
-    expect(event.chapterStatus).toEqual(
+    expect(chapterEvent.chapterStatus).toEqual(
       expect.objectContaining({
         chapterIndex: 1,
         status: "translated",
       })
     );
-    expect(typeof event.chapterStatus.completedAt).toBe("string");
-    // Should be a valid ISO timestamp
-    expect(new Date(event.chapterStatus.completedAt).toISOString()).toBe(event.chapterStatus.completedAt);
+    expect(chapterEvent.chapterStatus.completedAt).toBe("2026-01-01T00:00:00.000Z");
 
     // job fields
-    expect(event.job).toEqual(
+    expect(chapterEvent.job).toEqual(
       expect.objectContaining({
         id: TRANSLATION_ID,
         completedChapters: expect.any(Number),
         totalChapters: expect.any(Number),
       })
     );
-    expect(typeof event.job.status).toBe("string");
-    expect(typeof event.job.updatedAt).toBe("string");
+    expect(chapterEvent.job.status).toBe("IN_PROGRESS");
+    expect(typeof chapterEvent.job.updatedAt).toBe("string");
+
+    const terminalEvent = mockPublishChapterTranslated.mock.calls[1][0] as ChapterTranslatedEvent;
+    expect(terminalEvent.job.status).toBe("COMPLETED");
   });
 
   it("continues translation when publishChapterTranslated throws (R031 resilience)", async () => {
@@ -333,7 +345,7 @@ describe("runTranslationJob pub/sub integration", () => {
     // Both chapters were translated (adapter called twice)
     expect(mockTranslateChapter).toHaveBeenCalledTimes(2);
 
-    // Publish was attempted for both chapters
-    expect(mockPublishChapterTranslated).toHaveBeenCalledTimes(2);
+    // Publish was attempted for both chapter events + terminal completion event
+    expect(mockPublishChapterTranslated).toHaveBeenCalledTimes(3);
   });
 });

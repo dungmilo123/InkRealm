@@ -98,7 +98,6 @@ export function TranslationPanel({
   hangingChapterIndex,
   chapterCount,
   chapterStatuses,
-  translatedChapterCount,
 }: TranslationPanelProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

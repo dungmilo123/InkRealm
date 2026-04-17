@@ -53,6 +53,13 @@ vi.mock("@/app/lib/translation/export", () => ({
   deleteTranslatedExportFile: async () => {},
 }));
 
+// Mock the pub/sub publisher so lifecycle tests don't attempt real Redis connections.
+// M004 introduced publishChapterTranslated into runTranslationJob — this mock ensures
+// the integration test still exercises the full translation pipeline without Redis.
+vi.mock("@/app/lib/translation/pubsub", () => ({
+  publishChapterTranslated: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { createNovel } from "@/app/lib/novels";
 import { prisma } from "@/app/lib/prisma";
 import { createTranslationProfile } from "@/app/lib/translation/profiles";

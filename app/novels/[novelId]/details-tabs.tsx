@@ -6,7 +6,7 @@ import type { ReaderSummary } from "@/app/lib/reader";
 import { Badge } from "@/components/ui/badge";
 import { TranslationPanel } from "./translation-panel";
 import { GlossaryPanel } from "./glossary-panel";
-import { useTranslationPolling } from "./use-translation-polling";
+import { useTranslationSSE } from "./use-translation-sse";
 import { useTranslationEta } from "./use-translation-eta";
 import { useTranslationNotification } from "./use-translation-notification";
 import { estimateReadingMinutes, formatReadingTime } from "@/lib/reading-time";
@@ -317,8 +317,8 @@ export function DetailsTabs({
     (updater: (prev: typeof job) => typeof job) => setJob(updater),
     []
   );
-  const { isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
-    useTranslationPolling(job, handleJobUpdate);
+  const { sseConnected, isHanging, hangingChapterIndex, chapterStatuses: polledChapterStatuses } =
+    useTranslationSSE(job, handleJobUpdate, initialChapterStatuses);
 
   // Browser notifications for background translation completion
   const { canRequest, isGranted, isSupported, requestPermission } =

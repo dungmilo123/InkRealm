@@ -38,6 +38,7 @@ import {
 import { canDownloadTranslationExport, writeTranslatedExportFile } from "@/app/lib/translation/export";
 import { buildTranslatedEpub } from "@/app/lib/translation/epub-export";
 import { TranslationHttpError, toErrorMessage } from "@/app/lib/translation/errors";
+import { publishChapterTranslated } from "@/app/lib/translation/pubsub";
 import {
   getCredentialForTranslationSnapshot,
   getTranslationProfileCredential,
@@ -503,7 +504,34 @@ export async function runTranslationJob(input: {
 
         // Increment completedChapters for real-time polling
         const translatedCount = await countTranslatedChapters(input.translationId);
-        await updateTranslationCompletedCount(input.translationId, translatedCount);
+        const updatedJob = await updateTranslationCompletedCount(input.translationId, translatedCount);
+
+        // Publish chapter-translated event for real-time SSE consumers (R028).
+        // publishChapterTranslated handles errors internally — never throws (R031).
+        // Defense-in-depth: wrap in try/catch so a hypothetical escape never
+        // breaks the translation loop.
+        try {
+          await publishChapterTranslated({
+            type: "chapter-translated",
+            translationId: input.translationId,
+            chapterStatus: {
+              chapterIndex: chapterState.chapterIndex,
+              status: "translated",
+              completedAt: new Date().toISOString(),
+            },
+            job: {
+              id: updatedJob.id,
+              status: updatedJob.status,
+              completedChapters: updatedJob.completedChapters,
+              totalChapters: updatedJob.totalChapters,
+              updatedAt: updatedJob.updatedAt instanceof Date
+                ? updatedJob.updatedAt.toISOString()
+                : String(updatedJob.updatedAt),
+            },
+          });
+        } catch {
+          // Swallow — publish must never fail the translation (R031)
+        }
 
         chapterSuccess = true;
         break;

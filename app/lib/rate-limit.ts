@@ -180,6 +180,18 @@ export const apiFrequentLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
 });
 
+/**
+ * Connection-open limiter for long-lived translation SSE streams.
+ * 30 stream opens per 5 minutes per IP.
+ *
+ * Protects: reconnect storms and repeated manual refreshes against the
+ * translation progress stream.
+ */
+export const translationStreamLimiter = createRateLimiter({
+  limit: 30,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+});
+
 // ─── Helpers ───────────────────────────────────────────────────────
 
 /**

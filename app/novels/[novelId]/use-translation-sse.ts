@@ -228,6 +228,10 @@ export function useTranslationSSE<T extends TranslationJob>(
       if (eventSource.readyState === SSE_CLOSED) {
         sseClosedRef.current = true;
         setSseConnected(false);
+        // Browser stopped reconnecting — resume fallback polling immediately.
+        if (sseActive && document.visibilityState !== "hidden") {
+          startPolling();
+        }
       }
     };
 

@@ -508,6 +508,7 @@ export async function listTranslatedChaptersForExport(translationId: string) {
       chapterIndex: true,
       translatedTitle: true,
       translatedContent: true,
+      updatedAt: true,
     },
   });
 }

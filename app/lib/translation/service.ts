@@ -38,6 +38,7 @@ import {
 import { canDownloadTranslationExport, writeTranslatedExportFile } from "@/app/lib/translation/export";
 import { buildTranslatedEpub } from "@/app/lib/translation/epub-export";
 import { TranslationHttpError, toErrorMessage } from "@/app/lib/translation/errors";
+import { publishChapterTranslated } from "@/app/lib/translation/pubsub";
 import {
   getCredentialForTranslationSnapshot,
   getTranslationProfileCredential,
@@ -167,6 +168,37 @@ async function finalizeTranslationState(input: {
       exportPath: exportFile.filePath,
       completedChapters: translatedCount,
     });
+
+    // Publish a terminal state event so connected SSE clients observe the
+    // completed status immediately without waiting for reconnect/polling.
+    try {
+      const lastChapter = chapters[chapters.length - 1];
+      if (lastChapter) {
+        await publishChapterTranslated({
+          type: "chapter-translated",
+          translationId: input.translationId,
+          chapterStatus: {
+            chapterIndex: lastChapter.chapterIndex,
+            status: "translated",
+            completedAt: lastChapter.updatedAt instanceof Date
+              ? lastChapter.updatedAt.toISOString()
+              : String(lastChapter.updatedAt),
+          },
+          job: {
+            id: completed.id,
+            status: completed.status,
+            completedChapters: completed.completedChapters,
+            totalChapters: completed.totalChapters,
+            updatedAt: completed.updatedAt instanceof Date
+              ? completed.updatedAt.toISOString()
+              : String(completed.updatedAt),
+          },
+        });
+      }
+    } catch {
+      // Swallow — publish must never fail the translation (R031)
+    }
+
     return toTranslationJobView(completed);
   }
 
@@ -462,7 +494,7 @@ export async function runTranslationJob(input: {
           }
         );
 
-        await markChapterTranslated({
+        const translatedChapter = await markChapterTranslated({
           translationId: input.translationId,
           chapterIndex: chapterState.chapterIndex,
           translatedTitle: translated.translatedTitle,
@@ -503,7 +535,36 @@ export async function runTranslationJob(input: {
 
         // Increment completedChapters for real-time polling
         const translatedCount = await countTranslatedChapters(input.translationId);
-        await updateTranslationCompletedCount(input.translationId, translatedCount);
+        const updatedJob = await updateTranslationCompletedCount(input.translationId, translatedCount);
+
+        // Publish chapter-translated event for real-time SSE consumers (R028).
+        // publishChapterTranslated handles errors internally — never throws (R031).
+        // Defense-in-depth: wrap in try/catch so a hypothetical escape never
+        // breaks the translation loop.
+        try {
+          await publishChapterTranslated({
+            type: "chapter-translated",
+            translationId: input.translationId,
+            chapterStatus: {
+              chapterIndex: chapterState.chapterIndex,
+              status: "translated",
+              completedAt: translatedChapter.updatedAt instanceof Date
+                ? translatedChapter.updatedAt.toISOString()
+                : String(translatedChapter.updatedAt),
+            },
+            job: {
+              id: updatedJob.id,
+              status: updatedJob.status,
+              completedChapters: updatedJob.completedChapters,
+              totalChapters: updatedJob.totalChapters,
+              updatedAt: updatedJob.updatedAt instanceof Date
+                ? updatedJob.updatedAt.toISOString()
+                : String(updatedJob.updatedAt),
+            },
+          });
+        } catch {
+          // Swallow — publish must never fail the translation (R031)
+        }
 
         chapterSuccess = true;
         break;

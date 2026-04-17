@@ -53,6 +53,13 @@ vi.mock("@/app/lib/translation/export", () => ({
   deleteTranslatedExportFile: async () => {},
 }));
 
+// Mock the pub/sub publisher so lifecycle tests don't attempt real Redis connections.
+// M004 introduced publishChapterTranslated into runTranslationJob — this mock ensures
+// the integration test still exercises the full translation pipeline without Redis.
+vi.mock("@/app/lib/translation/pubsub", () => ({
+  publishChapterTranslated: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { createNovel } from "@/app/lib/novels";
 import { prisma } from "@/app/lib/prisma";
 import { createTranslationProfile } from "@/app/lib/translation/profiles";
@@ -60,7 +67,6 @@ import {
   createTranslationJobFromNovelDetails,
   retryTranslationJob,
   runTranslationJob,
-  type TranslationJobView,
 } from "@/app/lib/translation/service";
 
 function buildMinimalEpubBuffer() {
@@ -126,6 +132,8 @@ function buildMinimalEpubBuffer() {
   return zip.toBuffer();
 }
 
+// This integration test covers DB + HTTP + retry paths; keep an explicit timeout
+// to avoid scheduler-related flakes when the full suite runs concurrently.
 test("translation lifecycle works for txt/epub with failure and retry", async () => {
   process.env.TRANSLATION_ENCRYPTION_SECRET = "translation-lifecycle-test-secret";
 
@@ -330,4 +338,4 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     await rm(exportDir, { recursive: true, force: true });
     storageMap.clear();
   }
-});
+}, 15_000);

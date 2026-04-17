@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       return rateLimitResponse(rl);
     }
 
-    const { session, response } = await requireAuth();
+    const { response } = await requireAuth();
     if (response) return response;
 
     const body = await request.json() as { fileName?: string; fileSize?: number };

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { IncomingMessage, ServerResponse } from "node:http";
+
+type WorkerProcessor = (job: unknown) => Promise<void> | void;
 
 // ── Hoisted state (available inside vi.mock factories) ─────────────────
 
@@ -15,10 +18,11 @@ const {
   mockWorkerClose: vi.fn().mockResolvedValue(undefined),
   mockWorkerConstructorCalls: [] as Array<{
     queueName: string;
-    processor: Function;
+    processor: WorkerProcessor;
     opts: Record<string, unknown>;
   }>,
-  mockServerListen: vi.fn((_port: number, cb?: () => void) => {
+  mockServerListen: vi.fn((port: number, cb?: () => void) => {
+    void port;
     if (cb) cb();
   }),
   mockServerClose: vi.fn(),
@@ -34,24 +38,27 @@ vi.mock("@next/env", () => ({
   }),
 }));
 
-// BullMQ Worker — regular function constructor (not arrow)
+// BullMQ Worker — class constructor
 vi.mock("bullmq", () => {
-  function MockWorker(
-    this: any,
-    queueName: string,
-    processor: Function,
-    opts: Record<string, unknown>,
-  ) {
-    mockWorkerConstructorCalls.push({ queueName, processor, opts });
-    this.on = mockWorkerOn;
-    this.close = mockWorkerClose;
+  class MockWorker {
+    on = mockWorkerOn;
+    close = mockWorkerClose;
+
+    constructor(
+      queueName: string,
+      processor: WorkerProcessor,
+      opts: Record<string, unknown>,
+    ) {
+      mockWorkerConstructorCalls.push({ queueName, processor, opts });
+    }
   }
+
   return { Worker: MockWorker };
 });
 
-// ioredis — regular function constructor
+// ioredis constructor
 vi.mock("ioredis", () => {
-  function MockIORedis(this: any, _url: string, _opts: unknown) {}
+  class MockIORedis {}
   return { default: MockIORedis };
 });
 
@@ -68,10 +75,20 @@ vi.mock("@/app/lib/queue/translation", () => ({
 
 // node:http — prevent real port binding
 vi.mock("node:http", () => ({
-  createServer: vi.fn((handler: Function) => ({
-    listen: mockServerListen,
-    close: mockServerClose,
-  })),
+  createServer: vi.fn(
+    (
+      handler: (
+        req: IncomingMessage,
+        res: ServerResponse,
+      ) => void,
+    ) => {
+      void handler;
+      return {
+        listen: mockServerListen,
+        close: mockServerClose,
+      };
+    },
+  ),
 }));
 
 // ── Imports (after mocks) ──────────────────────────────────────────────
@@ -83,7 +100,7 @@ import { handleTerminalFailure } from "./processor";
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function fakeHttp(method: string, url: string) {
-  const req = { method, url } as any;
+  const req = { method, url } as IncomingMessage;
 
   let writtenStatus = 0;
   let writtenHeaders: Record<string, string> = {};
@@ -93,11 +110,13 @@ function fakeHttp(method: string, url: string) {
     writeHead(status: number, headers?: Record<string, string>) {
       writtenStatus = status;
       if (headers) writtenHeaders = headers;
+      return res;
     },
     end(body?: string) {
       if (body) writtenBody = body;
+      return res;
     },
-  } as any;
+  } as unknown as ServerResponse;
 
   return {
     req,
@@ -172,7 +191,12 @@ describe("Terminal failure event routing", () => {
     );
     expect(failedCall).toBeDefined();
 
-    const failedHandler = failedCall![1] as Function;
+    const failedHandler = failedCall?.[1];
+    expect(typeof failedHandler).toBe("function");
+    if (typeof failedHandler !== "function") {
+      throw new Error("Expected failed handler function");
+    }
+
     const fakeJob = {
       id: "job-1",
       attemptsMade: 3,
@@ -192,7 +216,12 @@ describe("Terminal failure event routing", () => {
     );
     expect(failedCall).toBeDefined();
 
-    const failedHandler = failedCall![1] as Function;
+    const failedHandler = failedCall?.[1];
+    expect(typeof failedHandler).toBe("function");
+    if (typeof failedHandler !== "function") {
+      throw new Error("Expected failed handler function");
+    }
+
     const fakeJob = {
       id: "job-2",
       attemptsMade: 1,

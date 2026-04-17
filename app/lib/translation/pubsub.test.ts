@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ---------------------------------------------------------------------------
 
 const mockPublish = vi.fn().mockResolvedValue(1); // 1 subscriber
+const mockRedisCtor = vi.fn();
 
 const mockRedisInstance = {
   publish: mockPublish,
@@ -13,6 +14,7 @@ const mockRedisInstance = {
 vi.mock("ioredis", () => {
   // Must use a regular function so `new IORedis(...)` works
   function IORedis() {
+    mockRedisCtor();
     return mockRedisInstance;
   }
   return { default: IORedis };
@@ -67,6 +69,7 @@ describe("getTranslationChannel", () => {
 
 describe("publishChapterTranslated", () => {
   const originalEnv = process.env.UPSTASH_REDIS_URL;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
     // Reset singleton between tests
@@ -74,6 +77,7 @@ describe("publishChapterTranslated", () => {
     delete g.__translationPublisher;
 
     vi.clearAllMocks();
+    process.env.NODE_ENV = "test";
     process.env.UPSTASH_REDIS_URL = "rediss://:pw@host.upstash.io:6379";
   });
 
@@ -82,6 +86,12 @@ describe("publishChapterTranslated", () => {
       delete process.env.UPSTASH_REDIS_URL;
     } else {
       process.env.UPSTASH_REDIS_URL = originalEnv;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
   });
 
@@ -195,9 +205,23 @@ describe("publishChapterTranslated", () => {
     await publishChapterTranslated(validEvent());
     await publishChapterTranslated(validEvent());
 
-    // publish called twice but on same mock instance (constructor called once)
+    // publish called twice but constructor called once (singleton reused)
     expect(mockPublish).toHaveBeenCalledTimes(2);
+    expect(mockRedisCtor).toHaveBeenCalledTimes(1);
     // The globalThis singleton should exist
+    const g = globalThis as Record<string, unknown>;
+    expect(g.__translationPublisher).toBeDefined();
+  });
+
+  it("reuses the same ioredis instance across calls in production mode", async () => {
+    process.env.NODE_ENV = "production";
+
+    await publishChapterTranslated(validEvent());
+    await publishChapterTranslated(validEvent());
+
+    expect(mockPublish).toHaveBeenCalledTimes(2);
+    expect(mockRedisCtor).toHaveBeenCalledTimes(1);
+
     const g = globalThis as Record<string, unknown>;
     expect(g.__translationPublisher).toBeDefined();
   });

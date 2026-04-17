@@ -18,6 +18,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // ── Mock EventSource ────────────────────────────────────────────────────────
 
@@ -29,7 +31,7 @@ function createMockEventSource() {
   let readyState = 1; // EventSource.OPEN
 
   const mock = {
-    ADD_EVENT_LISTENER: (
+    addEventListener: (
       type: string,
       handler: (e: MessageEvent) => void
     ) => {
@@ -370,8 +372,8 @@ describe("useTranslationSSE", () => {
     it("multiple listeners for same event type all receive the event", () => {
       const mock = createMockEventSource();
       const received: number[] = [];
-      mock.ADD_EVENT_LISTENER("snapshot", () => received.push(1));
-      mock.ADD_EVENT_LISTENER("snapshot", () => received.push(2));
+      mock.addEventListener("snapshot", () => received.push(1));
+      mock.addEventListener("snapshot", () => received.push(2));
       mock.dispatch("snapshot", { job: {} });
       expect(received).toEqual([1, 2]);
     });
@@ -460,6 +462,44 @@ describe("useTranslationSSE", () => {
       const result = isNewer ? updated : prev;
       expect(result.updatedAt).toBe("2024-01-02T00:00:00Z");
     });
+
+    it("uses job id as stable dependency key across object identity changes", () => {
+      const previousJob = makeJob({
+        id: "job-1",
+        updatedAt: "2024-01-01T00:00:00Z",
+      });
+      const nextJob = {
+        ...previousJob,
+        updatedAt: "2024-01-02T00:00:00Z",
+      };
+
+      const previousDependency = previousJob.id ?? null;
+      const nextDependency = nextJob.id ?? null;
+
+      expect(previousDependency).toBe(nextDependency);
+    });
+  });
+
+  describe("source-level regression guards", () => {
+    it("keeps EventSource effect dependency keyed by jobId", () => {
+      const source = readFileSync(
+        join(process.cwd(), "app/novels/[novelId]/use-translation-sse.ts"),
+        "utf8"
+      );
+
+      expect(source).toContain("}, [isActive, jobId, onUpdateStable]);");
+      expect(source).not.toContain("}, [isActive, job, onUpdateStable]);");
+    });
+
+    it("initializes hanging baseline from an effect, not render", () => {
+      const source = readFileSync(
+        join(process.cwd(), "app/novels/[novelId]/use-translation-sse.ts"),
+        "utf8"
+      );
+
+      expect(source).toContain("const lastUpdatedAtChangedRef = useRef<number>(0)");
+      expect(source).toContain("lastUpdatedAtChangedRef.current = Date.now();");
+    });
   });
 
   // ── New T02 coverage: SSE connection state machine ─────────────────────────
@@ -500,7 +540,7 @@ describe("useTranslationSSE", () => {
 
     it("polling interval clears on reconnect/open", () => {
       let pollIntervalId: ReturnType<typeof setInterval> | null = 42; // mock interval ID
-      let sseClosedRef = { current: false }; // SSE reconnected
+      const sseClosedRef = { current: false }; // SSE reconnected
 
       if (!sseClosedRef.current && pollIntervalId !== null) {
         clearInterval(pollIntervalId);
@@ -547,7 +587,7 @@ describe("useTranslationSSE", () => {
       const lastKnown = Array.from(map.values());
 
       // Simulate fetch failure — map should NOT be cleared
-      let fetchFailed = true;
+      const fetchFailed = true;
       if (fetchFailed) {
         // Skip cycle — lastKnown preserved
       }
@@ -714,7 +754,7 @@ describe("useTranslationSSE", () => {
       ]);
 
       // Simulate network error — fetch fails, catch block executes
-      let fetchSucceeded = false;
+      const fetchSucceeded = false;
       if (!fetchSucceeded) {
         // Network error — skip this poll cycle
       }

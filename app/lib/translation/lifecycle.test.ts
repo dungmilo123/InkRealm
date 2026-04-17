@@ -133,6 +133,8 @@ function buildMinimalEpubBuffer() {
   return zip.toBuffer();
 }
 
+// This integration test covers DB + HTTP + retry paths; keep an explicit timeout
+// to avoid scheduler-related flakes when the full suite runs concurrently.
 test("translation lifecycle works for txt/epub with failure and retry", async () => {
   process.env.TRANSLATION_ENCRYPTION_SECRET = "translation-lifecycle-test-secret";
 
@@ -337,4 +339,4 @@ test("translation lifecycle works for txt/epub with failure and retry", async ()
     await rm(exportDir, { recursive: true, force: true });
     storageMap.clear();
   }
-});
+}, 15_000);

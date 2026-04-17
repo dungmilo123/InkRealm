@@ -78,9 +78,7 @@ function getPublisherConnection(): IORedis {
     lazyConnect: true,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForPublisher.__translationPublisher = client;
-  }
+  globalForPublisher.__translationPublisher = client;
 
   return client;
 }

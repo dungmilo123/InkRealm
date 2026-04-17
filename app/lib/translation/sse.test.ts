@@ -298,6 +298,11 @@ describe("createTranslationEventStream", () => {
     (redis.emit as (event: string, ...args: unknown[]) => boolean)(
       "message",
       CHANNEL,
+      JSON.stringify(["not", "an", "object"])
+    );
+    (redis.emit as (event: string, ...args: unknown[]) => boolean)(
+      "message",
+      CHANNEL,
       JSON.stringify({ ...validEvent(), type: "chapter-started" })
     );
 
@@ -324,9 +329,10 @@ describe("createTranslationEventStream", () => {
     expect(await readChunk(reader)).toBe(
       `event: chapter-translated\ndata: ${JSON.stringify(event)}\n\n`
     );
-    expect(logger.error).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledTimes(3);
     expect(logger.error.mock.calls[0][0]).toContain("Ignored Redis payload");
     expect(logger.error.mock.calls[1][0]).toContain("Ignored Redis payload");
+    expect(logger.error.mock.calls[2][0]).toContain("Ignored Redis payload");
   });
 
   it("logs subscribe failures and closes the stream cleanly so the client can reconnect", async () => {

@@ -82,17 +82,24 @@ export function useTranslationSSE<T extends TranslationJob>(
   const [chapterStatuses, setChapterStatuses] = useState<ChapterStatus[]>(initialChapterStatuses);
 
   const isActive = job !== null && isActiveStatus(job.status);
+  const jobId = job?.id ?? null;
 
   // Keep job ref in sync
   useEffect(() => {
     jobRef.current = job;
   });
 
+  // Establish a real-time baseline after mount to avoid hanging false
+  // positives while still keeping render pure.
+  useEffect(() => {
+    lastUpdatedAtChangedRef.current = Date.now();
+  }, []);
+
   // Reset when job becomes inactive
   useEffect(() => {
     if (!isActive) {
       lastUpdatedAtRef.current = null;
-      lastUpdatedAtChangedRef.current = 0;
+      lastUpdatedAtChangedRef.current = Date.now();
     }
   }, [isActive]);
 
@@ -102,11 +109,11 @@ export function useTranslationSSE<T extends TranslationJob>(
   );
 
   useEffect(() => {
-    if (!isActive || !job) return;
+    if (!isActive || !jobId) return;
 
     // ── SSE connection ────────────────────────────────────────────────────────
 
-    const eventSource = new EventSource(`/api/translation/jobs/${job.id}/stream`);
+    const eventSource = new EventSource(`/api/translation/jobs/${jobId}/stream`);
     let sseActive = true;
 
     function applySnapshot(data: SnapshotEventData) {
@@ -344,7 +351,7 @@ export function useTranslationSSE<T extends TranslationJob>(
       }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isActive, job, onUpdateStable]);
+  }, [isActive, jobId, onUpdateStable]);
 
   // ── Hanging timer (active regardless of SSE/polling) ──────────────────────
   // Check every 30 seconds whether updatedAt has stalled
